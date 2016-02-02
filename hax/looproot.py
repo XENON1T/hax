@@ -14,8 +14,7 @@ class StopEventLoop(Exception):
 def loop_over_dataset(dataset, event_function=lambda event: None, branch_selection='basic'):
     """Execute event_function(event) over all events in the dataset
     Does not return anything: you have to keep track of results yourself (global vars, function attrs, classes, ...)
-    branch selection: can be None (all branches are read), 'basic' (CONFIG['basic_branches'] are read), or
-                      a list of branches to read.
+    branch selection: can be None (all branches are read), 'basic' (CONFIG['basic_branches'] are read), or a list of branches to read.
     """
     # Open the file, load the tree
     # If you get "'TObject' object has no attribute 'GetEntries'" here,
