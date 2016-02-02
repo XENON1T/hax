@@ -10,20 +10,19 @@ Source code: `https://github.com/XENON1T/hax`
 Documentation: `http://hax.readthedocs.org/en/latest/`
 
 
-
 Authors: Jelle Aalbers and Chris Tunnell
 
 
 Tools for common analysis tasks on pax processed data, such as:
 
-*  Finding datasets of a particular source / type in the XENON1T runs database [PLANNED]
+* Finding datasets of a particular source / type in the XENON1T runs database [PLANNED]
 * Looping over every event in one or more root files
 * Make and load 'mini-trees' containing reduced data (e.g. cut booleans, or basic extracted data)
 * Load a big TChain containing the main trees and mini-trees for several datasets [Experimental]
 
 Usage
 =====
-Please see the notebook ... for a tutorial on how to use this.
+Please see the notebook [Hax tutorial](https://github.com/XENON1T/hax/blob/master/Hax%20tutorial.ipynb) for a tutorial on how to use this.
 
 
 Installation

@@ -6,6 +6,8 @@
 Welcome to hax's documentation!
 ===============================
 
+Please see the notebook [Hax tutorial](https://github.com/XENON1T/hax/blob/master/Hax%20tutorial.ipynb) for a tutorial on how to use hax.
+
 Contents:
 
 .. toctree::

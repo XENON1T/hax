@@ -1,6 +1,7 @@
 from configparser import ConfigParser
 import os
 from hax.utils import HAX_DIR
+import socket
 
 CONFIG = {}
 
@@ -14,9 +15,17 @@ def load_configuration(filename, **kwargs):
     configp = ConfigParser(inline_comment_prefixes='#', strict=True)
     configp.read(filename)
 
+    # Which section should we use?
+    section_to_use = 'DEFAULT'
+    full_domain_name = socket.getfqdn()
+    for section_name in configp.sections():
+        if section_name in full_domain_name:
+            section_to_use = section_name
+            break
+
     # Evaluate the values in the ini file
     CONFIG = {}
-    for key, value in configp['hax'].items():
+    for key, value in configp[section_to_use].items():
         CONFIG[key] = eval(value, {'HAX_DIR': HAX_DIR, 'os': os})
 
     # Override with kwargs
@@ -28,5 +37,5 @@ def load_configuration(filename, **kwargs):
 try:
     load_configuration(os.path.join(HAX_DIR, 'hax.ini'))
 except Exception as e:
-    print("Hax configuration loading failed with: %s. This is normal during documentation building, fatal otherwise!" % (
-        str(e)))
+    print("Hax configuration loading failed with: %s, %s. This is normal during documentation building, fatal otherwise!" % (
+        type(e), str(e)))
