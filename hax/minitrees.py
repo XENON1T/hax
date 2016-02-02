@@ -147,7 +147,7 @@ def get_treemaker_name_and_class(tm):
         if not tm in TREEMAKERS:
             raise ValueError("No TreeMaker named %s known to hax!" % tm)
         return tm, TREEMAKERS[tm]
-    elif isinstance(tm, TreeMaker):
+    elif isinstance(tm, type) and issubclass(tm, TreeMaker):
         return tm.__name__, tm
     else:
         raise ValueError("%s is not a TreeMaker child class or name, but a %s" % (tm, type(tm)))
