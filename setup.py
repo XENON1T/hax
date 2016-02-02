@@ -23,6 +23,5 @@ setup(name='hax',
       install_requires=requirements,
       classifiers=['Intended Audience :: Developers',
                    'Development Status :: 3 - Alpha',
-                   'Programming Language :: Python',
                    'Programming Language :: Python :: 3'],
       zip_safe=False)
