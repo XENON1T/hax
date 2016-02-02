@@ -1,8 +1,14 @@
 hax - Handy Analysis tools for XENON
 ====================================
+`https://github.com/XENON1T/hax`
+
+.. image:: https://readthedocs.org/projects/hax/badge/?version=latest
+         :target: http://hax.readthedocs.org/en/latest/?badge=latest
+         :alt: Documentation Status
+
 Authors: Aalbers and Tunnell
 
-`https://github.com/XENON1T/hax`
+
 
 Tools for common analysis tasks on pax processed data, such as:
 
