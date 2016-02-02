@@ -24,6 +24,9 @@ def loop_over_dataset(dataset, event_function=lambda event: None, branch_selecti
     t = rootfile.Get('tree')
     n_events = t.GetEntries()
 
+    if branch_selection == 'basic':
+        branch_selection = CONFIG['basic_branches']
+
     # Activate the desired branches
     if branch_selection:
         t.SetBranchStatus("*", 0)

@@ -22,17 +22,11 @@ import shlex
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../hax'))
 
-# Mock out any C-modules, which won't work during docs building
-from unittest.mock import MagicMock
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
+import mock
 
 MOCK_MODULES = ['ROOT', 'pax', 'rootpy', 'root_numpy', 'numpy', 'pandas']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.MagicMock()
 
 
 # -- General configuration ------------------------------------------------

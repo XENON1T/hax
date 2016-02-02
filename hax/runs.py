@@ -2,22 +2,23 @@
 Runs database utilities
 TEMPORARY: These will soon interface with the XENON1T runs database instead
 """
+from hax.utils import HAX_DIR
 import pandas as pd
 from glob import glob
 import os
+DATASETS = []
 
 # Load the csv files for each run
 def update_datasets():
     global DATASETS
     DATASETS = []
-    for rundbfile in glob('runs_info/*.csv'):
+    for rundbfile in glob(HAX_DIR + '/runs_info/*.csv'):
         tpc, run = os.path.splitext(os.path.basename(rundbfile))[0].split('_')
         dsets = pd.read_csv(rundbfile)
         dsets = pd.concat((dsets, pd.DataFrame([{'tpc': tpc, 'run': run}] * len(dsets))),
                            axis=1)
-        try:
-            DATASETS
-        except NameError:
+
+        if not len(DATASETS):
             DATASETS = dsets
         else:
             DATASETS = pd.concat((DATASETS, dsets))
