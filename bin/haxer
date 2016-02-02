@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+from hax import CONFIG, load_minitrees
+
+import argparse
+parser = argparse.ArgumentParser(description="Make minitrees from pax root files")
+
+parser.add_argument('datasets', nargs='+',
+                    help="datasets to read (with or without .root)",)
+parser.add_argument('--root_dir', default=None,
+                    help="Extra dir to look for main root tree files")
+parser.add_argument('--treemakers', nargs='+', default=['Basics'],
+                    help="Space-separated lists of types of minitrees to make: default Basics only.")
+parser.add_argument('--format_version', default=None,
+                    help="Version of pax data format to use(default to latest known)")
+parser.add_argument('--force_reload', action='store_true', default=False,
+                    help="Force re-creation of mini-trees")
+
+args = parser.parse_args()
+
+if args.root_dir:
+    # Search in the user-specified directory first
+    CONFIG['main_data_paths'] = [args.root_dir] + CONFIG['main_data_paths']
+datasets = [q[:-5] if q.endswith('.root') else q for q in args.datasets]
+
+load_mini_trees(datasets, treemakers=args.treemakers, force_reload=args.force_reload)
