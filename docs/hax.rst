@@ -19,6 +19,15 @@ hax.config module
     :undoc-members:
     :show-inheritance:
 
+
+hax.ipython module
+-----------------
+
+.. automodule:: hax.ipython
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hax.looproot module
 -------------------
 

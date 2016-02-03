@@ -22,7 +22,7 @@ Tools for common analysis tasks on pax processed data, such as:
 
 Usage
 =====
-Please see the notebook [Hax tutorial](https://github.com/XENON1T/hax/blob/master/Hax%20tutorial.ipynb) for a tutorial on how to use this.
+Please see the notebook https://github.com/XENON1T/hax/blob/master/Hax%20tutorial.ipynb for a tutorial on how to use this.
 
 
 Installation
