@@ -35,7 +35,7 @@ def update_datasets():
     DATASETS['location'] = [''] * len(dataset_names)
 
     # Walk through all the main_data_paths, looking for root files
-    for data_dir in CONFIG['main_data_paths']:
+    for data_dir in CONFIG.get('main_data_paths', []):
         for candidate in glob(os.path.join(data_dir, '*.root')):
 
             # What dataset is this file for?

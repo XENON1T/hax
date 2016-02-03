@@ -21,7 +21,7 @@ hax.config module
 
 
 hax.ipython module
------------------
+------------------
 
 .. automodule:: hax.ipython
     :members:
