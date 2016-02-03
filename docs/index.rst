@@ -6,7 +6,7 @@
 Welcome to hax's documentation!
 ===============================
 
-Please see the notebook `https://github.com/XENON1T/hax/blob/master/hax/examples/Hax%20tutorial.ipynb` for a tutorial on how to use hax.
+Please see the notebook `https://github.com/XENON1T/hax/blob/master/examples/Hax tutorial.ipynb` for a tutorial on how to use hax.
 
 Contents:
 
