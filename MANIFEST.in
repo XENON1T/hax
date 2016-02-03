@@ -1,9 +1,0 @@
-include HISTORY.rst
-include README.rst
-include hax.ini
-include requirements.txt
-include pax_classes/*.cpp
-include load_stl.h
-
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
