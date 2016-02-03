@@ -63,7 +63,7 @@ hax.utils module
 hax.waveforms module
 --------------------
 
-.. automodule:: hax.utils
+.. automodule:: hax.waveforms
     :members:
     :undoc-members:
     :show-inheritance:
