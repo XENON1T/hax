@@ -60,6 +60,14 @@ hax.utils module
     :undoc-members:
     :show-inheritance:
 
+hax.waveforms module
+--------------------
+
+.. automodule:: hax.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
