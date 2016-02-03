@@ -63,7 +63,7 @@ for module_filename in glob(os.path.join(HAX_DIR + '/treemakers/*.py')):
     TREEMAKERS[treemaker_name] = getattr(temp, treemaker_name)
 
 
-def get_minitree(dataset, treemaker, force_reload=False):
+def get(dataset, treemaker, force_reload=False):
     """Return path to minitree file from treemaker for dataset.
     The file will be re-created if it is not present, outdated, or force_reload is True (default False)
     """
@@ -109,7 +109,7 @@ def get_minitree(dataset, treemaker, force_reload=False):
     return minitree_path
 
 
-def load_minitrees(datasets, treemakers='Basics', force_reload=False):
+def load(datasets, treemakers='Basics', force_reload=False):
     """Return pandas DataFrame with minitrees of several datasets.
       datasets: names of datasets (without .root) to load
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
@@ -127,7 +127,7 @@ def load_minitrees(datasets, treemakers='Basics', force_reload=False):
 
         dataframes = []
         for dataset in datasets:
-            minitree_path = get_minitree(dataset, treemaker, force_reload=force_reload)
+            minitree_path = get(dataset, treemaker, force_reload=force_reload)
             new_df = pd.DataFrame.from_records(root_numpy.root2rec(minitree_path))
             dataframes.append(new_df)
 
@@ -153,30 +153,3 @@ def get_treemaker_name_and_class(tm):
         raise ValueError("%s is not a TreeMaker child class or name, but a %s" % (tm, type(tm)))
 
 
-def load_chains(datasets, treemakers='Basics', force_reload=False):
-    """Loads big TChain of all datasets, with treemakers' minitrees friended in"""
-    print("THIS DOES NOT WORK YET! SOMEHOW YOU GET A SEGFAULT WHEN LOOPINF OVER THE ENTRIES!!!")
-    global CONFIG
-    if isinstance(datasets, str):
-        datasets = [datasets]
-    if isinstance(treemakers, (type, str)):
-        treemakers = [treemakers]
-
-    main_chain = ROOT.TChain("tree")
-    minitree_chains = {}
-    for tm in treemakers:
-        tm_name, tm = get_treemaker_name_and_class(tm)
-        minitree_chains[tm_name] = ROOT.TChain(tm_name)
-
-    for dataset in datasets:
-        rootfile_name = find_file_in_folders(dataset + '.root', CONFIG['main_data_paths'])
-        main_chain.Add(rootfile_name)
-
-        for tm_name in minitree_chains:
-            rootfile_name = get_minitree(dataset, tm_name, force_reload=force_reload)
-            minitree_chains[tm_name].Add(rootfile_name)
-
-    for tm_name, chain in minitree_chains.items():
-        main_chain.AddFriend(chain, tm_name)
-
-    return main_chain
