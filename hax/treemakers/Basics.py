@@ -6,6 +6,8 @@ class Basics(TreeMaker):
     """Basic minitree containing variables needed in almost every basic analysis.
 
     Provides:
+     - event_number: Event number within the dataset
+     - dataset_number: Numerical representation of dataset id, e.g. xe100_120402_2000 -> 1204022000
      - s1: The uncorrected area in pe of the main interaction's S1
      - s2: The uncorrected area in pe of the main interaction's S2
      - cs1: The corrected area in pe of the main interaction's S1
