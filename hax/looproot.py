@@ -21,10 +21,10 @@ def loop_over_dataset(dataset_name, event_function=lambda event: None, branch_se
     # If you get "'TObject' object has no attribute 'GetEntries'" here,
     # we renamed the tree to T1 or TPax or something
     try:
-        dataset = DATASETS.loc[DATASETS['name'] == 'xe100_120402_200'].iloc[0]
+        dataset = DATASETS.loc[DATASETS['name'] == dataset_name].iloc[0]
         filename = dataset.location
     except IndexError:
-        print("Don't know a dataset named %s, trying to find it anyway...")
+        print("Don't know a dataset named %s, trying to find it anyway..." % dataset_name)
         filename = find_file_in_folders(dataset_name + '.root', CONFIG['main_data_paths'])
     if not filename:
         raise ValueError("Cannot loop over dataset %s, we don't know where it is." % dataset_name)
