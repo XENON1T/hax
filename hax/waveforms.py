@@ -75,8 +75,13 @@ def _inspect_event_xenon100(event_number, xed_filename, focus='all'):
                                'input_name':  filename,
                                'events_to_process': [event_number],
                                'output_name': 'SCREEN'}}
+        # You need to set block_view = True to make it NOT block the view
+        # TODO: Fix this in pax
         if focus != 'all':
-            config_dict['Plotting.PeakViewer'] = {'starting_peak': focus}
+            config_dict['Plotting.PeakViewer'] = {'starting_peak': focus,
+                                                  'block_view': True}
+        else:
+            config_dict['Plotting.PlotEventSummary'] = {'block_view': True}
 
         mypax = core.Processor(config_names='XENON100', config_dict=config_dict)
         mypax.run()
