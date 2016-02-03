@@ -127,7 +127,7 @@ def load(datasets, treemakers='Basics', force_reload=False):
 
         dataframes = []
         for dataset in datasets:
-            minitree_path = get_minitree(dataset, treemaker, force_reload=force_reload)
+            minitree_path = get(dataset, treemaker, force_reload=force_reload)
             new_df = pd.DataFrame.from_records(root_numpy.root2rec(minitree_path))
             dataframes.append(new_df)
 
