@@ -44,7 +44,7 @@ def update_datasets():
 
             if len(bla):
                 # Dataset was found, index is in bla[0]
-                DATASETS.loc[bla[0], 'location'] = os.path.join(data_dir, candidate)
+                DATASETS.loc[bla[0], 'location'] = candidate
 
 
 update_datasets()
