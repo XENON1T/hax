@@ -23,4 +23,4 @@ if args.root_dir:
     CONFIG['main_data_paths'] = [args.root_dir] + CONFIG['main_data_paths']
 datasets = [q[:-5] if q.endswith('.root') else q for q in args.datasets]
 
-load_mini_trees(datasets, treemakers=args.treemakers, force_reload=args.force_reload)
+load(datasets, treemakers=args.treemakers, force_reload=args.force_reload)
