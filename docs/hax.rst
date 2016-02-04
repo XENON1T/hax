@@ -21,7 +21,7 @@ hax.config module
 
 
 hax.ipython module
------------------
+------------------
 
 .. automodule:: hax.ipython
     :members:
@@ -63,7 +63,7 @@ hax.utils module
 hax.waveforms module
 --------------------
 
-.. automodule:: hax.utils
+.. automodule:: hax.waveforms
     :members:
     :undoc-members:
     :show-inheritance:
