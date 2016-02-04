@@ -10,6 +10,8 @@ import os
 import numpy as np
 DATASETS = []
 
+def get_datasets():
+    return DATASETS
 
 # Load the csv files for each run
 def update_datasets():

@@ -2,7 +2,8 @@ import ROOT
 from tqdm import tqdm
 from hax.utils import find_file_in_folders
 from hax.config import CONFIG
-from hax.runs import DATASETS
+from hax.runs import get_datasets
+
 
 # An exception you can raise to stop looping over the current dataset
 class StopEventLoop(Exception):
@@ -17,11 +18,13 @@ def loop_over_dataset(dataset_name, event_function=lambda event: None, branch_se
     Does not return anything: you have to keep track of results yourself (global vars, function attrs, classes, ...)
     branch selection: can be None (all branches are read), 'basic' (CONFIG['basic_branches'] are read), or a list of branches to read.
     """
+    datasets = get_datasets()
+
     # Open the file, load the tree
     # If you get "'TObject' object has no attribute 'GetEntries'" here,
     # we renamed the tree to T1 or TPax or something
     try:
-        dataset = DATASETS.loc[DATASETS['name'] == dataset_name].iloc[0]
+        dataset = datasets.loc[datasets['name'] == dataset_name].iloc[0]
         filename = dataset.location
     except IndexError:
         print("Don't know a dataset named %s, trying to find it anyway..." % dataset_name)
