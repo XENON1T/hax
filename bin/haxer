@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from hax.config import CONFIG
 from hax.minitrees import load
+from hax.runs import update_datasets
 
 import argparse
 parser = argparse.ArgumentParser(description="Make minitrees from pax root files")
@@ -23,4 +24,6 @@ if args.root_dir:
     CONFIG['main_data_paths'] = [args.root_dir] + CONFIG['main_data_paths']
 datasets = [q[:-5] if q.endswith('.root') else q for q in args.datasets]
 
+
+update_datasets()
 load(datasets, treemakers=args.treemakers, force_reload=args.force_reload)
