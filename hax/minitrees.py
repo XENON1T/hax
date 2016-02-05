@@ -69,6 +69,8 @@ def get(dataset, treemaker, force_reload=False):
     """
     global TREEMAKERS
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
+    if not hasattr(treemaker, '__version__'):
+        raise RuntimeError("Please add a __version__ attribute to treemaker %s" % treemaker_name)
     minitree_filename = "%s_%s.root" % (dataset, treemaker_name)
 
     try:
