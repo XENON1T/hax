@@ -41,7 +41,7 @@ class Basics(TreeMaker):
         if dsetname.endswith('.eve'):
             filename = dsetname.split("/")[-1]
             _, date, splitnumber = filename.split('_')
-            dataset_number = int(date) * 1e4 + int(splitnumber)
+            dataset_number = int(date) * 1e4 + int(splitnumber[:-5])
 
         event_data = dict(event_number=event.event_number,
                           event_time=event.start_time,
