@@ -9,7 +9,7 @@ import ROOT
 import root_numpy
 
 from hax.looproot import loop_over_dataset
-from hax.utils import find_file_in_folders, HAX_DIR
+from hax.utils import find_file_in_folders, HAX_DIR, get_user_id
 from hax.config import CONFIG
 
 
@@ -103,7 +103,7 @@ def get(dataset, treemaker, force_reload=False):
         # Write metadata
         f = ROOT.TFile(minitree_path, 'UPDATE')
         ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
-                                                created_by=os.getlogin(),
+                                                created_by=get_user_id(),
                                                 documentation=treemaker.__doc__,
                                                 timestamp=str(datetime.now())))).Write()
         f.Close()
