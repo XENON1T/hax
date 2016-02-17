@@ -38,10 +38,10 @@ class Basics(TreeMaker):
     def extract_data(self, event):
         # Convert from XENON100 dataset name (like xe100_120402_2000_000000.xed) to number
         dsetname = event.dataset_name
-        if dsetname.endswith('.eve'):
+        if dsetname.endswith('.xed'):
             filename = dsetname.split("/")[-1]
-            _, date, splitnumber = filename.split('_')
-            dataset_number = int(date) * 1e4 + int(splitnumber)
+            _, date, time, _ = filename.split('_')
+            dataset_number = int(date) * 1e4 + int(time)
 
         event_data = dict(event_number=event.event_number,
                           event_time=event.start_time,
