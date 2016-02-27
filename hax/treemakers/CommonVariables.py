@@ -1,3 +1,6 @@
+"""Standard variables for most analyses
+"""
+
 from hax.minitrees import TreeMaker
 from collections import defaultdict
 

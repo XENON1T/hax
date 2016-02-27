@@ -71,7 +71,8 @@ def get(dataset, treemaker, force_reload=False):
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
     if not hasattr(treemaker, '__version__'):
         raise RuntimeError("Please add a __version__ attribute to treemaker %s" % treemaker_name)
-    minitree_filename = "%s_%s.root" % (dataset, treemaker_name)
+    minitree_filename = "%s_%s.root" % (dataset,
+                                        treemaker_name)
 
     try:
         minitree_path = find_file_in_folders(minitree_filename, CONFIG['mini_tree_paths'])
@@ -81,8 +82,9 @@ def get(dataset, treemaker, force_reload=False):
         f = ROOT.TFile(minitree_path, 'UPDATE')
         metadata = json.loads(f.Get('metadata').GetTitle())
         if LooseVersion(metadata['version']) < treemaker.__version__:
-            print("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (
-                minitree_path, metadata['version'], treemaker.__version__))
+            print("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (minitree_path,
+                                                                                                            metadata['version'],
+                                                                                                            treemaker.__version__))
             minitree_path = None
         f.Close()
 
