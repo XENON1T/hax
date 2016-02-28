@@ -1,3 +1,7 @@
+"""Make small flat root trees with one entry per event from the pax root files.
+"""
+
+
 from glob import glob
 import os
 from datetime import datetime
@@ -8,9 +12,12 @@ import pandas as pd
 import ROOT
 import root_numpy
 
-from hax.looproot import loop_over_dataset
-from hax.utils import find_file_in_folders, HAX_DIR, get_user_id
-from hax.config import CONFIG
+import hax
+from hax.paxroot import loop_over_dataset
+from hax.utils import find_file_in_folders, get_user_id
+
+# Will be updated to contain all treemakers
+treemakers = {}
 
 
 class TreeMaker(object):
@@ -35,7 +42,7 @@ class TreeMaker(object):
     def get_data(self, dataset):
         """Return data extracted from running over dataset"""
         loop_over_dataset(dataset, self.process_event,
-                          branch_selection=CONFIG['basic_branches'] + list(self.extra_branches))
+                          branch_selection=hax.config['basic_branches'] + list(self.extra_branches))
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
             raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
@@ -51,30 +58,32 @@ class TreeMaker(object):
             self.data = self.data.append(self.cache)
         self.cache = []
 
-# Load the list of treemakers
-TREEMAKERS = {}
-for module_filename in glob(os.path.join(HAX_DIR + '/treemakers/*.py')):
-    treemaker_name = os.path.splitext(os.path.basename(module_filename))[0]
-    if treemaker_name.startswith('_'):
-        continue
-    temp = __import__('hax.treemakers.%s' % treemaker_name,
-                      globals=globals(),
-                      fromlist=[treemaker_name])
-    TREEMAKERS[treemaker_name] = getattr(temp, treemaker_name)
+
+def update_treemakers():
+    """Update the list of treemakers hax knows. Called on hax init, you should never have to call this yourself!"""
+    global treemakers
+    for module_filename in glob(os.path.join(hax.hax_dir + '/treemakers/*.py')):
+        treemaker_name = os.path.splitext(os.path.basename(module_filename))[0]
+        if treemaker_name.startswith('_'):
+            continue
+        temp = __import__('hax.treemakers.%s' % treemaker_name,
+                          globals=globals(),
+                          fromlist=[treemaker_name])
+        treemakers[treemaker_name] = getattr(temp, treemaker_name)
 
 
 def get(dataset, treemaker, force_reload=False):
     """Return path to minitree file from treemaker for dataset.
     The file will be re-created if it is not present, outdated, or force_reload is True (default False)
     """
-    global TREEMAKERS
+    global treemakers
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
     if not hasattr(treemaker, '__version__'):
         raise RuntimeError("Please add a __version__ attribute to treemaker %s" % treemaker_name)
     minitree_filename = "%s_%s.root" % (dataset, treemaker_name)
 
     try:
-        minitree_path = find_file_in_folders(minitree_filename, CONFIG['mini_tree_paths'])
+        minitree_path = find_file_in_folders(minitree_filename, hax.config['mini_tree_paths'])
         print("Found minitree at %s" % minitree_path)
 
         # Check the version of the minitree file
@@ -117,7 +126,6 @@ def load(datasets, treemakers='Basics', force_reload=False):
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
       force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     """
-    global CONFIG
     if isinstance(datasets, str):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
@@ -144,14 +152,12 @@ def load(datasets, treemakers='Basics', force_reload=False):
 
 def get_treemaker_name_and_class(tm):
     """Return (name, class) of treemaker name or class tm"""
-    global TREEMAKERS
+    global treemakers
     if isinstance(tm, str):
-        if not tm in TREEMAKERS:
+        if not tm in treemakers:
             raise ValueError("No TreeMaker named %s known to hax!" % tm)
-        return tm, TREEMAKERS[tm]
+        return tm, treemakers[tm]
     elif isinstance(tm, type) and issubclass(tm, TreeMaker):
         return tm.__name__, tm
     else:
         raise ValueError("%s is not a TreeMaker child class or name, but a %s" % (tm, type(tm)))
-
-
