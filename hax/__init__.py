@@ -4,6 +4,8 @@ import inspect
 from configparser import ConfigParser
 import socket
 
+__version__ = 0.1
+
 # Stitch the package together
 # I am surprised this works (even if we do 'from hax' instead of 'from .')
 # as some of the modules do 'import hax' or 'from hax.foo import bar'.. shouldn't we get circular imports??
