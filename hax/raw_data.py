@@ -20,7 +20,7 @@ def inspect_events_from_minitree(events, *args, **kwargs):
     """
     if isinstance(events, pd.Series):
         events = pd.DataFrame([events])
-    for dataset_number, evts in events.groupby(events, 'dataset_number'):
+    for dataset_number, evts in events.groupby('dataset_number'):
         event_numbers = evts.event_number.values
         inspect_events(dataset_number, event_numbers, *args, **kwargs)
 

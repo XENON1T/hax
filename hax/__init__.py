@@ -5,8 +5,8 @@ from configparser import ConfigParser
 import socket
 
 # Stitch the package together
-# I am surprised this works (even if we did 'from hax' instead of 'from .')
-# given that some of these do 'import hax' or 'from hax.foo import bar', shouldn't we get circular imports??
+# I am surprised this works (even if we do 'from hax' instead of 'from .')
+# as some of the modules do 'import hax' or 'from hax.foo import bar'.. shouldn't we get circular imports??
 # I need to read up on python packaging more...
 from . import ipython, minitrees, paxroot, pmt_plot, raw_data, runs, utils
 
@@ -16,6 +16,7 @@ hax_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()
 # This stores the hax configuration. Will be filled by hax.init().
 # DO NOT import this directly (from hax import config), it will not behave like you expect!
 # (e.g. if you do hax.init() afterwards, your config will still seem to be the empty dictionary.
+# Just do import hax, then hax.init(), then access config has hax.config.
 config = {}
 
 log = logging.getLogger('hax.__init__')

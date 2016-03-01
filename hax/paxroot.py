@@ -1,13 +1,17 @@
 """Utility functions for loading and looping over a pax root file
 """
-
 import logging
+import os
 
+from tqdm import tqdm
 import ROOT
 from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root, ShutUpROOT
 from pax.exceptions import MaybeOldFormatException
 
 import hax
+from hax import runs
+from hax.utils import find_file_in_folders
+
 
 log = logging.getLogger('hax.paxroot')
 
@@ -24,17 +28,12 @@ def open_pax_rootfile(filename):
         log.warning("Root file %s does not include pax event class. Normal for pax < 4.5."
                     "Falling back to event class for pax %s" % (filename, hax.config['old_pax_class_version']))
         # Load the pax class for the data format version
-        load_event_class(os.path.join(hax.config['pax_classes_dir'],
+        load_event_class(os.path.join(hax.config['old_pax_classes_dir'],
                                       'pax_event_class_%d.cpp' % hax.config['old_pax_class_version']))
     return ROOT.TFile(filename)
 
 
 
-from tqdm import tqdm
-import hax
-from hax import runs
-from hax.utils import find_file_in_folders
-from hax.paxroot import open_pax_rootfile
 
 # An exception you can raise to stop looping over the current dataset
 class StopEventLoop(Exception):
