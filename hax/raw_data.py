@@ -67,7 +67,7 @@ def raw_events(dataset_number, event_numbers=None, config_override=None):
                        'output':             'Dummy.DummyOutput',
                        'encoder_plugin':     None}
     for k, v in pax_config_dict.items():
-        config_override.setdefault(k, v)
+        config_override['pax'].setdefault(k, v)
 
     for event in process_events(dataset_number, event_numbers, config_override):
         yield event
