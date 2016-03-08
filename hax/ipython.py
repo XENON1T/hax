@@ -1,6 +1,5 @@
 from textwrap import dedent
 
-
 def code_hider():
     """Make a button in the jupyter notebook to hide all code"""
     # Stolen from stackoverflow... forget which question

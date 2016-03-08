@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-from hax.config import CONFIG
 from hax.minitrees import load
 from hax.runs import update_datasets
+import hax
 
 import argparse
 parser = argparse.ArgumentParser(description="Make minitrees from pax root files")
@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 if args.root_dir:
     # Search in the user-specified directory first
-    CONFIG['main_data_paths'] = [args.root_dir] + CONFIG['main_data_paths']
+    hax.config['main_data_paths'] = [args.root_dir] + hax.config['main_data_paths']
 datasets = [q[:-5] if q.endswith('.root') else q for q in args.datasets]
 
 
