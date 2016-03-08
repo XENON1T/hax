@@ -1,7 +1,5 @@
-"""Cuts are provided here
-"""
-
 from hax.minitrees import TreeMaker
+
 
 class EnergyCut(TreeMaker):
     """S1 and S2 size cut booleans
@@ -17,9 +15,7 @@ class EnergyCut(TreeMaker):
     * This only cuts signals that are too small.
 
     """
-
     __version__ = '0.0.1'
-
 
     def extract_data(self, event):
         # If there are no interactions at all, we can't extract anything...
@@ -42,4 +38,3 @@ class EnergyCut(TreeMaker):
 
         return dict(pass_s1_area_cut=good_s1,
                     pass_s2_area_cut=good_s2)
-

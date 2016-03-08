@@ -63,6 +63,7 @@ class TreeMaker(object):
 def update_treemakers():
     """Update the list of treemakers hax knows. Called on hax init, you should never have to call this yourself!"""
     global treemakers
+    treemakers = {}
     for module_filename in glob(os.path.join(hax.hax_dir + '/treemakers/*.py')):
         module_name = os.path.splitext(os.path.basename(module_filename))[0]
         if module_name.startswith('_'):
@@ -74,6 +75,11 @@ def update_treemakers():
         # Now get all the treemakers defined in the module
         for tm_name, tm in inspect.getmembers(getattr(hax.treemakers, module_name),
                                                       lambda x: type(x) == type and issubclass(x, TreeMaker)):
+            if tm_name == 'TreeMaker':
+                # This one is the base class; we get it because we did from ... import TreeMaker at the top of the file
+                continue
+            if tm_name in treemakers:
+                raise ValueError("Two treemakers named %s!" % tm_name)
             treemakers[tm_name] = tm
 
 
