@@ -2,11 +2,12 @@
 """
 
 
-from glob import glob
-import os
 from datetime import datetime
 from distutils.version import LooseVersion
+from glob import glob
+import inspect
 import json
+import os
 
 import pandas as pd
 import ROOT
@@ -63,13 +64,17 @@ def update_treemakers():
     """Update the list of treemakers hax knows. Called on hax init, you should never have to call this yourself!"""
     global treemakers
     for module_filename in glob(os.path.join(hax.hax_dir + '/treemakers/*.py')):
-        treemaker_name = os.path.splitext(os.path.basename(module_filename))[0]
-        if treemaker_name.startswith('_'):
+        module_name = os.path.splitext(os.path.basename(module_filename))[0]
+        if module_name.startswith('_'):
             continue
-        temp = __import__('hax.treemakers.%s' % treemaker_name,
-                          globals=globals(),
-                          fromlist=[treemaker_name])
-        treemakers[treemaker_name] = getattr(temp, treemaker_name)
+
+        # Import the module, after which we can do hax.treemakers.blah
+        __import__('hax.treemakers.%s' % module_name, globals=globals())
+
+        # Now get all the treemakers defined in the module
+        for tm_name, tm in inspect.getmembers(getattr(hax.treemakers, module_name),
+                                                      lambda x: type(x) == type and issubclass(x, TreeMaker)):
+            treemakers[tm_name] = tm
 
 
 def get(dataset, treemaker, force_reload=False):
