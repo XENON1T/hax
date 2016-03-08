@@ -43,7 +43,7 @@ class StopEventLoop(Exception):
 def loop_over_datasets(datasets_names, event_function=lambda event: None, branch_selection='basic'):
     """Execute event_function(event) over all events in the dataset(s)
     Does not return anything: you have to keep track of results yourself (global vars, function attrs, classes, ...)
-    branch selection: can be None (all branches are read), 'basic' (CONFIG['basic_branches'] are read), or a list of branches to read.
+    branch selection: can be None (all branches are read), 'basic' (hax.config['basic_branches'] are read), or a list of branches to read.
     """
     if isinstance(datasets_names, str):
         datasets_names = [datasets_names]
@@ -57,7 +57,7 @@ def loop_over_datasets(datasets_names, event_function=lambda event: None, branch
             filename = dataset.location
         except IndexError:
             print("Don't know a dataset named %s, trying to find it anyway..." % dataset_name)
-            filename = find_file_in_folders(dataset_name + '.root', CONFIG['main_data_paths'])
+            filename = find_file_in_folders(dataset_name + '.root', hax.config['main_data_paths'])
         if not filename:
             raise ValueError("Cannot loop over dataset %s, we don't know where it is." % dataset_name)
 
