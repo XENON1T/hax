@@ -105,7 +105,7 @@ def _plot_pmts(ax, pmt_selection,
 
 def plot_on_pmt_arrays(color=None, size=None,
                        geometry='physical',
-                       textcolor='white', fontsize=8,
+                       fontsize=8,title=None,
                        scatter_kwargs=None, colorbar_kwargs=None):
     """Plot a scatter plot of PMTs in a specified geometry, with a specified color and size of the markers.
         Color or size must be per-PMT array that is indexable by another array, i.e. must be np.array and not list.
@@ -128,6 +128,9 @@ def plot_on_pmt_arrays(color=None, size=None,
     if geometry == 'physical':
         # For the physical geometry, plot the top and bottom arrays side-by-side.
         _, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=(20, 7))
+        
+        if title is not None:
+            plt.suptitle(title,fontsize=24,x=0.435,y=1.0)
                    
         for array_name, ax in (('top', ax1), ('bottom', ax2)):
             sc = _plot_pmts(ax=ax, 
