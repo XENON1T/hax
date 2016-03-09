@@ -53,7 +53,11 @@ def _plot_pmts(ax, pmt_selection,
     Reliese on pmt_data being present as global.
     Returns the return value of plt.scatter (useful to define a color bar)
     """
+    # Get pmt_data and check if it is defined
     global pmt_data
+    if 'pmt_data' not in globals():
+        raise ValueError("pmt_data needs to be defined, get it using pmt_data = hax.pmt_plot.pmt_data")
+    
     if ykey is not None:
         x, y, pmt_numbers = pmt_data[pmt_selection][[xkey, ykey, 'PMT']].as_matrix().T
         xlabel = xkey
@@ -104,6 +108,7 @@ def plot_on_pmt_arrays(color=None, size=None,
                        textcolor='white', fontsize=8,
                        scatter_kwargs=None, colorbar_kwargs=None):
     """Plot a scatter plot of PMTs in a specified geometry, with a specified color and size of the markers.
+        Color or size must be per-PMT array that is indexable by another array, i.e. must be np.array and not list.
         scatter_kwargs will be passed to plt.scatter
         colorbar_kwargs will be passed to plt.colorbar
         geometry can be 'physical', or any key from pmt_data
