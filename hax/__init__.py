@@ -33,7 +33,6 @@ def init(filename=None, **kwargs):
         filename = os.path.join(hax_dir, 'hax.ini')
 
     # Do NOT move import to top of file, will crash docs building
-    from pax.plugins.io.ROOTClass import load_event_class
     global config
     configp = ConfigParser(inline_comment_prefixes='#', strict=True)
     configp.read(filename)

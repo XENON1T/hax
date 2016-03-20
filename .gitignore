@@ -59,3 +59,13 @@ target/
 # Pycharm
 .idea
 /.project
+
+# Ipython checkpoints
+.ipynb_checkpoints
+
+# Text editor temp files?
+*.py~
+*.rst~
+
+# Data
+*.root
