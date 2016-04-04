@@ -49,7 +49,7 @@ def _plot_pmts(ax, pmt_selection,
                xkey, ykey=None, 
                color=None, size=None, tight_limits=False, 
                **kwargs):
-    """Makes a scatter plot of pmts for which pmt_selection is True on axes, using xkey and ykey for x, y.
+    """Makes a scatter plot of pmts for which pmt_selection is True on axes, using xkey and ymongokey for x, y.
     Reliese on pmt_data being present as global.
     Returns the return value of plt.scatter (useful to define a color bar)
     """
@@ -112,7 +112,6 @@ def plot_on_pmt_arrays(color=None, size=None,
         scatter_kwargs will be passed to plt.scatter
         colorbar_kwargs will be passed to plt.colorbar
         geometry can be 'physical', or any key from pmt_data
-    Relies on 'pmt_data' being present as a global
     """
     if scatter_kwargs is None:
         scatter_kwargs = dict()

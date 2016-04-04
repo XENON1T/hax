@@ -19,8 +19,8 @@ def find_file_in_folders(filename, folders):
 def get_user_id():
     """:return: string identifying the currently active system user as name@node
     :note: user can be set with the 'USER' environment variable, usually set on windows
-    :note: on unix based systems you can use the password database                                                              
-    to get the login name of the effective process user"""
+    :note: on unix based systems you can use the password database to get the login name of the effective process user
+    """
     if os.name == "posix":
         username = pwd.getpwuid(os.geteuid()).pw_name
     else:

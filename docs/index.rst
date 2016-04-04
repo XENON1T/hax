@@ -13,7 +13,10 @@ Contents:
 .. toctree::
    :maxdepth: 4
 
+   hax
+
 .. automodule:: hax
+
 
 
 Indices and tables

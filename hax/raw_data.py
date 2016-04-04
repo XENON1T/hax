@@ -27,12 +27,10 @@ def inspect_events_from_minitree(events, *args, **kwargs):
 
 def inspect_events(dataset_number, event_numbers, focus='all'):
     """Show the pax event display for the events in dataset_number,
-    The dataframe must at least contain 'Basics'; currently only supports XENON100 run 10.
-    focus can be:
-        'all': (default): show the entire event
-        'largest', 'first', 'main_s1', 'main_s2': show a specific peak
-    """
 
+    The dataframe must at least contain 'Basics'; currently only supports XENON100 run 10.
+    focus can be 'all' (default) which shows the entire event, 'largest', 'first', 'main_s1', or 'main_s2'
+    """
     # Config to let pax fo plotting
     config_dict = {'pax': {'output': ['Plotting.PlotEventSummary' if focus == 'all' else 'Plotting.PeakViewer'],
                            'encoder_plugin': None,
