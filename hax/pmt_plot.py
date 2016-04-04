@@ -8,6 +8,7 @@
 ##  - on physical layout, color and/or size probably not on same scale in two subplots 
 ##    unless vmin&vmax are specified explicitly.
 ##  - Have categorical labels event if _channel present. Make digitizer obey _channel suffix convention.
+from collections import defaultdict
 
 import numpy as np
 import matplotlib
@@ -49,24 +50,19 @@ def _plot_pmts(ax, pmt_selection,
                xkey, ykey=None, 
                color=None, size=None, tight_limits=False, 
                **kwargs):
-    """Makes a scatter plot of pmts for which pmt_selection is True on axes, using xkey and ymongokey for x, y.
-    Reliese on pmt_data being present as global.
-    Returns the return value of plt.scatter (useful to define a color bar)
+    """Makes a scatter plot of pmts on ax.
+    Plot only pmts for which pmt_selection is True. xkey and ykey are used for x, y.
+    Returns the return value of plt.scatter (useful to define a colorbar).
     """
-    # Get pmt_data and check if it is defined
-    global pmt_data
-    if 'pmt_data' not in globals():
-        raise ValueError("pmt_data needs to be defined, get it using pmt_data = hax.pmt_plot.pmt_data")
-    
     if ykey is not None:
         x, y, pmt_numbers = pmt_data[pmt_selection][[xkey, ykey, 'PMT']].as_matrix().T
         xlabel = xkey
         ylabel = ykey
     else:
+        # No ykey is given: just stack pmts with same xkey in y.
         plot_keys, pmt_numbers = pmt_data[pmt_selection][[xkey, 'PMT']].as_matrix().T
         
         labels = sorted(list(set(plot_keys)))
-        from collections import defaultdict
         n_occs = defaultdict(float)
         y = []
         x = []
@@ -74,9 +70,8 @@ def _plot_pmts(ax, pmt_selection,
             x.append(labels.index(k))
             y.append(n_occs[k])
             n_occs[k] += 1
-            
-        xlabel=xkey
-        ylabel=''
+        xlabel = xkey
+        ylabel = ''
     
     # Plot the PMT as circles with specified colors and sizes
     sc = ax.scatter(x, y, 

@@ -25,7 +25,7 @@ from unittest.mock import MagicMock
 sys.modules.update((mod_name, MagicMock()) for mod_name in ['numpy', 'numpy.ma', 'pandas',
                                                             'matplotlib', 'matplotlib.pyplot',
                                                             'ROOT', 'root_numpy',
-                                                            'pax', 'pax.plugins.io.ROOTClass', 'pax.exceptions',
+                                                            'pax', 'pax.plugins.io.ROOTClass', 'pax.exceptions', 'pymongo',
                                                             'pax.configuration'])
 
 # -- General configuration ------------------------------------------------
