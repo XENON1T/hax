@@ -57,7 +57,7 @@ def update_datasets():
             detector = 'tpc'
 
         docs = []
-        for doc in collection.find({'detector' : detector},
+        for doc in collection.find({'detector': detector},
                                    ['name', 'number', 'reader.self_trigger', 'source']):
             doc = flatten_dict(doc)
             del doc['_id']   # Remove the Mongo document ID
