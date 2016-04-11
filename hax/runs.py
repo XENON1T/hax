@@ -51,8 +51,13 @@ def update_datasets():
         client = pymongo.MongoClient(hax.config['runs_url'].format(password=password))
         db = client[hax.config['runs_database']]
         collection = db[hax.config['runs_collection']]
+        if 'detector' in hax.config:
+            detector = hax.config['detector']
+        else:
+            detector = 'tpc'
+
         docs = []
-        for doc in collection.find({'detector' : 'tpc'},
+        for doc in collection.find({'detector':detector},
                                    ['name', 'number', 'reader.self_trigger', 'source']):
             doc = flatten_dict(doc)
             del doc['_id']   # Remove the Mongo document ID
