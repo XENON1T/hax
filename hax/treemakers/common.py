@@ -101,3 +101,54 @@ class Basics(TreeMaker):
         return event_data
 
 
+class PeakProperties(TreeMaker):
+    """Largest peak properties for each type and for all peaks.
+
+    """
+    extra_branches = ['peaks.area_fraction_top',
+                      'peaks.bottom_hitpattern_spread',
+                      'peaks.hit_time_std',
+                      'peaks.n_hits',
+                      'peaks.area',
+                      'peaks.n_saturated_channels']
+    __version__ = '0.0.1'
+
+    def extract_data(self, event):  # This runs on each event
+        # 'values' is returned once filled and each field defaults to zero.
+        values = defaultdict(float)
+
+        # Store the start time of the event
+        values['time'] = event.start_time
+
+        peaks_values = {}  # type name -> index
+
+        # If no peaks, just continue
+        if event.peaks.size() == 0:
+            return values
+
+        for i, peak in enumerate(event.peaks):
+            if peak.type not in peaks_values:
+                peaks_values[peak.type] = i
+
+            type_key = 'largest_%s' % peak.type
+            biggest_peak_this_type = event.peaks[peaks_values[type_key]]
+
+            if peak.area > biggest_peak_this_type.area:
+                peaks_values[type_key] = i
+
+            if 'largest_peak' not in peaks_values:
+                peaks_values['largest_peak'] = i
+            if peak.area > event.peaks[peaks_values['largest_peak']].area:
+                peaks_values['largest_peak'] = i
+
+        for name, index in peaks_values.items():
+            peak = event.peaks[index]
+            # The store each peak field we want in 'values'
+            for field in self.extra_branches:
+                field = field[6:]
+                field_name = '%s_%s' % (name,
+                                        field)
+                values[field_name] = getattr(peak,
+                                             field)
+
+        return values
