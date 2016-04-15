@@ -25,7 +25,7 @@ def inspect_events_from_minitree(events, *args, **kwargs):
         inspect_events(dataset_number, event_numbers, *args, **kwargs)
 
 
-def inspect_events(dataset_number, event_numbers, focus='all'):
+def inspect_events(dataset_number, event_numbers, focus='all', save_to_dir=None):
     """Show the pax event display for the events in dataset_number,
 
     The dataframe must at least contain 'Basics'; currently only supports XENON100 run 10.
@@ -35,7 +35,7 @@ def inspect_events(dataset_number, event_numbers, focus='all'):
     config_dict = {'pax': {'output': ['Plotting.PlotEventSummary' if focus == 'all' else 'Plotting.PeakViewer'],
                            'encoder_plugin': None,
                            'pre_output': [],
-                           'output_name': 'SCREEN'}}
+                           'output_name': 'SCREEN' if save_to_dir is None else save_to_dir}}
     # You need to set block_view = True to make it NOT block the view
     # TODO: Fix this in pax
     if focus != 'all':
