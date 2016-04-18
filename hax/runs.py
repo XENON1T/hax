@@ -20,6 +20,23 @@ log = logging.getLogger('hax.runs')
 # DO NOT import this directly (from hax.runs import datasets), you will just get None!
 datasets = None
 
+rundb_client = None
+
+def get_rundb_collection():
+    global rundb_client
+    if rundb_client is None:
+        # Connect to the runs database
+        if 'mongo_password' in hax.config:
+            password = hax.config['mongo_password']
+        elif 'MONGO_PASSWORD' in os.environ:
+            password = os.environ['MONGO_PASSWORD']
+        else:
+            raise ValueError('Please set the MONGO_PASSWORD environment variable or the hax.mongo_password option '
+                             'to access the runs database.')
+        rundb_client = pymongo.MongoClient(hax.config['runs_url'].format(password=password))
+    db = rundb_client[hax.config['runs_database']]
+    return db[hax.config['runs_collection']]
+
 
 def update_datasets():
     """Update hax.runs.datasets to contain latest datasets.
@@ -40,26 +57,20 @@ def update_datasets():
                 datasets = pd.concat((datasets, dsets))
 
     elif experiment == 'XENON1T':
-        # Connect to the runs database
-        if 'mongo_password' in hax.config:
-            password = hax.config['mongo_password']
-        elif 'MONGO_PASSWORD' in os.environ:
-            password = os.environ['MONGO_PASSWORD']
-        else:
-            raise ValueError('Please set the MONGO_PASSWORD environment variable or the hax.mongo_password option '
-                             'to access the runs database.')
-        client = pymongo.MongoClient(hax.config['runs_url'].format(password=password))
-        db = client[hax.config['runs_database']]
-        collection = db[hax.config['runs_collection']]
+        collection = get_rundb_collection()
         docs = []
-        for doc in collection.find({'detector' : 'tpc'},
-                                   ['name', 'number', 'reader.self_trigger', 'source']):
-            doc = flatten_dict(doc)
+        for doc in collection.find({'detector': hax.config.get('detector', 'tpc')},
+                                   ['name', 'number', 'start', 'end', 'source',
+                                    'reader.self_trigger',
+                                    'trigger.events_built', 'trigger.status',
+                                    'tags.name'
+                                    ]):
+            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])   # Convert tags to single string
+            doc = flatten_dict(doc, sep='__')
             del doc['_id']   # Remove the Mongo document ID
             doc['raw_data_subfolder'] = ''      # For the moment, everything is in one folder
             docs.append(doc)
         datasets = pd.DataFrame(docs)
-        client.close()
 
     # What dataset names do we have?
     dataset_names = datasets['name'].values
@@ -94,9 +105,25 @@ def update_datasets():
 
 
 def get_dataset_info(dataset_name):
+    """Synonym for get_run_info"""
+    return get_run_info(dataset_name)
+
+
+def get_run_info(run_name):
     """Returns a dictionary with the runs database info for a given dataset
+    For XENON1T, this queries the runs db to get the complete run doc.
     """
-    return datasets[datasets['name'] == dataset_name].iloc[0].to_dict()
+    global datasets
+    if hax.config['experiment'] == 'XENON100':
+        return datasets[datasets['name'] == run_name].iloc[0].to_dict()
+    elif hax.config['experiment'] == 'XENON1T':
+        collection = get_rundb_collection()
+        result = list(collection.find({'name': run_name}))
+        if len(result) == 0:
+            raise ValueError("Run named %s not found in run db!" % run_name)
+        if len(result) > 1:
+            raise ValueError("More than one run named %s found in run db???" % run_name)
+        return result[0]
 
 
 def datasets_query(query):
