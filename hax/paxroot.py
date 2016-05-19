@@ -5,7 +5,7 @@ import os
 
 from tqdm import tqdm
 import ROOT
-from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root, ShutUpROOT
+from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root
 from pax.exceptions import MaybeOldFormatException
 
 import hax
@@ -33,11 +33,10 @@ def open_pax_rootfile(filename):
     return ROOT.TFile(filename)
 
 
-
-
 # An exception you can raise to stop looping over the current dataset
 class StopEventLoop(Exception):
     pass
+
 
 def function_results_datasets(datasets_names, event_function=lambda event, **kwargs: None,
                               branch_selection='basic', kwargs=dict()):
@@ -89,11 +88,14 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
             rootfile.Close()
             raise e
 
+
 def loop_over_datasets(datasets_names, event_function=lambda event: None,
                        branch_selection='basic'):
     """Execute event_function(event) over all events in the dataset(s)
-    Does not return anything: you have to keep track of results yourself (global vars, function attrs, classes, ...)
-    branch selection: can be None (all branches are read), 'basic' (hax.config['basic_branches'] are read), or a list of branches to read.
+    Does not return anything: you have to keep track of results yourself (global vars, function attrs,
+    classes, ...)
+    branch selection: can be None (all branches are read), 'basic' (hax.config['basic_branches'] are read), or a list of
+    branches to read.
     """
     for result in function_results_datasets(datasets_names, event_function, branch_selection):
         # do nothing with the results
