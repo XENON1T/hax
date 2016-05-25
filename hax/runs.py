@@ -103,17 +103,12 @@ def update_datasets():
                 if len(bla):
                     datasets.loc[bla[0], 'raw_data_found'] = True
 
-
-def get_dataset_info(dataset_name):
-    """Synonym for get_run_info"""
-    return get_run_info(dataset_name)
-
-
-def get_run_info(run_name):
+def get_run_info(run_id):
     """Returns a dictionary with the runs database info for a given dataset
     For XENON1T, this queries the runs db to get the complete run doc.
     """
     global datasets
+    run_name = get_run_name(run_id)
     if hax.config['experiment'] == 'XENON100':
         return datasets[datasets['name'] == run_name].iloc[0].to_dict()
     elif hax.config['experiment'] == 'XENON1T':
@@ -125,7 +120,20 @@ def get_run_info(run_name):
             raise ValueError("More than one run named %s found in run db???" % run_name)
         return result[0]
 
+get_dataset_info = get_run_info    # Synonym
 
 def datasets_query(query):
     """Return names of datasets matching query"""
     return datasets.query(query)['name'].values
+
+def get_run_name(run_id):
+    """Return run name matching run_id. Returns run_id if run_id is string (presumably already run name)"""
+    if isinstance(run_id, str):
+        return run_id
+    return datasets_query('number == %d' % run_id)[0]
+
+def get_run_number(run_id):
+    """Return run number matching run_id. Returns run_id if run_id is int (presumably already run int)"""
+    if isinstance(run_id, (int, float, np.int, np.int32, np.int64)):
+        return int(run_id)
+    return datasets.query('name == %s' % run_id)['number'].values[0]

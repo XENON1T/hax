@@ -1,7 +1,5 @@
 """Make small flat root trees with one entry per event from the pax root files.
 """
-
-
 from datetime import datetime
 from distutils.version import LooseVersion
 from glob import glob
@@ -9,11 +7,13 @@ import inspect
 import json
 import os
 
+import numpy as np
 import pandas as pd
 import ROOT
 import root_numpy
 
 import hax
+from hax import runs
 from hax.paxroot import loop_over_dataset
 from hax.utils import find_file_in_folders, get_user_id
 
@@ -83,15 +83,16 @@ def update_treemakers():
             treemakers[tm_name] = tm
 
 
-def get(dataset, treemaker, force_reload=False):
-    """Return path to minitree file from treemaker for dataset.
+def get(run_name, treemaker, force_reload=False):
+    """Return path to minitree file from treemaker for run_name (can also be number).
     The file will be re-created if it is not present, outdated, or force_reload is True (default False)
     """
     global treemakers
+    run_name = runs.get_run_name(run_name)
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
     if not hasattr(treemaker, '__version__'):
         raise RuntimeError("Please add a __version__ attribute to treemaker %s" % treemaker_name)
-    minitree_filename = "%s_%s.root" % (dataset,
+    minitree_filename = "%s_%s.root" % (run_name,
                                         treemaker_name)
 
     try:
@@ -114,8 +115,8 @@ def get(dataset, treemaker, force_reload=False):
     if minitree_path is None or force_reload:
         # We have to make the minitree file
         # This will raise FileNotFoundError if the root file is not found
-        skimmed_data = treemaker().get_data(dataset)
-        print("Created minitree %s for dataset %s" % (treemaker.__name__, dataset))
+        skimmed_data = treemaker().get_data(run_name)
+        print("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
 
         # Make a minitree in the current directory
         minitree_path = './' + minitree_filename
@@ -135,11 +136,11 @@ def get(dataset, treemaker, force_reload=False):
 
 def load(datasets, treemakers='Basics', force_reload=False):
     """Return pandas DataFrame with minitrees of several datasets.
-      datasets: names of datasets (without .root) to load
+      datasets: names or numbers of datasets (without .root) to load
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
       force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     """
-    if isinstance(datasets, str):
+    if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]

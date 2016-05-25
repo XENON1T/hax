@@ -25,7 +25,7 @@ def inspect_events_from_minitree(events, *args, **kwargs):
         inspect_events(dataset_number, event_numbers, *args, **kwargs)
 
 
-def inspect_events(dataset_number, event_numbers, focus='all', save_to_dir=None):
+def inspect_events(run_id, event_numbers, focus='all', save_to_dir=None):
     """Show the pax event display for the events in dataset_number,
 
     The dataframe must at least contain 'Basics'; currently only supports XENON100 run 10.
@@ -46,11 +46,11 @@ def inspect_events(dataset_number, event_numbers, focus='all', save_to_dir=None)
 
     # After we configure pax to do the plotting, we just have to iterate over the events and do nothing
     # Could do list(...) as well, but that would save all the events and return then in a big list at the end
-    for _ in process_events(dataset_number, event_numbers, config_override=config_dict):
+    for _ in process_events(run_id, event_numbers, config_override=config_dict):
         pass
 
 
-def raw_events(dataset_number, event_numbers=None, config_override=None):
+def raw_events(run_id, event_numbers=None, config_override=None):
     """Yields raw event(s) numbered event_numbers from dataset numbered dataset_number
     config_override is a dictionary with extra pax options
     """
@@ -67,12 +67,12 @@ def raw_events(dataset_number, event_numbers=None, config_override=None):
     for k, v in pax_config_dict.items():
         config_override['pax'].setdefault(k, v)
 
-    for event in process_events(dataset_number, event_numbers, config_override):
+    for event in process_events(run_id, event_numbers, config_override):
         yield event
 
 
-def process_events(dataset_number, event_numbers=None, config_override=None):
-    """Yields processed event(s) numbered event_numbers from dataset numbered dataset_number
+def process_events(run_id, event_numbers=None, config_override=None):
+    """Yields processed event(s) numbered event_numbers from dataset run_id (name or number)
     config_override is a dictionary with extra pax options
     """
     if config_override is None:
@@ -83,7 +83,9 @@ def process_events(dataset_number, event_numbers=None, config_override=None):
     config = hax.config
 
     # Get the dataset information
-    dataset_info = hax.runs.datasets[hax.runs.datasets['number'] == dataset_number].iloc[0]
+    run_name = hax.runs.get_run_name(run_id)
+    run_number = hax.runs.get_run_number(run_id)
+    dataset_info = hax.runs.datasets[hax.runs.datasets['name'] == run_name].iloc[0]
 
     # Set the events to process in config_override
     if event_numbers is not None:
@@ -94,11 +96,10 @@ def process_events(dataset_number, event_numbers=None, config_override=None):
         # HURRAY HURRAY we have the raw data locally (either really or through sshfs)
         # We can let pax deal with jumping from file to file, selecting events, etc.
         if not dataset_info.raw_data_found:
-            raise ValueError("Raw data for dataset number %d (%s) not found." % (dataset_number,
-                                                                                 dataset_info['name']))
+            raise ValueError("Raw data for dataset %d (%s) not found." % (run_number, run_number))
         dirname = os.path.join(config['raw_data_local_path'],
                                dataset_info.raw_data_subfolder,
-                               dataset_info['name'])
+                               run_name)
         mypax = raw_data_processor(dirname, config_override)
         for event in mypax.get_events():
             yield mypax.process_event(event)
@@ -119,20 +120,20 @@ def process_events(dataset_number, event_numbers=None, config_override=None):
         currently_open_file_name = None
         for event_number in event_numbers:
             # Which XED file does this event belong to?
-            data_file_name = 'xe100_%06d_%04d_%06d.xed' % (int(dataset_number / 1e4),
-                                                           dataset_number % 1e4,
+            data_file_name = 'xe100_%06d_%04d_%06d.xed' % (int(run_number / 1e4),
+                                                           run_number % 1e4,
                                                            int(event_number / 1e3))
 
             if data_file_name != currently_open_file_name:
                 # Has the required file already been downloaded in this session? Then return its location.
-                cache_key = (dataset_number, data_file_name)
+                cache_key = (run_number, data_file_name)
                 if cache_key in temporary_data_files:
                     path_to_file = temporary_data_files[cache_key]
 
                 else:
                     # We have to download a new file
                     file_path_tail = os.path.join(dataset_info.raw_data_subfolder,
-                                                  dataset_info['name'],
+                                                  run_name,
                                                   data_file_name)
                     path_to_file = download_from_grid(file_path_tail)
                     temporary_data_files[cache_key] = path_to_file
