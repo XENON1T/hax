@@ -5,7 +5,7 @@ import os
 
 from tqdm import tqdm
 import ROOT
-from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root, ShutUpROOT
+from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root
 from pax.exceptions import MaybeOldFormatException
 
 import hax
@@ -33,17 +33,20 @@ def open_pax_rootfile(filename):
     return ROOT.TFile(filename)
 
 
-
-
 # An exception you can raise to stop looping over the current dataset
 class StopEventLoop(Exception):
     pass
 
 
-def loop_over_datasets(datasets_names, event_function=lambda event: None, branch_selection='basic'):
-    """Execute event_function(event) over all events in the dataset(s)
-    Does not return anything: you have to keep track of results yourself (global vars, function attrs, classes, ...)
-    branch selection: can be None (all branches are read), 'basic' (hax.config['basic_branches'] are read), or a list of branches to read.
+def function_results_datasets(datasets_names, event_function=lambda event, **kwargs: None,
+                              branch_selection='basic', kwargs=dict()):
+    """Returns a generator which yields the return values of event_function(event) over the datasets specified in
+    datasets_names.
+
+    Parameters are equivalent to loop_over_datasets, except for the addition of kwargs, which allows for additional
+    arguments to be passed to event_function if the function is able to take more than one. kwargs should be a dict
+    mapping argument names to their respective values.
+    Example: kwargs={'x': 2, 'y': 3} --> function called like: event_function(event, x=2, y=3)
     """
     if isinstance(datasets_names, str):
         datasets_names = [datasets_names]
@@ -81,13 +84,26 @@ def loop_over_datasets(datasets_names, event_function=lambda event: None, branch
             for event_i in source:
                 t.GetEntry(event_i)
                 event = t.events
-                event_function(event)
+                yield event_function(event, **kwargs)
 
         except StopEventLoop:
             rootfile.Close()
         except Exception as e:
             rootfile.Close()
             raise e
+
+
+def loop_over_datasets(datasets_names, event_function=lambda event: None,
+                       branch_selection='basic'):
+    """Execute event_function(event) over all events in the dataset(s)
+    Does not return anything: you have to keep track of results yourself (global vars, function attrs,
+    classes, ...)
+    branch selection: can be None (all branches are read), 'basic' (hax.config['basic_branches'] are read), or a list of
+    branches to read.
+    """
+    for result in function_results_datasets(datasets_names, event_function, branch_selection):
+        # do nothing with the results
+        pass
 
 # For backward compatibility
 loop_over_dataset = loop_over_datasets
