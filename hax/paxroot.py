@@ -75,16 +75,13 @@ def loop_over_datasets(datasets_names, event_function=lambda event: None, branch
                 t.SetBranchStatus(bn, 1)
 
         try:
-            if hax.config['tqdm_on']:
-                for event_i in tqdm(range(n_events)):
-                    t.GetEntry(event_i)
-                    event = t.events
-                    event_function(event)
-            else:
-                for event_i in range(n_events):
-                    t.GetEntry(event_i)
-                    event = t.events
-                    event_function(event)
+            source = range(n_events)
+            if hax.config.get('tqdm_on', True):
+                source = tqdm(source)
+            for event_i in source:
+                t.GetEntry(event_i)
+                event = t.events
+                event_function(event)
 
         except StopEventLoop:
             rootfile.Close()
