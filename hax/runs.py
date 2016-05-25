@@ -66,7 +66,7 @@ def update_datasets():
                                     'tags.name'
                                     ]):
             doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])   # Convert tags to single string
-            doc = flatten_dict(doc, sep='__')
+            doc = flatten_dict(doc, separator='__')
             del doc['_id']   # Remove the Mongo document ID
             doc['raw_data_subfolder'] = ''      # For the moment, everything is in one folder
             docs.append(doc)
