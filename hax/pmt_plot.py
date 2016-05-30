@@ -108,7 +108,7 @@ def _plot_pmts(ax, xkey, color, size,
                 fontsize=8, va='center', ha='center')
                    
     # Set limits and labels
-    lim_scale = 1
+    lim_scale = 1.3
     if tight_limits:
         ax.set_xlim(x.min() * lim_scale, x.max() * lim_scale)
         ax.set_ylim(y.min() * lim_scale, y.max() * lim_scale)
