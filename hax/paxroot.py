@@ -81,10 +81,14 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
                 t.SetBranchStatus(bn, 1)
 
         try:
-            for event_i in tqdm(range(n_events)):
+            source = range(n_events)
+            if hax.config.get('tqdm_on', True):
+                source = tqdm(source)
+            for event_i in source:
                 t.GetEntry(event_i)
                 event = t.events
                 yield event_function(event, **kwargs)
+
         except StopEventLoop:
             rootfile.Close()
         except Exception as e:
