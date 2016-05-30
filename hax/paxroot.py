@@ -2,6 +2,7 @@
 """
 import logging
 import os
+import numpy as np
 
 from tqdm import tqdm
 import ROOT
@@ -39,7 +40,7 @@ class StopEventLoop(Exception):
 
 
 def function_results_datasets(datasets_names, event_function=lambda event, **kwargs: None,
-                              branch_selection='basic', kwargs=dict()):
+                              branch_selection=None, kwargs=None):
     """Returns a generator which yields the return values of event_function(event) over the datasets specified in
     datasets_names.
 
@@ -48,16 +49,16 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
     mapping argument names to their respective values.
     Example: kwargs={'x': 2, 'y': 3} --> function called like: event_function(event, x=2, y=3)
     """
-    if isinstance(datasets_names, str):
+    if kwargs is None:
+        kwargs = {}
+
+    if not isinstance(datasets_names, (list, tuple, np.ndarray)):
         datasets_names = [datasets_names]
 
-    for dataset_name in datasets_names:
-        # Open the file, load the tree
-        # If you get "'TObject' object has no attribute 'GetEntries'" here,
-        # we renamed the tree to T1 or TPax or something
+    for run_id in datasets_names:
         try:
-            dataset = runs.datasets.loc[runs.datasets['name'] == dataset_name].iloc[0]
-            filename = dataset.location
+            run_name = runs.get_run_name(run_id)
+            filename = runs.datasets.loc[runs.datasets['name'] == run_name].iloc[0].location
         except IndexError:
             print("Don't know a dataset named %s, trying to find it anyway..." % dataset_name)
             filename = find_file_in_folders(dataset_name + '.root', hax.config['main_data_paths'])
@@ -65,6 +66,8 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
             raise ValueError("Cannot loop over dataset %s, we don't know where it is." % dataset_name)
 
         rootfile = open_pax_rootfile(filename)
+        # If you get "'TObject' object has no attribute 'GetEntries'" here,
+        # we renamed the tree to T1 or TPax or something... or you're trying to load a Xerawdp root file!
         t = rootfile.Get('tree')
         n_events = t.GetEntries()
 
@@ -89,13 +92,15 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
             raise e
 
 
-def loop_over_datasets(datasets_names, event_function=lambda event: None,
-                       branch_selection='basic'):
+def loop_over_datasets(datasets_names, event_function=lambda event: None, branch_selection=None):
     """Execute event_function(event) over all events in the dataset(s)
-    Does not return anything: you have to keep track of results yourself (global vars, function attrs,
-    classes, ...)
-    branch selection: can be None (all branches are read), 'basic' (hax.config['basic_branches'] are read), or a list of
-    branches to read.
+    Does not return anything: use function_results_dataset or pass a class method as event_function if you want results.
+     - list of datataset names or numbers
+     - event_function: function to run
+     - branch selection: can be
+        None (all branches are read),
+        'basic' (hax.config['basic_branches'] are read), or
+        a list of branches to read.
     """
     for result in function_results_datasets(datasets_names, event_function, branch_selection):
         # do nothing with the results
