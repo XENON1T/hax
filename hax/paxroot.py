@@ -60,10 +60,10 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
             run_name = runs.get_run_name(run_id)
             filename = runs.datasets.loc[runs.datasets['name'] == run_name].iloc[0].location
         except IndexError:
-            print("Don't know a dataset named %s, trying to find it anyway..." % dataset_name)
-            filename = find_file_in_folders(dataset_name + '.root', hax.config['main_data_paths'])
+            print("Don't know a dataset named %s, trying to find it anyway..." % run_id)
+            filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
         if not filename:
-            raise ValueError("Cannot loop over dataset %s, we don't know where it is." % dataset_name)
+            raise ValueError("Cannot loop over dataset %s, we don't know where it is." % run_id)
 
         rootfile = open_pax_rootfile(filename)
         # If you get "'TObject' object has no attribute 'GetEntries'" here,
@@ -106,7 +106,7 @@ def loop_over_datasets(datasets_names, event_function=lambda event: None, branch
         'basic' (hax.config['basic_branches'] are read), or
         a list of branches to read.
     """
-    for result in function_results_datasets(datasets_names, event_function, branch_selection):
+    for _ in function_results_datasets(datasets_names, event_function, branch_selection):
         # do nothing with the results
         pass
 
