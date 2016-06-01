@@ -3,6 +3,7 @@
 import logging
 import os
 import numpy as np
+import json
 
 from tqdm import tqdm
 import ROOT
@@ -17,9 +18,21 @@ from hax.utils import find_file_in_folders
 log = logging.getLogger('hax.paxroot')
 
 
-def open_pax_rootfile(filename):
-    """Opens pax root file filename, compiling classes/dictionaries as needed. Returns TFile object
-    pax_class_version is only needed for old pax files, for pax >= 4.5.0 the class is contained inside the root file
+def open_pax_rootfile(run_id):
+    """Opens pax root file for run_id, compiling classes/dictionaries as needed. Returns TFile object.
+    """
+    try:
+        run_name = runs.get_run_name(run_id)
+        filename = runs.datasets.loc[runs.datasets['name'] == run_name].iloc[0].location
+    except IndexError:
+        print("Don't know a run named %s, trying to find it anyway..." % run_id)
+        filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
+    if not filename:
+        raise ValueError("Cannot find processed data for run name %s." % run_name)
+    return _open_pax_rootfile(filename)
+
+def _open_pax_rootfile(filename):
+    """Opens pax root file filename, compiling classes/dictionaries as needed. Returns TFile object.
     """
     if not os.path.exists(filename):
         raise ValueError("%s does not exist!" % filename)
@@ -32,6 +45,16 @@ def open_pax_rootfile(filename):
         load_event_class(os.path.join(hax.config['old_pax_classes_dir'],
                                       'pax_event_class_%d.cpp' % hax.config['old_pax_class_version']))
     return ROOT.TFile(filename)
+
+
+def get_metadata(run_id):
+    """Returns the metadata dictionary stored in the pax root file for run_id.
+    """
+    f = open_pax_rootfile(run_id)
+    metadata = f.Get('pax_metadata').GetTitle()
+    metadata = json.loads(metadata)
+    f.Close()
+    return metadata
 
 
 # An exception you can raise to stop looping over the current dataset
@@ -56,16 +79,7 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
         datasets_names = [datasets_names]
 
     for run_id in datasets_names:
-        try:
-            run_name = runs.get_run_name(run_id)
-            filename = runs.datasets.loc[runs.datasets['name'] == run_name].iloc[0].location
-        except IndexError:
-            print("Don't know a dataset named %s, trying to find it anyway..." % run_id)
-            filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
-        if not filename:
-            raise ValueError("Cannot loop over dataset %s, we don't know where it is." % run_id)
-
-        rootfile = open_pax_rootfile(filename)
+        rootfile = open_pax_rootfile(run_id)
         # If you get "'TObject' object has no attribute 'GetEntries'" here,
         # we renamed the tree to T1 or TPax or something... or you're trying to load a Xerawdp root file!
         t = rootfile.Get('tree')
