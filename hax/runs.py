@@ -103,6 +103,7 @@ def update_datasets():
                 if len(bla):
                     datasets.loc[bla[0], 'raw_data_found'] = True
 
+
 def get_run_info(run_id):
     """Returns a dictionary with the runs database info for a given dataset
     For XENON1T, this queries the runs db to get the complete run doc.
@@ -122,18 +123,39 @@ def get_run_info(run_id):
 
 get_dataset_info = get_run_info    # Synonym
 
+
 def datasets_query(query):
     """Return names of datasets matching query"""
     return datasets.query(query)['name'].values
+
 
 def get_run_name(run_id):
     """Return run name matching run_id. Returns run_id if run_id is string (presumably already run name)"""
     if isinstance(run_id, str):
         return run_id
-    return datasets_query('number == %d' % run_id)[0]
+    try:
+        return datasets_query('number == %d' % run_id)[0]
+    except Exception as e:
+        print("Could not find run name for %s, got exception %s: %s. Setting run name to 'unknown'" % (
+            run_id, type(e), str(e)))
+        return "unknown"
+
 
 def get_run_number(run_id):
     """Return run number matching run_id. Returns run_id if run_id is int (presumably already run int)"""
     if isinstance(run_id, (int, float, np.int, np.int32, np.int64)):
         return int(run_id)
-    return datasets.query('name == %s' % run_id)['number'].values[0]
+    try:
+        if hax.config['experiment'] == 'XENON100':
+            # Convert from XENON100 dataset name (like xe100_120402_2000) to number
+            if run_id.startwith('xe100_'):
+                run_id = run_id[6:]
+            run_id = run_id.replace('_', '')
+            run_id = run_id[:10]
+            return int(run_id)
+
+        return datasets.query('name == "%s"' % run_id)['number'].values[0]
+    except Exception as e:
+        print("Could not find run number for %s, got exception %s: %s. Setting run number to 0." % (
+            run_id, type(e), str(e)))
+        return 0

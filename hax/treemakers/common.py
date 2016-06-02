@@ -39,19 +39,9 @@ class Basics(TreeMaker):
     extra_branches = ['dataset_name']
 
     def extract_data(self, event):
-        # Convert from XENON100 dataset name (like xe100_120402_2000_000000.xed) to number
-        dsetname = event.dataset_name
-        if dsetname.endswith('.xed'):
-            filename = dsetname.split("/")[-1]
-            _, date, time, _ = filename.split('_')
-            dataset_number = int(date) * 1e4 + int(time)
-        else:
-            # TODO: XENON1T support
-            dataset_number = 0
-
         event_data = dict(event_number=event.event_number,
-                          event_time=event.start_time,
-                          dataset_number=dataset_number)
+                          run_number=self.run_number,
+                          event_time=event.start_time)
 
         # Detect events without at least one S1 + S2 pair immediatly
         # We cannot even fill the basic variables for these

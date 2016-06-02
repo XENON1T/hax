@@ -42,6 +42,8 @@ class TreeMaker(object):
 
     def get_data(self, dataset):
         """Return data extracted from running over dataset"""
+        self.run_name = runs.get_run_name(dataset)
+        self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
                           branch_selection=hax.config['basic_branches'] + list(self.extra_branches))
         self.check_cache(force_empty=True)
