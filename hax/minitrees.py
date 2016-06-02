@@ -163,7 +163,14 @@ def load(datasets, treemakers='Basics', force_reload=False):
     # Concatenate mini-trees of all types
     if not len(combined_dataframes):
         raise RuntimeError("No data was extracted? What's going on??")
-    return pd.concat(combined_dataframes, axis=1)
+    result = pd.concat(combined_dataframes, axis=1)
+
+    # Clean up index, remove 'index' column
+    # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
+    result.drop('index', axis=1, inplace=True)
+    result = result.reset_index()
+    result.drop('index', axis=1, inplace=True)
+    return result
 
 
 def get_treemaker_name_and_class(tm):
