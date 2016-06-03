@@ -1,7 +1,0 @@
-#!/usr/bin/env python
-print("I'M THE HAXMAN!!!")
-
-# Placeholder
-# This will be a utility to
-#  * check all minitrees in the default folder for up-to-dateness
-#  * create new minitrees for newly arriving datasets / treemakers
