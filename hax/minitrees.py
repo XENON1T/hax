@@ -85,57 +85,103 @@ def update_treemakers():
             treemakers[tm_name] = tm
 
 
+def _check_minitree_path(minitree_filename, force_reload=False):
+    """Return path to minitree_filename if we can find it and it agrees with the version policy, else returns None.
+    If force_reload=True, always returns None.
+    """
+    if force_reload:
+        return None
+
+    version_policy = hax.config['pax_version_policy']
+
+    try:
+        minitree_path = find_file_in_folders(minitree_filename, hax.config['minitree_paths'])
+
+    except FileNotFoundError:
+        log.debug("Minitree %s not found, will be created" % minitree_filename)
+        return None
+
+    log.debug("Found minitree at %s" % minitree_path)
+    minitree_f =  ROOT.TFile(minitree_path, 'UPDATE')
+    minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
+
+    # Check if the minitree has an outdated treemaker version
+    if LooseVersion(minitree_metadata['version']) < treemaker.__version__:
+        log.debug("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (
+            minitree_path, minitree_metadata['version'], treemaker.__version__))
+        minitree_f.Close()
+        return None
+
+    # Check if pax_version agrees with the version policy
+    if version_policy == 'latest':
+        try:
+            pax_metadata = hax.paxroot.get_metadata(run_name)
+        except FileNotFoundError:
+            log.warning("Minitree %s was found, but the main data root file was not. "
+                        "Your version policy is 'latest', so I guess I'll just this one..." % (minitree_path))
+        else:
+            if ('pax_version' not in minitree_metadata or
+                    LooseVersion(minitree_metadata['pax_version']) <
+                        LooseVersion(pax_metadata['file_builder_version'])):
+                log.debug("Minitreefile %s is from an outdated pax version (pax %s, %s available), "
+                          "will be recreated." % (minitree_path,
+                                                  minitree_metadata.get('pax_version', 'not known'),
+                                                  pax_metadata['file_builder_version']))
+                minitree_f.Close()
+                return None
+
+    elif version_policy == 'loose':
+        pass
+
+    else:
+        if not minitree_metadata['pax_version'] == version_policy:
+            log.debug("Minitree found from pax version %s, but you required pax version %s. "
+                      "Will attempt to create it from the main root file." % (minitree_metadata['pax_version'],
+                                                                              version_policy))
+
+    minitree_f.Close()
+    return minitree_path
+
+
 def get(run_name, treemaker, force_reload=False):
-    """Return path to minitree file from treemaker for run_name (can also be number).
+    """Return path to minitree file from treemaker for run_name (can also be a run number).
     The file will be re-created if it is not present, outdated, or force_reload is True (default False)
+    Raises FileNotFoundError if we have to create the minitree, but the root file is not found.
     """
     global treemakers
     run_name = runs.get_run_name(run_name)
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
     if not hasattr(treemaker, '__version__'):
-        raise RuntimeError("Please add a __version__ attribute to treemaker %s" % treemaker_name)
-    minitree_filename = "%s_%s.root" % (run_name,
-                                        treemaker_name)
+        raise AttributeError("Please add a __version__ attribute to treemaker %s." % treemaker_name)
+    minitree_filename = "%s_%s.root" % (run_name, treemaker_name)
 
-    try:
-        minitree_path = find_file_in_folders(minitree_filename, hax.config['minitree_paths'])
-        print("Found minitree at %s" % minitree_path)
+    # Do we already have this minitree? And is it good?
+    minitree_path = _check_minitree_path(minitree_filename, force_reload=force_reload)
+    if minitree_path is not None:
+        return minitree_path
 
-        # Check the version of the minitree file
-        f = ROOT.TFile(minitree_path, 'UPDATE')
-        metadata = json.loads(f.Get('metadata').GetTitle())
-        if LooseVersion(metadata['version']) < treemaker.__version__:
-            print("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (minitree_path,
-                                                                                                            metadata['version'],
-                                                                                                            treemaker.__version__))
-            minitree_path = None
-        f.Close()
+    # We have to make the minitree file
+    # This will raise FileNotFoundError if the root file is not found
+    skimmed_data = treemaker().get_data(run_name)
+    log.debug("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
 
-    except FileNotFoundError:
-        minitree_path = None
+    # Make a minitree in the first (highest priority) directory from minitree_paths
+    # This ensures we will find exactly this file when we load the minitree next.
+    creation_dir = hax.config['minitree_paths'][0]
+    if not os.path.exists(creation_dir):
+        os.makedirs(creation_dir)
+    minitree_path = os.path.join(creation_dir, minitree_filename)
+    root_numpy.array2root(skimmed_data.to_records(), minitree_path,
+                          treename=treemaker.__name__, mode='recreate')
 
-    if minitree_path is None or force_reload:
-        # We have to make the minitree file
-        # This will raise FileNotFoundError if the root file is not found
-        skimmed_data = treemaker().get_data(run_name)
-        print("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
-
-        # Make a minitree in the first (highest priority) directory from minitree_paths
-        # This ensures we will find exactly this file when we load the minitree next.
-        creation_dir = hax.config['minitree_paths'][0]
-        if not os.path.exists(creation_dir):
-            os.makedirs(creation_dir)
-        minitree_path = os.path.join(creation_dir, minitree_filename)
-        root_numpy.array2root(skimmed_data.to_records(), minitree_path,
-                              treename=treemaker.__name__, mode='recreate')
-
-        # Write metadata
-        f = ROOT.TFile(minitree_path, 'UPDATE')
-        ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
-                                                created_by=get_user_id(),
-                                                documentation=treemaker.__doc__,
-                                                timestamp=str(datetime.now())))).Write()
-        f.Close()
+    # Write metadata
+    minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
+    ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
+                                            pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
+                                            created_by=get_user_id(),
+                                            documentation=treemaker.__doc__,
+                                            timestamp=str(datetime.now())))).Write()
+    minitree_f.Close()
 
     return minitree_path
 

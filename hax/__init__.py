@@ -32,7 +32,6 @@ def init(filename=None, **kwargs):
     if filename is None:
         filename = os.path.join(hax_dir, 'hax.ini')
 
-    # Do NOT move import to top of file, will crash docs building
     global config
     configp = ConfigParser(inline_comment_prefixes='#', strict=True)
     configp.read(filename)

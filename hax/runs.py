@@ -1,7 +1,7 @@
 """
 Runs database utilities
-TEMPORARY: These will soon interface with the XENON1T runs database instead
 """
+from distutils.version import LooseVersion
 import logging
 from glob import glob
 import os
@@ -39,18 +39,19 @@ def get_rundb_collection():
 
 
 def update_datasets():
-    """Update hax.runs.datasets to contain latest datasets.
-    Currently just loads XENON100 run 10 runs from a csv file.
-    """
+    """Update hax.runs.datasets to contain latest datasets."""
     global datasets
     experiment = hax.config['experiment']
+
+    version_policy = hax.config['pax_version_policy']
+
     if experiment == 'XENON100':
         # Fetch runs information from static csv files in runs info
         for rundbfile in glob(os.path.join(hax.config['runs_info_dir'], '*.csv')):
             tpc, run = os.path.splitext(os.path.basename(rundbfile))[0].split('_')
             dsets = pd.read_csv(rundbfile)
             dsets = pd.concat((dsets, pd.DataFrame([{'tpc': tpc, 'run': run}] * len(dsets))),
-                               axis=1)
+                              axis=1)
             if datasets is not None and len(datasets):
                 datasets = dsets
             else:
@@ -59,39 +60,72 @@ def update_datasets():
     elif experiment == 'XENON1T':
         collection = get_rundb_collection()
         docs = []
-        for doc in collection.find({'detector': hax.config.get('detector', 'tpc')},
-                                   ['name', 'number', 'start', 'end', 'source',
-                                    'reader.self_trigger',
-                                    'trigger.events_built', 'trigger.status',
-                                    'tags.name'
-                                    ]):
-            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])   # Convert tags to single string
-            doc = flatten_dict(doc, separator='__')
+
+        log.debug("Updating datasets from runs database... ")
+        cursor = collection.find(
+            {'detector': hax.config.get('detector', 'tpc')},
+            ['name', 'number', 'start', 'end', 'source',
+             'reader.self_trigger',
+             'trigger.events_built', 'trigger.status',
+             'tags.name',
+             'data'])
+        for doc in cursor:
+            # Process and flatten the doc
             del doc['_id']   # Remove the Mongo document ID
-            doc['raw_data_subfolder'] = ''      # For the moment, everything is in one folder
+            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])    # Convert tags to single string
+            if 'data' in doc:
+                data_docs = doc['data']
+                del doc['data']
+            else:
+                data_docs = []
+            doc = flatten_dict(doc, separator='__')
+
+            if version_policy != 'loose':
+
+                # Does the run db know where to find the processed data at this host?
+                processed_data_docs = [d for d in data_docs
+                                       if (data_doc['type'] == 'processed'
+                                           and hax.config['cax_key'] in data_doc['host']
+                                           and data_doc['status'] == 'transferred')]
+
+                # Choose whether to use this data / which data to use, based on the version policy
+                doc['location'] = ''
+                if processed_data_docs:
+                    if version_policy in ('latest', 'loose'):
+                        doc['location'] = max(processed_data_docs,
+                                              key=lambda x: LooseVersion(x['pax_version']))['location']
+                    else:
+                        for dd in processed_data_docs:
+                            if dd['pax_version'] == hax.config['pax_version_policy']:
+                                doc['location'] = dd['location']
+
             docs.append(doc)
+
         datasets = pd.DataFrame(docs)
+        log.debug("... done.")
 
-    # What dataset names do we have?
-    dataset_names = datasets['name'].values
-    datasets['location'] = [''] * len(dataset_names)
-    datasets['raw_data_found'] = [False] * len(dataset_names)
+    # These may or may not have been set already:
+    if not 'location' in datasets:
+        datasets['location'] = [''] * len(datasets)
+    if not 'raw_data_subfolder' in datasets:
+        datasets['raw_data_subfolder'] = [''] * len(datasets)
+    if not 'raw_data_found' in datasets:
+        datasets['raw_data_found'] = [False] * len(datasets)
 
-    # Walk through all the main_data_paths, looking for root files
-    # This should be more efficient than looking for each dataset separately
-    for data_dir in hax.config.get('main_data_paths', []):
-        for candidate in glob(os.path.join(data_dir, '*.root')):
+    if version_policy == 'loose':
+        # Walk through main_data_paths, looking for root files
+        dataset_names = datasets['name'].values
+        for data_dir in hax.config.get('main_data_paths', []):
+            for candidate in glob(os.path.join(data_dir, '*.root')):
+                # What dataset is this file for?
+                dsetname = os.path.splitext(os.path.basename(candidate))[0]
+                bla = np.where(dataset_names == dsetname)[0]
+                if len(bla):
+                    # Dataset was found, index is in bla[0]
+                    datasets.loc[bla[0], 'location'] = candidate
 
-            # What dataset is this file for?
-            dsetname = os.path.splitext(os.path.basename(candidate))[0]
-            bla = np.where(dataset_names == dsetname)[0]
-
-            if len(bla):
-                # Dataset was found, index is in bla[0]
-                datasets.loc[bla[0], 'location'] = candidate
-
-    # For the raw data, we need to look in all subfolders
-    # DO NOT do os.path.exist for each dataset, it will take minutes, at least over sshfs
+    # For the raw data, we may need to look in subfolders ('run_10' etc)
+    # don't do os.path.exist for each dataset, it will take minutes, at least over sshfs
     if hax.config['raw_data_access_mode'] == 'local':
         for subfolder, dsets_in_subfolder in datasets.groupby('raw_data_subfolder'):
             subfolder_path = os.path.join(hax.config['raw_data_local_path'], subfolder)
@@ -103,9 +137,8 @@ def update_datasets():
                 if len(bla):
                     datasets.loc[bla[0], 'raw_data_found'] = True
 
-
 def get_run_info(run_id):
-    """Returns a dictionary with the runs database info for a given dataset
+    """Returns a dictionary with the runs database info for a given run_id.
     For XENON1T, this queries the runs db to get the complete run doc.
     """
     global datasets
