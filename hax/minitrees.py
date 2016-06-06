@@ -102,7 +102,7 @@ def get(run_name, treemaker, force_reload=False):
         print("Found minitree at %s" % minitree_path)
 
         # Check the version of the minitree file
-        f = ROOT.TFile(minitree_path, 'UPDATE')
+        f = ROOT.TFile(minitree_path)
         metadata = json.loads(f.Get('metadata').GetTitle())
         if LooseVersion(metadata['version']) < treemaker.__version__:
             print("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (minitree_path,
