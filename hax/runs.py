@@ -38,7 +38,7 @@ def get_rundb_collection():
     return db[hax.config['runs_collection']]
 
 
-def update_datasets():
+def update_datasets(query=None):
     """Update hax.runs.datasets to contain latest datasets.
     Currently just loads XENON100 run 10 runs from a csv file.
     """
@@ -59,7 +59,11 @@ def update_datasets():
     elif experiment == 'XENON1T':
         collection = get_rundb_collection()
         docs = []
-        for doc in collection.find({'detector': hax.config.get('detector', 'tpc')},
+
+        if query is None:
+            query = {'detector': hax.config.get('detector', 'tpc')}
+
+        for doc in collection.find(query,
                                    ['name', 'number', 'start', 'end', 'source',
                                     'reader.self_trigger',
                                     'trigger.events_built', 'trigger.status',
