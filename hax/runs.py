@@ -62,7 +62,7 @@ def update_datasets(query=None):
 
         if query is None:
             query = {}
-        query['detector'] = hax.config.get('detector', 'tpc')}
+        query['detector'] = hax.config.get('detector', 'tpc')
 
         for doc in collection.find(query,
                                    ['name', 'number', 'start', 'end', 'source',
