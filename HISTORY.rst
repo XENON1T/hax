@@ -1,3 +1,8 @@
+0.3.3
+-----
+
+* Redo arbitrary database queries in run DB, but lots of small Makefile issues with release.
+
 0.3.2
 -----
 
