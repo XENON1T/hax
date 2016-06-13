@@ -11,6 +11,14 @@ Subpackages
 Submodules
 ----------
 
+hax.data_extractor module
+-------------------------
+
+.. automodule:: hax.data_extractor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hax.ipython module
 ------------------
 

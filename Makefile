@@ -101,6 +101,6 @@ minor: clean docs
 patch: clean docs
 	emacs HISTORY.rst
 	git commit -m "Update HISTORY for the release" HISTORY.rst
-	bumpversion patch
+	bumpversion patch --allow-dirty
 	git push
 	git push --tags
