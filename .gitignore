@@ -14,6 +14,7 @@ dist/
 downloads/
 eggs/
 docs/*rst
+docs/hax.rst
 .eggs/
 lib/
 lib64/
