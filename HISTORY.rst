@@ -4,6 +4,11 @@ Upcoming release
 - `haxer --daemon` mode to watch for data and create minitrees
 
 
+0.3.2
+-----
+
+* Allow arbitrary run database queries in update_dataset
+
 0.3.1
 ------
 
