@@ -1,13 +1,9 @@
-Upcoming release
------------------
-- Minitrees: enable opening of minitrees without write permission 
-- `haxer --daemon` mode to watch for data and create minitrees
-
-
 0.3.2
 -----
 
-* Allow arbitrary run database queries in update_dataset
+* Allow arbitrary run database queries in update_dataset()
+* Minitrees: enable opening of minitrees without write permission
+* `haxer --daemon` mode to watch for data and create minitrees
 
 0.3.1
 ------
