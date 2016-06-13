@@ -4,7 +4,7 @@ import inspect
 from configparser import ConfigParser
 import socket
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 # Stitch the package together
 # I am surprised this works (even if we do 'from hax' instead of 'from .')
