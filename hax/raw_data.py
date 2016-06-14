@@ -25,7 +25,7 @@ def inspect_events_from_minitree(events, *args, **kwargs):
         inspect_events(dataset_number, event_numbers, *args, **kwargs)
 
 
-def inspect_events(run_id, event_numbers, focus='all', save_to_dir=None):
+def inspect_events(run_id, event_numbers, focus='all', save_to_dir=None, config_override=None):
     """Show the pax event display for the events in dataset_number,
 
     The dataframe must at least contain 'Basics'; currently only supports XENON100 run 10.
@@ -44,10 +44,32 @@ def inspect_events(run_id, event_numbers, focus='all', save_to_dir=None):
     else:
         config_dict['Plotting.PlotEventSummary'] = {'block_view': True}
 
+    if config_override is not None:
+        config_dict = hax.utils.combine_pax_configs(config_dict, config_override)
+
     # After we configure pax to do the plotting, we just have to iterate over the events and do nothing
     # Could do list(...) as well, but that would save all the events and return then in a big list at the end
     for _ in process_events(run_id, event_numbers, config_override=config_dict):
         pass
+
+
+def inspect_peaks(run_id, event_numbers, peak_boundaries, save_to_dir=None, config_override=None):
+    """Inspect the peaks starting at peak_boundaries (in samples... sorry) in event_numbers.
+    Event numbers and peak_boundaries must be list/arrays of integers of the same length.
+    """
+    config_dict = {'Plotting.PeakViewer': {'starting_peak_per_event': {k: v for k, v in zip(event_numbers,
+                                                                                            peak_boundaries)}}}
+
+    if config_override is not None:
+        config_dict = hax.utils.combine_pax_configs(config_dict, config_override)
+
+    inspect_events(run_id, event_numbers,
+                   focus='_something_else_', save_to_dir=save_to_dir, config_override=config_dict)
+
+
+def inspect_peaks_array(run_id, peak_array, save_to_dir=None, config_override=None):
+    """Inspect peaks from a record array returned by hax.DataExtractor"""
+    inspect_peaks(run_id, peak_array['event_number'], peak_array['left'])
 
 
 def raw_events(run_id, event_numbers=None, config_override=None):

@@ -38,8 +38,11 @@ def get_rundb_collection():
     return db[hax.config['runs_collection']]
 
 
-def update_datasets():
-    """Update hax.runs.datasets to contain latest datasets."""
+def update_datasets(query=None):
+    """Update hax.runs.datasets to contain latest datasets.
+    Currently just loads XENON100 run 10 runs from a csv file.
+    query: custom query, in case you only want to update partially??
+    """
     global datasets
     experiment = hax.config['experiment']
 
@@ -61,16 +64,21 @@ def update_datasets():
         collection = get_rundb_collection()
         docs = []
 
+        if query is None:
+            query = {}
+        query['detector'] = hax.config.get('detector', 'tpc')
+
         log.debug("Updating datasets from runs database... ")
-        cursor = collection.find(
-            {'detector': hax.config.get('detector', 'tpc')},
-            ['name', 'number', 'start', 'end', 'source',
-             'reader.self_trigger',
-             'trigger.events_built', 'trigger.status',
-             'tags.name',
-             'data'])
+        cursor = collection.find(query,
+                                ['name', 'number', 'start', 'end', 'source',
+                                 'reader.self_trigger',
+                                 'trigger.events_built', 'trigger.status',
+                                 'tags.name',
+                                 'data'])
         for doc in cursor:
             # Process and flatten the doc
+            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])   # Convert tags to single string
+            doc = flatten_dict(doc, separator='__')
             del doc['_id']   # Remove the Mongo document ID
             doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])    # Convert tags to single string
             if 'data' in doc:
