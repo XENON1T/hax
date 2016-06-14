@@ -16,6 +16,18 @@ def find_file_in_folders(filename, folders):
     raise FileNotFoundError("Did not find file %s!" % filename)
 
 
+def combine_pax_configs(config, overrides):
+    """Combines configuration dictionaries config and overrides.
+    overrides has higher priotity.
+    each config must be a dictionary containing only string->dict pairs (like the pax/ConfigParser configs)
+    """
+    # TODO: we should soon be able to get this from pax, but let's wait a while to prevent incompatibilties
+    for section_name, stuff in overrides.items():
+        config.setdefault(section_name, {})
+        config[section_name].update(stuff)
+    return config
+
+
 def get_user_id():
     """:return: string identifying the currently active system user as name@node
     :note: user can be set with the 'USER' environment variable, usually set on windows
