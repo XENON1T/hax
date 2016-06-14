@@ -57,8 +57,8 @@ def inspect_peaks(run_id, peak_boundaries, event_numbers, save_to_dir=None, conf
     """Inspect the peaks starting at peak_boundaries (in samples... sorry) in event_numbers.
     Event numbers and peak_boundaries must be list/arrays of integers of the same length.
     """
-    config_dict = {'Plotting.PeakViewer': {'starting_peak_per_event': {k: v for k, v in zip(peak_boundaries,
-                                                                                            event_numbers)}}}
+    config_dict = {'Plotting.PeakViewer': {'starting_peak_per_event': {k: v for k, v in zip(event_numbers,
+                                                                                            peak_boundaries)}}}
 
     if config_override is not None:
         config_dict = hax.utils.combine_pax_configs(config_dict, config_override)
