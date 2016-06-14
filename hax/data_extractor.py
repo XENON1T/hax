@@ -84,6 +84,8 @@ class DataExtractor():
                                 if rp.algorithm == 'PosRecTopPatternFit':
                                     _x = getattr(rp, field)
                                     break
+                            else:
+                                _x = float('nan')
                         else:
                             _x = getattr(peak, field)
                         _temp_data.append(_x)
