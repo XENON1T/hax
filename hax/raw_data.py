@@ -53,7 +53,7 @@ def inspect_events(run_id, event_numbers, focus='all', save_to_dir=None, config_
         pass
 
 
-def inspect_peaks(run_id, peak_boundaries, event_numbers, save_to_dir=None, config_override=None):
+def inspect_peaks(run_id, event_numbers, peak_boundaries, save_to_dir=None, config_override=None):
     """Inspect the peaks starting at peak_boundaries (in samples... sorry) in event_numbers.
     Event numbers and peak_boundaries must be list/arrays of integers of the same length.
     """
