@@ -75,16 +75,26 @@ class DataExtractor():
                 # Check if peak passes the cut
                 if eval(self.peak_cut_string):
                     # Get peak information
-                    peak_entry = np.array([getattr(peak, field) if field is not 'range_50p_area' else
-                                           list(peak.range_area_decile)[5]
-                                           for field in self.peak_fields])
+                    _temp_data = []
+                    for field in self.peak_fields:
+                        if field == 'range_50p_area':
+                            _x = list(peak.range_area_decile)[5]
+                        elif field in ('x', 'y'):
+                            for rp in peak.reconstructed_positions:
+                                if rp.algorithm == 'PosRecTopPatternFit':
+                                    _x = getattr(rp, field)
+                                    break
+                        else:
+                            _x = getattr(peak, field)
+                        _temp_data.append(_x)
+                    peak_entry = np.array(_temp_data)
                     if self.level == 'hit':
                         # Extract hit info. Numpy array with n_hit_channel entries x number of hit properties
                         hit_entry = root_to_numpy(peak, 'hits', self.hit_fields)
                         if hit_entry is None:
                             # If there is no hit data: crash loudly
-                            raise ValueError(
-                                "Unable to read hit info. Is it in the root file? (Try: peak_cuts = ['type == 's1''])")
+                            raise ValueError("Unable to read hit info. "
+                                             "Is it in the root file? (Try: peak_cuts = ['type == 's1''])")
 
                         # Append all properties. First event properties, then peak, then hits
                         entry = np.c_[np.zeros((len(hit_entry), len(event_entry)+len(peak_entry))), hit_entry]
@@ -95,7 +105,7 @@ class DataExtractor():
                         entry = np.c_[[event_entry], [peak_entry]]
                     else:
                         # We should actually never reach this since the checking has been done before
-                        raise SyntaxError("Enter either 'peak' of 'hit' for level!")
+                        raise ValueError("Enter either 'peak' of 'hit' for level!")
                     self.data.append(entry)
         # Check if user-defined event number limit is reached
         if event.event_number >= self.stop_after:
