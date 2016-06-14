@@ -4,8 +4,11 @@ from datetime import datetime
 from distutils.version import LooseVersion
 from glob import glob
 import inspect
+import logging
 import json
 import os
+log = logging.getLogger('hax.minitrees')
+log.setLevel(logging.DEBUG)
 
 import numpy as np
 import pandas as pd
@@ -85,7 +88,7 @@ def update_treemakers():
             treemakers[tm_name] = tm
 
 
-def _check_minitree_path(minitree_filename, force_reload=False):
+def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=False):
     """Return path to minitree_filename if we can find it and it agrees with the version policy, else returns None.
     If force_reload=True, always returns None.
     """
@@ -138,6 +141,8 @@ def _check_minitree_path(minitree_filename, force_reload=False):
             log.debug("Minitree found from pax version %s, but you required pax version %s. "
                       "Will attempt to create it from the main root file." % (minitree_metadata['pax_version'],
                                                                               version_policy))
+            minitree_f.Close()
+            return None
 
     minitree_f.Close()
     return minitree_path
@@ -156,7 +161,8 @@ def get(run_name, treemaker, force_reload=False):
     minitree_filename = "%s_%s.root" % (run_name, treemaker_name)
 
     # Do we already have this minitree? And is it good?
-    minitree_path = _check_minitree_path(minitree_filename, force_reload=force_reload)
+    minitree_path = _check_minitree_path(minitree_filename, treemaker, run_name,
+                                         force_reload=force_reload)
     if minitree_path is not None:
         return minitree_path
 
@@ -175,12 +181,13 @@ def get(run_name, treemaker, force_reload=False):
                           treename=treemaker.__name__, mode='recreate')
 
     # Write metadata
-    minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
-    ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
+    bla = ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
                                             pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
                                             created_by=get_user_id(),
                                             documentation=treemaker.__doc__,
-                                            timestamp=str(datetime.now())))).Write()
+                                            timestamp=str(datetime.now()))))
+    minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
+    bla.Write()
     minitree_f.Close()
 
     return minitree_path

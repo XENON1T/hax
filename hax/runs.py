@@ -80,7 +80,6 @@ def update_datasets(query=None):
             doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])   # Convert tags to single string
             doc = flatten_dict(doc, separator='__')
             del doc['_id']   # Remove the Mongo document ID
-            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])    # Convert tags to single string
             if 'data' in doc:
                 data_docs = doc['data']
                 del doc['data']
@@ -92,19 +91,19 @@ def update_datasets(query=None):
 
                 # Does the run db know where to find the processed data at this host?
                 processed_data_docs = [d for d in data_docs
-                                       if (data_doc['type'] == 'processed'
-                                           and hax.config['cax_key'] in data_doc['host']
-                                           and data_doc['status'] == 'transferred')]
+                                       if (d['type'] == 'processed'
+                                           and hax.config['cax_key'] in d['host']
+                                           and d['status'] == 'transferred')]
 
                 # Choose whether to use this data / which data to use, based on the version policy
                 doc['location'] = ''
                 if processed_data_docs:
-                    if version_policy in ('latest', 'loose'):
+                    if version_policy == 'latest':
                         doc['location'] = max(processed_data_docs,
                                               key=lambda x: LooseVersion(x['pax_version']))['location']
                     else:
                         for dd in processed_data_docs:
-                            if dd['pax_version'] == hax.config['pax_version_policy']:
+                            if dd['pax_version'][1:] == hax.config['pax_version_policy']:
                                 doc['location'] = dd['location']
 
             docs.append(doc)
@@ -119,10 +118,10 @@ def update_datasets(query=None):
         datasets['raw_data_subfolder'] = [''] * len(datasets)
     if not 'raw_data_found' in datasets:
         datasets['raw_data_found'] = [False] * len(datasets)
+    dataset_names = datasets['name'].values
 
     if version_policy == 'loose':
         # Walk through main_data_paths, looking for root files
-        dataset_names = datasets['name'].values
         for data_dir in hax.config.get('main_data_paths', []):
             for candidate in glob(os.path.join(data_dir, '*.root')):
                 # What dataset is this file for?
