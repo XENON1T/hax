@@ -59,3 +59,9 @@ def init(filename=None, **kwargs):
 
     from hax.minitrees import update_treemakers
     update_treemakers()
+
+    if not config['cax_key'] or config['cax_key'] == 'sorry_I_dont_have_one':
+        log.warning("You're not at a XENON analysis facility, or hax can't detect at which analysis facility you are.")
+        if config['pax_version_policy'] != 'loose':
+            raise ValueError("Outside an analysis facility you must explicitly set pax_version_policy = 'loose', "
+                             "to acknowledge you are not getting any version consistency checks.")
