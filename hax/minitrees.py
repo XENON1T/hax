@@ -8,7 +8,6 @@ import logging
 import json
 import os
 log = logging.getLogger('hax.minitrees')
-log.setLevel(logging.DEBUG)
 
 import numpy as np
 import pandas as pd
