@@ -2,6 +2,8 @@
 import datetime
 import os
 
+import pandas as pd
+
 import pymongo
 
 VARIABLES = {
@@ -296,3 +298,19 @@ def get_value(variable, time_range=None,
                               '$lt': time_range[1] + extension}
 
     return [(doc['timestamp'], doc['value']) for doc in COLLECTION.find(query)]
+
+def get_series(name, time_range):
+    result = get_value(name, time_range=time_range)
+    if len(result) == 0:
+        return pd.Series()
+
+    a,b = zip(*result)
+    return pd.Series(b,a)
+
+def get_dataframe(time_range):
+    data = {}
+    for name, category in VARIABLES.items():
+        for key, value in category.items():
+            data[key] = get_series(value,
+                                   time_range)
+    return pd.DataFrame(data)
