@@ -1,3 +1,10 @@
+0.4.0
+-----
+
+* Slow control variables
+* Checks for different pax versions (#30)
+
+
 0.3.4
 -----
 
