@@ -67,6 +67,14 @@ hax.runs module
     :undoc-members:
     :show-inheritance:
 
+hax.slow_control module
+-----------------------
+
+.. automodule:: hax.slow_control
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hax.utils module
 ----------------
 
