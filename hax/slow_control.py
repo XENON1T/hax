@@ -1,7 +1,8 @@
 # Slow control interface
-import os
-import pymongo
 import datetime
+import os
+
+import pymongo
 
 VARIABLES = {
     'cryogenics': {
@@ -279,18 +280,19 @@ VARIABLES = {
     }
 }
 
-PASSWORD= os.environ.get("MONGO_PASSWORD")
+PASSWORD = os.environ.get("MONGO_PASSWORD")
 CONNECTION = pymongo.MongoClient('mongodb://analyst:%s@'
-                                    'zenigata.uchicago.edu:27020/'
-                                    'slow_control' % PASSWORD)
+                                 'zenigata.uchicago.edu:27020/'
+                                 'slow_control' % PASSWORD)
 
 COLLECTION = CONNECTION.slow_control.measurements
 
+
 def get_value(variable, time_range=None,
-              extension = datetime.timedelta(minutes=0)):
-    query = {"name" : variable}
+              extension=datetime.timedelta(minutes=0)):
+    query = {"name": variable}
     if time_range is not None:
-        query['timestamp'] = {'$gt' : time_range[0] - extension,
-                              '$lt' : time_range[1] + extension}
+        query['timestamp'] = {'$gt': time_range[0] - extension,
+                              '$lt': time_range[1] + extension}
 
     return [(doc['timestamp'], doc['value']) for doc in COLLECTION.find(query)]
