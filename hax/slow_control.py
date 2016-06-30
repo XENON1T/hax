@@ -9,8 +9,8 @@ import pymongo
 VARIABLES = {
     'cryogenics': {
         "cryostat_pressure_bar"                        : "XE1T.CRY_PT101_PCHAMBER_AI.PI",
-        "LXe_temperature_bottom_C"                     : "XE1T.CRY_TE101_CRYOBOTT_AI.PI",
-        "LXe_temperature_above_bottom_PMTs_C"          : "XE1T.CRY_TE102_CRYOBOTPMT_AI.PI",
+        "LXe_temperature_bottom_C"                     : "XE1T.CRY_TE101_TCRYOBOTT_AI.PI",
+        "LXe_temperature_above_bottom_PMTs_C"          : "XE1T.CRY_TE102_TCRYOBOTPMT_AI.PI",
         "vacuum_insolation_pressure_mbar"              : "XE1T.CRY_PI110_PT113_PINS_AI.PI",
         "GXe_circulation_mass_flow_to_getter_201_SLPM" : "XE1T.PUR_FC201_FMON.PI",
         "GXe_circulation_mass_flow_to_getter_202_SLPM" : "XE1T.PUR_FC201_FMON.PI",
