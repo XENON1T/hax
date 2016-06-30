@@ -21,7 +21,9 @@ setup(name='hax',
       scripts=['bin/haxer'],
       py_modules=['hax'],
       install_requires=requirements,
-      classifiers=['Intended Audience :: Developers',
-                   'Development Status :: 3 - Alpha',
-                   'Programming Language :: Python :: 3'],
+      classifiers=[
+          'Development Status :: 5 - Production/Stable',
+          'Intended Audience :: End Users/Desktop',
+          'Programming Language :: Python :: 3'
+      ],
       zip_safe=False)
