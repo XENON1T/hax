@@ -294,12 +294,12 @@ def get_value(variable, time_range=None,
               extension=datetime.timedelta(minutes=0)):
     query = {"name": variable}
     if time_range is not None:
-        query['timestamp'] = {'$gt': time_range[0] - extension,
-                              '$lt': time_range[1] + extension}
+        query['request_time'] = {'$gt': time_range[0] - extension,
+                                 '$lt': time_range[1] + extension}
 
-    return [(doc['timestamp'], doc['value']) for doc in COLLECTION.find(query)]
+    return [(doc['request_time'], doc['value']) for doc in COLLECTION.find(query)]
 
-def get_series(name, time_range):
+def get_series(name, time_range=None):
     result = get_value(name, time_range=time_range)
     if len(result) == 0:
         return pd.Series()
@@ -307,7 +307,7 @@ def get_series(name, time_range):
     a,b = zip(*result)
     return pd.Series(b,a)
 
-def get_dataframe(time_range):
+def get_dataframe(time_range=None):
     data = {}
     for name, category in VARIABLES.items():
         for key, value in category.items():
