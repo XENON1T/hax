@@ -1,3 +1,8 @@
+0.4.1
+-----
+
+* Slow control tweaks
+
 0.4.0
 -----
 
