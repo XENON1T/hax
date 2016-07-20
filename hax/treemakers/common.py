@@ -128,8 +128,7 @@ class LargestPeakProperties(TreeMaker):
                               'n_hits', 'hit_time_std', 'center_time',
                               'n_saturated_channels', 'n_contributing_channels']
 
-    @staticmethod
-    def get_properties(peak, prefix=''):
+    def get_properties(self, peak, prefix=''):
         """Return dictionary with peak properties, keys prefixed with prefix"""
         result = {field: getattr(peak, field) for field in self.peak_properties_to_get}
         result['range_50p_area'] = peak.range_area_decile[5]
@@ -148,13 +147,13 @@ class LargestPeakProperties(TreeMaker):
         for p_i, p in enumerate(peaks):
             if p.detector != 'tpc':
                 continue
-            for p_type in (p.type, 'any'):
+            for p_type in (p.type, 'largest'):
                 if p.area > largest_peak_per_type.get(p_type, (None, 0))[1]:
                     # New largest peak of this peak type
-                    largest_peak_per_type[p.type] = (p_i, p.area)
+                    largest_peak_per_type[p_type] = (p_i, p.area)
 
         result = {}
-        for p_type, p_index in largest_peak_per_type.items():
+        for p_type, (p_index, _) in largest_peak_per_type.items():
             result.update(self.get_properties(peaks[p_index], prefix=p_type + '_'))
 
         return result
