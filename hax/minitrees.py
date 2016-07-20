@@ -195,7 +195,7 @@ def get(run_name, treemaker, force_reload=False):
     return minitree_path
 
 
-def load(datasets, treemakers='Basics', force_reload=False):
+def load(datasets, treemakers=('Basics', 'MainInteraction'), force_reload=False):
     """Return pandas DataFrame with minitrees of several datasets.
       datasets: names or numbers of datasets (without .root) to load
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
