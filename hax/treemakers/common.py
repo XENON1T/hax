@@ -4,12 +4,32 @@ from hax.minitrees import TreeMaker
 from collections import defaultdict
 
 
+
 class Basics(TreeMaker):
-    """Basic minitree containing variables needed in almost every basic analysis.
+    """Simple minitree containing basic information about every event, regardless of its contents.
+    It is highly recommended you always use this.
 
     Provides:
      - event_number: Event number within the dataset
      - dataset_number: Numerical representation of dataset id, e.g. xe100_120402_2000 -> 1204022000
+     - event_time: Unix time (in ns since the unix epoch) of the start of the event window
+     - event_duration: duration (in ns) of the event
+     - run_number: Run number of the run/dataset this event came from
+    """
+    __version__ = '0.1'
+    branch_selection = ['event_number', 'start_time', 'stop_time']
+
+    def extract_data(self, event):
+        return dict(event_number=event.event_number,
+                    run_number=self.run_number,
+                    event_time=event.start_time,
+                    event_duration=event.stop_time - event.start_time)
+
+
+class MainInteraction(TreeMaker):
+    """Information on the main interaction of the event.
+
+    Provides:
      - s1: The uncorrected area in pe of the main interaction's S1
      - s2: The uncorrected area in pe of the main interaction's S2
      - cs1: The corrected area in pe of the main interaction's S1
@@ -20,6 +40,8 @@ class Basics(TreeMaker):
      - drift_time: The drift time in ns (pax units) of the main interaction
      - s1_area_fraction_top: The fraction of uncorrected area in the main interaction's S1 seen by the top array
      - s2_area_fraction_top: The fraction of uncorrected area in the main interaction's S2 seen by the top array
+     - s1_range_50p_area: The width of the s1 (ns), duration of region that contains 50% of the area of the peak
+     - s2_range_50p_area: The width of the s2 (ns), duration of region that contains 50% of the area of the peak
      - largest_other_s1: The uncorrected area in pe of the largest S1 in the TPC not in the main interaction
      - largest_other_s2: The uncorrected area in pe of the largest S2 in the TPC not in the main interaction
      - largest_veto: The uncorrected area in pe of the largest non-lone_hit peak in the veto
@@ -28,15 +50,15 @@ class Basics(TreeMaker):
 
     Notes:
      * 'largest' refers to uncorrected area.
-     * 'uncorrected' refers to the area in pe without applying ANY position- or saturation corrections.
+     * 'uncorrected' refers to the area in pe without applying any position- or saturation corrections.
      * 'corrected' refers to applying all available position- and/or saturation corrections
        (see https://github.com/XENON1T/pax/blob/master/pax/plugins/interaction_processing/BuildInteractions.py#L105)
      * 'main interaction' is event.interactions[0], which is determined by pax
                           (currently just the largest S1 + largest S2 after it)
 
     """
-    __version__ = '0.0.2'
-    extra_branches = ['dataset_name']
+    __version__ = '0.1'
+    extra_branches = ['peaks.range_area_decile[11]',]
 
     def extract_data(self, event):
         event_data = dict(event_number=event.event_number,
@@ -55,6 +77,8 @@ class Basics(TreeMaker):
                                    s2=s2.area,
                                    s1_area_fraction_top=s1.area_fraction_top,
                                    s2_area_fraction_top=s2.area_fraction_top,
+                                   s1_range_50p_area=s1.range_area_decile[5],
+                                   s2_range_50p_area=s2.range_area_decile[5],
                                    cs1=s1.area * interaction.s1_area_correction,
                                    cs2=s2.area * interaction.s2_area_correction,
                                    x=interaction.x,
@@ -91,54 +115,46 @@ class Basics(TreeMaker):
         return event_data
 
 
-class PeakProperties(TreeMaker):
+class LargestPeakProperties(TreeMaker):
     """Largest peak properties for each type and for all peaks.
-
+    If you're doing an S1-only or S2-only analysis, you'll want this info instead of MainInteraction.
     """
-    extra_branches = ['peaks.area_fraction_top',
-                      'peaks.bottom_hitpattern_spread',
-                      'peaks.hit_time_std',
-                      'peaks.n_hits',
-                      'peaks.area',
-                      'peaks.n_saturated_channels']
-    __version__ = '0.0.1'
+    extra_branches = ['peaks.n_hits', 'peaks.hit_time_std', 'peaks.center_time',
+                      'peaks.n_saturated_channels', 'peaks.n_contributing_channels']
+    __version__ = '0.1'
+
+    # Simple peak properties to get. Logic for range_x0p_area and xy is separate.
+    peak_properties_to_get = ['area', 'area_fraction_top',
+                              'n_hits', 'hit_time_std', 'center_time',
+                              'n_saturated_channels', 'n_contributing_channels']
+
+    @staticmethod
+    def get_properties(peak, prefix=''):
+        """Return dictionary with peak properties, keys prefixed with prefix"""
+        result = {field: getattr(peak, field) for field in self.peak_properties_to_get}
+        result['range_50p_area'] = peak.range_area_decile[5]
+        result['range_90p_area'] = peak.range_area_decile[9]
+        for rp in peak.reconstructed_positions:
+            if rp.algorithm == 'PosRecTopPatternFit':
+                result['x'] = rp.x
+                result['y'] = rp.y
+        return {prefix + k: v for k, v in result.items()}
 
     def extract_data(self, event):  # This runs on each event
-        # 'values' is returned once filled and each field defaults to zero.
-        values = defaultdict(float)
+        peaks = event.peaks
 
-        # Store the start time of the event
-        values['time'] = event.start_time
+        # Get the largest peak of each type, and the largest peak overall
+        largest_peak_per_type = {}              # peak type: (index, area) of largest peak seen so far
+        for p_i, p in enumerate(peaks):
+            if p.detector != 'tpc':
+                continue
+            for p_type in (p.type, 'any'):
+                if p.area > largest_peak_per_type.get(p_type, (None, 0))[1]:
+                    # New largest peak of this peak type
+                    largest_peak_per_type[p.type] = (p_i, p.area)
 
-        peaks_values = {}  # type name -> index
+        result = {}
+        for p_type, p_index in largest_peak_per_type.items():
+            result.update(self.get_properties(peaks[p_index], prefix=p_type + '_'))
 
-        # If no peaks, just continue
-        if event.peaks.size() == 0:
-            return values
-
-        for i, peak in enumerate(event.peaks):
-            if peak.type not in peaks_values:
-                peaks_values[peak.type] = i
-
-            type_key = 'largest_%s' % peak.type
-            biggest_peak_this_type = event.peaks[peaks_values[type_key]]
-
-            if peak.area > biggest_peak_this_type.area:
-                peaks_values[type_key] = i
-
-            if 'largest_peak' not in peaks_values:
-                peaks_values['largest_peak'] = i
-            if peak.area > event.peaks[peaks_values['largest_peak']].area:
-                peaks_values['largest_peak'] = i
-
-        for name, index in peaks_values.items():
-            peak = event.peaks[index]
-            # The store each peak field we want in 'values'
-            for field in self.extra_branches:
-                field = field[6:]
-                field_name = '%s_%s' % (name,
-                                        field)
-                values[field_name] = getattr(peak,
-                                             field)
-
-        return values
+        return result
