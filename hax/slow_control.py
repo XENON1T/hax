@@ -18,7 +18,7 @@ VARIABLES = {
         "Xe_height_above_gate_in_short_levelmeter_2_mm": "XE1T.GEN_CE912_SLM2_HMON.PI",
         "valve_state_V106"                             : "XE1T.CRY_V106_R_REQ2SCADA.ST"
     },
-
+    'water' : { 'water_level_m' : "XE1T.WLP_INDLEVL_H20_1.PI" },
     'field'     : {
         'cathode_kV': 'XE1T.GEN_HEINZVMON.PI',
         'anode_V'   : 'XE1T.CTPC.BOARD14.CHAN000.VMON'
