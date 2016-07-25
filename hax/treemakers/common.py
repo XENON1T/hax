@@ -4,30 +4,28 @@ from hax.minitrees import TreeMaker
 from collections import defaultdict
 
 
-
-class Basics(TreeMaker):
+class Fundamentals(TreeMaker):
     """Simple minitree containing basic information about every event, regardless of its contents.
-    It is highly recommended you always use this.
+    This minitree is always loaded whether you like it or not :-)
 
     Provides:
+     - run_number: Run number of the run/dataset this event came from
      - event_number: Event number within the dataset
-     - dataset_number: Numerical representation of dataset id, e.g. xe100_120402_2000 -> 1204022000
      - event_time: Unix time (in ns since the unix epoch) of the start of the event window
      - event_duration: duration (in ns) of the event
-     - run_number: Run number of the run/dataset this event came from
     """
     __version__ = '0.1'
     branch_selection = ['event_number', 'start_time', 'stop_time']
 
     def extract_data(self, event):
-        return dict(event_number=event.event_number,
-                    run_number=self.run_number,
+        return dict(run_number=self.run_number,
+                    event_number=event.event_number,
                     event_time=event.start_time,
                     event_duration=event.stop_time - event.start_time)
 
 
-class MainInteraction(TreeMaker):
-    """Information on the main interaction of the event.
+class Basics(TreeMaker):
+    """Basic information needed in most (standard) analyses, mostly on the main interaction.
 
     Provides:
      - s1: The uncorrected area in pe of the main interaction's S1
@@ -58,14 +56,11 @@ class MainInteraction(TreeMaker):
 
     """
     __version__ = '0.1'
-    extra_branches = ['peaks.range_area_decile[11]',]
 
     def extract_data(self, event):
-        event_data = dict(event_number=event.event_number,
-                          run_number=self.run_number,
-                          event_time=event.start_time)
+        event_data = dict()
 
-        # Detect events without at least one S1 + S2 pair immediatly
+        # Detect events without at least one S1 + S2 pair immediately
         # We cannot even fill the basic variables for these
         if len(event.interactions) != 0:
 
@@ -117,7 +112,8 @@ class MainInteraction(TreeMaker):
 
 class LargestPeakProperties(TreeMaker):
     """Largest peak properties for each type and for all peaks.
-    If you're doing an S1-only or S2-only analysis, you'll want this info instead of MainInteraction.
+    If you're doing an S1-only or S2-only analysis, you'll want this info instead of Basics.
+    In other case you may want to combine this and Basics.
     """
     extra_branches = ['peaks.n_hits', 'peaks.hit_time_std', 'peaks.center_time',
                       'peaks.n_saturated_channels', 'peaks.n_contributing_channels']
