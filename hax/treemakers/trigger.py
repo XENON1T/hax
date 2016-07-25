@@ -1,3 +1,5 @@
+import numpy as np
+from pax.datastructure import TriggerSignal
 from hax.minitrees import TreeMaker
 
 

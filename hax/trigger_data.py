@@ -1,9 +1,11 @@
 import zipfile
 import zlib
+import os
 from collections import defaultdict
 
 import numpy as np
 import bson
+import pandas as pd
 
 from pax import datastructure
 
@@ -49,7 +51,7 @@ def get_trigger_data(run_id, select_data_types='all'):
 
         if isinstance(data[k][0], dict):
             # Dictionaries describing data
-            data[k] = pd.DataFrame(data['batch_info'])
+            data[k] = pd.DataFrame(data[k])
 
         elif k == 'trigger_signals':
             data[k] = np.concatenate(data[k])
