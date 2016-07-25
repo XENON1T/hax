@@ -1,9 +1,13 @@
-import hax
 import zipfile
 import zlib
-import bson
 from collections import defaultdict
+
+import numpy as np
+import bson
+
 from pax import datastructure
+
+import hax
 
 # Custom data types used (others are just np.int)
 data_types = {

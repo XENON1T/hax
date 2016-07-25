@@ -10,7 +10,8 @@ __version__ = '0.4.1'
 # I am surprised this works (even if we do 'from hax' instead of 'from .')
 # as some of the modules do 'import hax' or 'from hax.foo import bar'.. shouldn't we get circular imports??
 # I need to read up on python packaging more...
-from . import ipython, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor
+from . import ipython, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor, \
+              slow_control, trigger_data
 
 # Store the directory of hax (i.e. this file's directory) as HAX_DIR
 hax_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
