@@ -282,6 +282,7 @@ VARIABLES = {
     }
 }
 
+# MongoDB settings
 PASSWORD = os.environ.get("MONGO_PASSWORD")
 CONNECTION = pymongo.MongoClient('mongodb://analyst:%s@'
                                  'zenigata.uchicago.edu:27020/'
