@@ -30,9 +30,12 @@ class TreeMaker(object):
     for their treemaker
     """
     cache_size = 1000
-    extra_branches = tuple()
+    branch_selection = None     # List of branches to load during iteration over events
+    extra_branches = tuple()    # If the above is empty, load basic branches (set in hax.config) plus these.
 
     def __init__(self):
+        if not self.branch_selection:
+            self.branch_selection = hax.config['basic_branches'] + list(self.extra_branches)
         self.cache = []
 
     def extract_data(self, event):
@@ -47,7 +50,7 @@ class TreeMaker(object):
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
-                          branch_selection=hax.config['basic_branches'] + list(self.extra_branches))
+                          branch_selection=self.branch_selection)
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
             raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
@@ -202,6 +205,9 @@ def load(datasets, treemakers='Basics', force_reload=False):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
+
+    # Add the "Fundamentals" treemaker to the beginning; we always want to load this.
+    treemakers = ['Fundamentals'] + treemakers
 
     combined_dataframes = []
 
