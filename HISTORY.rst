@@ -1,3 +1,9 @@
+0.4.2
+-----
+* Add trigger data support
+* Fundamentals treemaker (loaded automatically), improvements to Basics and LargestPeakProperties treemaker
+
+
 0.4.1
 -----
 
