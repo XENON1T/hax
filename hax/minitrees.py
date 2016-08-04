@@ -50,7 +50,8 @@ class TreeMaker(object):
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
-                          branch_selection=self.branch_selection)
+                          branch_selection=self.branch_selection,
+                          desc='making %s minitree' % self.__class__.__name__)
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
             raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
@@ -184,10 +185,10 @@ def get(run_name, treemaker, force_reload=False):
 
     # Write metadata
     bla = ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
-                                            pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
-                                            created_by=get_user_id(),
-                                            documentation=treemaker.__doc__,
-                                            timestamp=str(datetime.now()))))
+                                                  pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
+                                                  created_by=get_user_id(),
+                                                  documentation=treemaker.__doc__,
+                                                  timestamp=str(datetime.now()))))
     minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
     bla.Write()
     minitree_f.Close()
