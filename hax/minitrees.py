@@ -230,9 +230,9 @@ def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=Fal
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
-    skimmed_data = treemaker().get_data(run_name) ##DATAFRAME
+    skimmed_data = treemaker().get_data(run_name)
     
-    # Setting save_arrays to True if any arrays/vectors in DataFrame (JOEY)
+    # Setting save_arrays to True if any arrays/vectors in DataFrame
     for branch_name in list(skimmed_data):
         if hasattr(skimmed_data[branch_name][0], "__len__"):
             save_arrays = True
