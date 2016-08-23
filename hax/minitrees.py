@@ -21,7 +21,7 @@ from hax.paxroot import loop_over_dataset
 from hax.utils import find_file_in_folders, get_user_id
 
 
-def dataframe_to_root_with_arrays(dataframe, root_filename, treename='tree', mode='recreate'):
+def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'):
     branches = {}
     branch_types = {}
     length_branches = {}
@@ -100,7 +100,6 @@ class TreeMaker(object):
 
     def process_event(self, event):
         self.cache.append(self.extract_data(event))
-        #self.cache = pd.DataFrame.from_dict(self.extract_data(event))
         self.check_cache()
 
     def get_data(self, dataset):
@@ -108,12 +107,7 @@ class TreeMaker(object):
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
-<<<<<<< Updated upstream
                           branch_selection=self.branch_selection)
-=======
-                          branch_selection=hax.config['basic_branches'] + list(self.extra_branches))
-        #self.cache = np.array(self.cache, dtype=np.float32)
->>>>>>> Stashed changes
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
             raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
@@ -125,7 +119,6 @@ class TreeMaker(object):
             return
         if not hasattr(self, 'data'):
             self.data = pd.DataFrame(self.cache)
-            #self.data = self.cache
         else:
             self.data = self.data.append(self.cache, ignore_index=True)
         self.cache = []
@@ -264,7 +257,7 @@ def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=Fal
         pickle.dump(pickle_dict, open(minitree_pickle_path, 'wb'))
     if save_root:
         if save_arrays:
-            dataframe_to_root_with_arrays(skimmed_data, minitree_path, treename=treemaker.__name__, mode='recreate')
+            dataframe_to_root(skimmed_data, minitree_path, treename=treemaker.__name__, mode='recreate')
         else:
             root_numpy.array2root(skimmed_data.to_records(), minitree_path,
                                           treename=treemaker.__name__, mode='recreate')
@@ -282,8 +275,6 @@ def load(datasets, treemakers='Basics', force_reload=False, save_root=True, save
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
       force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     """
-    #if save_pickle:
-    #    force_reload=True ## hack since no metadata in pickle currently
 
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
