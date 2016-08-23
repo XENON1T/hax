@@ -6,6 +6,7 @@ from glob import glob
 import inspect
 import logging
 import json
+import pickle
 import os
 log = logging.getLogger('hax.minitrees')
 
@@ -18,6 +19,62 @@ import hax
 from hax import runs
 from hax.paxroot import loop_over_dataset
 from hax.utils import find_file_in_folders, get_user_id
+
+
+def dataframe_to_root_with_arrays(dataframe, root_filename, treename='tree', mode='recreate'):
+    branches = {}
+    branch_types = {}
+    length_branches = {}
+    single_value_keys = []
+    array_keys = []
+    array_root_file = ROOT.TFile(root_filename, mode)
+    datatree = ROOT.TTree(treename, "")
+    # setting up branches
+    for branch_name in list(dataframe):
+        branch_type = None
+        first_element = dataframe[branch_name][0]
+        # finding branches that contain array lengths
+        if hasattr(first_element, '__len__'):
+            max_length = -1
+            for length_branch_name in list(dataframe):
+                if np.array_equal(dataframe[length_branch_name][:10], [len(dataframe[branch_name][i]) for i in range(10)]):
+                    length_branches[branch_name] = length_branch_name
+                    max_length = np.amax(dataframe[length_branch_name])
+                    break
+            if max_length == -1:
+                raise KeyError( 'Missing array length key - please include a branch containing array length' )
+            first_element = first_element[0]
+            array_keys.append(branch_name)
+        else:
+            max_length = 1
+            single_value_keys.append(branch_name)
+        # setting branch types
+        if isinstance(first_element, (int, np.integer)):
+            branch_type = 'L'
+            branches[branch_name] = np.array([0]*max_length)
+        elif isinstance(first_element, (float, np.float)):
+            branch_type = 'D'
+            branches[branch_name] = np.array([0.]*max_length)
+        else:
+            raise TypeError( 'Branches must contain ints, floats, or arrays of ints or floats' )
+        branch_types[branch_name] = branch_type
+
+    # creating branches
+    for single_value_key in single_value_keys:
+        datatree.Branch(single_value_key, branches[single_value_key], "%s/%s" % (single_value_key, branch_types[single_value_key]))
+    for array_key in array_keys:
+        datatree.Branch(array_key, branches[array_key], "%s[%s]/%s" % (array_key, length_branches[array_key], branch_types[array_key]))
+
+    # filling tree
+    for event_index in range(len(dataframe.index)):
+        for single_value_key in single_value_keys:
+            branches[single_value_key][0] = dataframe[single_value_key][event_index]
+        for array_key in array_keys:
+            branches[array_key][:len(dataframe[array_key][event_index])] = dataframe[array_key][event_index]
+        datatree.Fill()
+    array_root_file.Write()
+    array_root_file.Close()
+
 
 # Will be updated to contain all treemakers
 treemakers = {}
@@ -43,6 +100,7 @@ class TreeMaker(object):
 
     def process_event(self, event):
         self.cache.append(self.extract_data(event))
+        #self.cache = pd.DataFrame.from_dict(self.extract_data(event))
         self.check_cache()
 
     def get_data(self, dataset):
@@ -50,7 +108,12 @@ class TreeMaker(object):
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
+<<<<<<< Updated upstream
                           branch_selection=self.branch_selection)
+=======
+                          branch_selection=hax.config['basic_branches'] + list(self.extra_branches))
+        #self.cache = np.array(self.cache, dtype=np.float32)
+>>>>>>> Stashed changes
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
             raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
@@ -62,8 +125,9 @@ class TreeMaker(object):
             return
         if not hasattr(self, 'data'):
             self.data = pd.DataFrame(self.cache)
+            #self.data = self.cache
         else:
-            self.data = self.data.append(self.cache)
+            self.data = self.data.append(self.cache, ignore_index=True)
         self.cache = []
 
 
@@ -150,7 +214,7 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
     return minitree_path
 
 
-def get(run_name, treemaker, force_reload=False):
+def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=False, save_arrays=False):
     """Return path to minitree file from treemaker for run_name (can also be a run number).
     The file will be re-created if it is not present, outdated, or force_reload is True (default False)
     Raises FileNotFoundError if we have to create the minitree, but the root file is not found.
@@ -161,16 +225,25 @@ def get(run_name, treemaker, force_reload=False):
     if not hasattr(treemaker, '__version__'):
         raise AttributeError("Please add a __version__ attribute to treemaker %s." % treemaker_name)
     minitree_filename = "%s_%s.root" % (run_name, treemaker_name)
+    if save_pickle:
+        minitree_pickle_filename = "%s_%s.pkl" % (run_name, treemaker_name)
 
     # Do we already have this minitree? And is it good?
     minitree_path = _check_minitree_path(minitree_filename, treemaker, run_name,
                                          force_reload=force_reload)
     if minitree_path is not None:
-        return minitree_path
+        empty_frame = pd.DataFrame()
+        return minitree_path, empty_frame
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
-    skimmed_data = treemaker().get_data(run_name)
+    skimmed_data = treemaker().get_data(run_name) ##DATAFRAME
+    
+    # Setting save_arrays to True if any arrays/vectors in DataFrame (JOEY)
+    for branch_name in list(skimmed_data):
+        if hasattr(skimmed_data[branch_name][0], "__len__"):
+            save_arrays = True
+
     log.debug("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
 
     # Make a minitree in the first (highest priority) directory from minitree_paths
@@ -179,28 +252,39 @@ def get(run_name, treemaker, force_reload=False):
     if not os.path.exists(creation_dir):
         os.makedirs(creation_dir)
     minitree_path = os.path.join(creation_dir, minitree_filename)
-    root_numpy.array2root(skimmed_data.to_records(), minitree_path,
-                          treename=treemaker.__name__, mode='recreate')
+    metadata_dict = dict(version=treemaker.__version__,
+                        pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
+                        created_by=get_user_id(),
+                        documentation=treemaker.__doc__,
+                        timestamp=str(datetime.now()))
+    if save_pickle:
+        # Write metadata
+        minitree_pickle_path = os.path.join(creation_dir, minitree_pickle_filename)
+        pickle_dict = {'metadata': metadata_dict, treemaker.__name__: skimmed_data}
+        pickle.dump(pickle_dict, open(minitree_pickle_path, 'wb'))
+    if save_root:
+        if save_arrays:
+            dataframe_to_root_with_arrays(skimmed_data, minitree_path, treename=treemaker.__name__, mode='recreate')
+        else:
+            root_numpy.array2root(skimmed_data.to_records(), minitree_path,
+                                          treename=treemaker.__name__, mode='recreate')
+        # Write metadata
+        bla = ROOT.TNamed('metadata', json.dumps(metadata_dict))
+        minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
+        bla.Write()
+        minitree_f.Close()
+    return minitree_path, skimmed_data
 
-    # Write metadata
-    bla = ROOT.TNamed('metadata', json.dumps(dict(version=treemaker.__version__,
-                                            pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
-                                            created_by=get_user_id(),
-                                            documentation=treemaker.__doc__,
-                                            timestamp=str(datetime.now()))))
-    minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
-    bla.Write()
-    minitree_f.Close()
 
-    return minitree_path
-
-
-def load(datasets, treemakers='Basics', force_reload=False):
+def load(datasets, treemakers='Basics', force_reload=False, save_root=True, save_pickle=False, save_arrays=False):
     """Return pandas DataFrame with minitrees of several datasets.
       datasets: names or numbers of datasets (without .root) to load
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
       force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     """
+    #if save_pickle:
+    #    force_reload=True ## hack since no metadata in pickle currently
+
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
@@ -215,9 +299,8 @@ def load(datasets, treemakers='Basics', force_reload=False):
 
         dataframes = []
         for dataset in datasets:
-            minitree_path = get(dataset, treemaker, force_reload=force_reload)
-            new_df = pd.DataFrame.from_records(root_numpy.root2rec(minitree_path))
-            dataframes.append(new_df)
+            minitree_path, dataset_frame = get(dataset, treemaker, force_reload=force_reload, save_root=save_root, save_pickle=save_pickle)
+            dataframes.append(dataset_frame)
 
         # Concatenate mini-trees of this type for all datasets
         combined_dataframes.append(pd.concat(dataframes))
@@ -227,11 +310,6 @@ def load(datasets, treemakers='Basics', force_reload=False):
         raise RuntimeError("No data was extracted? What's going on??")
     result = pd.concat(combined_dataframes, axis=1)
 
-    # Clean up index, remove 'index' column
-    # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
-    result.drop('index', axis=1, inplace=True)
-    result = result.reset_index()
-    result.drop('index', axis=1, inplace=True)
     return result
 
 
