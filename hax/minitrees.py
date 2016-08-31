@@ -21,6 +21,14 @@ from hax.paxroot import loop_over_dataset
 from hax.utils import find_file_in_folders, get_user_id
 
 
+def is_array_field(test_dataframe, test_field):
+    if test_dataframe.empty:
+        raise ValueError("No data saved from dataset - DataFrame is empty")
+    test_value = test_dataframe[test_field][0]
+    array_truth_value = (hasattr(test_value, "__len__") and not isinstance(test_value, (str, bytes)))
+    return array_truth_value
+
+
 def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'):
     branches = {}
     branch_types = {}
@@ -32,9 +40,8 @@ def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'
     # setting up branches
     for branch_name in list(dataframe):
         branch_type = None
-        first_element = dataframe[branch_name][0]
         # finding branches that contain array lengths
-        if hasattr(first_element, '__len__'):
+        if is_array_field(dataframe, branch_name):
             max_length = -1
             for length_branch_name in list(dataframe):
                 if np.array_equal(dataframe[length_branch_name][:10], [len(dataframe[branch_name][i]) for i in range(10)]):
@@ -43,10 +50,11 @@ def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'
                     break
             if max_length == -1:
                 raise KeyError( 'Missing array length key - please include a branch containing array length' )
-            first_element = first_element[0]
+            first_element = dataframe[branch_name][0][0]
             array_keys.append(branch_name)
         else:
             max_length = 1
+            first_element = dataframe[branch_name][0]
             single_value_keys.append(branch_name)
         # setting branch types
         if isinstance(first_element, (int, np.integer)):
@@ -147,7 +155,7 @@ def update_treemakers():
             treemakers[tm_name] = tm
 
 
-def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=False):
+def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=False, use_root=True, use_pickle=False):
     """Return path to minitree_filename if we can find it and it agrees with the version policy, else returns None.
     If force_reload=True, always returns None.
     """
@@ -164,14 +172,19 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
         return None
 
     log.debug("Found minitree at %s" % minitree_path)
-    minitree_f =  ROOT.TFile(minitree_path)
-    minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
+    if use_pickle and not use_root:
+        minitree_f = pd.read_pickle(minitree_path)
+        minitree_metadata = minitree_f['metadata']
+    else:
+        minitree_f =  ROOT.TFile(minitree_path)
+        minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
 
     # Check if the minitree has an outdated treemaker version
     if LooseVersion(minitree_metadata['version']) < treemaker.__version__:
         log.debug("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (
             minitree_path, minitree_metadata['version'], treemaker.__version__))
-        minitree_f.Close()
+        if use_root or not use_pickle:
+            minitree_f.Close()
         return None
 
     # Check if pax_version agrees with the version policy
@@ -189,7 +202,8 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
                           "will be recreated." % (minitree_path,
                                                   minitree_metadata.get('pax_version', 'not known'),
                                                   pax_metadata['file_builder_version']))
-                minitree_f.Close()
+                if use_root or not use_pickle:
+                    minitree_f.Close()
                 return None
 
     elif version_policy == 'loose':
@@ -200,14 +214,16 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
             log.debug("Minitree found from pax version %s, but you required pax version %s. "
                       "Will attempt to create it from the main root file." % (minitree_metadata['pax_version'],
                                                                               version_policy))
-            minitree_f.Close()
+            if use_root or not use_pickle:
+                minitree_f.Close()
             return None
 
-    minitree_f.Close()
+    if use_root or not use_pickle:
+        minitree_f.Close()
     return minitree_path
 
 
-def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=False, save_arrays=False):
+def get(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
     """Return path to minitree file from treemaker for run_name (can also be a run number).
     The file will be re-created if it is not present, outdated, or force_reload is True (default False)
     Raises FileNotFoundError if we have to create the minitree, but the root file is not found.
@@ -218,24 +234,28 @@ def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=Fal
     if not hasattr(treemaker, '__version__'):
         raise AttributeError("Please add a __version__ attribute to treemaker %s." % treemaker_name)
     minitree_filename = "%s_%s.root" % (run_name, treemaker_name)
-    if save_pickle:
-        minitree_pickle_filename = "%s_%s.pkl" % (run_name, treemaker_name)
-
     # Do we already have this minitree? And is it good?
+    if use_pickle:
+        minitree_pickle_filename = "%s_%s.pkl" % (run_name, treemaker_name)
+        if not use_root:
+            minitree_filename = minitree_pickle_filename
     minitree_path = _check_minitree_path(minitree_filename, treemaker, run_name,
-                                         force_reload=force_reload)
+                                         force_reload=force_reload, use_pickle=use_pickle, use_root=use_root)
     if minitree_path is not None:
-        empty_frame = pd.DataFrame()
-        return minitree_path, empty_frame
+        if use_pickle and not use_root:
+            loaded_frame = pd.read_pickle(minitree_path)[treemaker_name]
+        else:
+            loaded_frame = pd.DataFrame.from_records(root_numpy.root2rec(minitree_path))
+        return minitree_path, loaded_frame
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
     skimmed_data = treemaker().get_data(run_name)
     
-    # Setting save_arrays to True if any arrays/vectors in DataFrame
+    # Throwing an error if any arrays/vectors in DataFrame
     for branch_name in list(skimmed_data):
-        if hasattr(skimmed_data[branch_name][0], "__len__"):
-            save_arrays = True
+        if is_array_field(skimmed_data, branch_name) and not use_arrays:
+            raise TypeError("Branch %s is an array field - turn on the use_arrays option, or use the DataExtractor class" % (branch_name))
 
     log.debug("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
 
@@ -250,13 +270,13 @@ def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=Fal
                         created_by=get_user_id(),
                         documentation=treemaker.__doc__,
                         timestamp=str(datetime.now()))
-    if save_pickle:
+    if use_pickle:
         # Write metadata
         minitree_pickle_path = os.path.join(creation_dir, minitree_pickle_filename)
         pickle_dict = {'metadata': metadata_dict, treemaker.__name__: skimmed_data}
         pickle.dump(pickle_dict, open(minitree_pickle_path, 'wb'))
-    if save_root:
-        if save_arrays:
+    if use_root:
+        if use_arrays:
             dataframe_to_root(skimmed_data, minitree_path, treename=treemaker.__name__, mode='recreate')
         else:
             root_numpy.array2root(skimmed_data.to_records(), minitree_path,
@@ -269,13 +289,12 @@ def get(run_name, treemaker, force_reload=False, save_root=True, save_pickle=Fal
     return minitree_path, skimmed_data
 
 
-def load(datasets, treemakers='Basics', force_reload=False, save_root=True, save_pickle=False, save_arrays=False):
+def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
     """Return pandas DataFrame with minitrees of several datasets.
       datasets: names or numbers of datasets (without .root) to load
       treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
       force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     """
-
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
@@ -290,11 +309,12 @@ def load(datasets, treemakers='Basics', force_reload=False, save_root=True, save
 
         dataframes = []
         for dataset in datasets:
-            minitree_path, dataset_frame = get(dataset, treemaker, force_reload=force_reload, save_root=save_root, save_pickle=save_pickle)
+            minitree_path, dataset_frame = get(dataset, treemaker, force_reload=force_reload, use_root=use_root,
+                                                 use_pickle=use_pickle, use_arrays=use_arrays)
             dataframes.append(dataset_frame)
 
         # Concatenate mini-trees of this type for all datasets
-        combined_dataframes.append(pd.concat(dataframes))
+        combined_dataframes.append(pd.concat(dataframes, ignore_index=True))
 
     # Concatenate mini-trees of all types
     if not len(combined_dataframes):
