@@ -87,7 +87,7 @@ class MultipleRowExtractor(TreeMaker):
         # Add the event number to the result. This is required to make joins succeed later on.
         for i in range(len(result)):
             result[i]['event_number'] = event.event_number
-        assert isinstance(result[0], dict)
+        assert len(result) == 0 or isinstance(result[0], dict)
         self.cache.extend(result)
         self.check_cache()
 
