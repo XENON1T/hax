@@ -254,7 +254,7 @@ def load(datasets, treemakers='Basics', force_reload=False, also_fundamentals=Tr
     if not len(combined_dataframes):
         raise RuntimeError("No data was extracted? What's going on??")
     result = combined_dataframes[0]
-    for i in range(len(combined_dataframes) - 1):
+    for i in range(1, len(combined_dataframes)):
         d = combined_dataframes[i]
         # To avoid creation of duplicate columns (which will get _x and _y suffixes),
         # look which column names already exist and do not include them in the merge
