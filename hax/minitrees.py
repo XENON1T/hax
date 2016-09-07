@@ -176,11 +176,12 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     if not hasattr(treemaker, '__version__'):
         raise AttributeError("Please add a __version__ attribute to treemaker %s." % treemaker_name)
     minitree_filename = "%s_%s.root" % (run_name, treemaker_name)
-    # Do we already have this minitree? And is it good?
     if use_pickle:
         minitree_pickle_filename = "%s_%s.pkl" % (run_name, treemaker_name)
         if not use_root:
             minitree_filename = minitree_pickle_filename
+
+    # Do we already have this minitree? And is it good?
     minitree_path = _check_minitree_path(minitree_filename, treemaker, run_name,
                                          force_reload=force_reload, use_pickle=use_pickle, use_root=use_root)
     if minitree_path is not None:
@@ -194,10 +195,14 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     # This will raise FileNotFoundError if the root file is not found
     skimmed_data = treemaker().get_data(run_name)
     
-    # Throwing an error if any arrays/vectors in DataFrame
-    for branch_name in list(skimmed_data):
-        if is_array_field(skimmed_data, branch_name) and not use_arrays:
-            raise TypeError("Branch %s is an array field - turn on the use_arrays option, or use the DataExtractor class" % (branch_name))
+    # Custom code is needed to save array fields to a ROOT file. Check if we need to / have permission to use it.
+    if not use_arrays and use_root:
+        for branch_name in skimmed_data.columns:
+            if is_array_field(skimmed_data, branch_name):
+                raise NotImplementedError("Branch %s is an array field, and you want to save to root. Either "
+                         "(1) turn on the use_arrays option, to enable a custom array-field saving code; "
+                         "(2) use pickle as a minitree caching format "
+                         "(3) use the DataExtractor class." % branch_name)
 
     log.debug("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
 
@@ -229,7 +234,7 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
         minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
         bla.Write()
         minitree_f.Close()
-    return minitree_path, skimmed_data
+    return skimmed_data
 
 
 def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
@@ -300,46 +305,52 @@ def is_array_field(test_dataframe, test_field):
 def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'):
     branches = {}
     branch_types = {}
-    length_branches = {}
+
     single_value_keys = []
     array_keys = []
     array_root_file = ROOT.TFile(root_filename, mode)
     datatree = ROOT.TTree(treename, "")
 
     # setting up branches
-    for branch_name in list(dataframe):
-        # finding branches that contain array lengths
+    for branch_name in dataframe.columns:
         if is_array_field(dataframe, branch_name):
-            max_length = -1
-            for length_branch_name in list(dataframe):
-                if np.array_equal(dataframe[length_branch_name][:10], [len(dataframe[branch_name][i]) for i in range(10)]):
-                    length_branches[branch_name] = length_branch_name
-                    max_length = np.amax(dataframe[length_branch_name])
-                    break
-            if max_length == -1:
-                raise KeyError( 'Missing array length key - please include a branch containing array length' )
+            # This is an array field. Find or create its 'length branch',
+            # needed for saving the array to root (why exactly? Wouldn't a vector work?)
+            length_branch_name = branch_name + '_length'
+            if not length_branch_name in dataframe.columns:
+                dataframe[length_branch_name] = np.array([len(x) for x in dataframe[branch_name]], dtype=np.int64)
+                single_value_keys.append(length_branch_name)
+                branches[length_branch_name] = np.array([0])
+                branch_types[length_branch_name] = 'L'
+            max_length = dataframe[length_branch_name].max()
             first_element = dataframe[branch_name][0][0]
             array_keys.append(branch_name)
+
         else:
+            # Ordinary scalar field
             max_length = 1
             first_element = dataframe[branch_name][0]
             single_value_keys.append(branch_name)
+
         # setting branch types
         if isinstance(first_element, (int, np.integer)):
             branch_type = 'L'
-            branches[branch_name] = np.array([0]*max_length)
+            branches[branch_name] = np.zeros(max_length, dtype=np.int64)
         elif isinstance(first_element, (float, np.float)):
             branch_type = 'D'
-            branches[branch_name] = np.array([0.]*max_length)
+            branches[branch_name] = np.zeros(max_length, dtype=np.float64)
         else:
             raise TypeError('Branches must contain ints, floats, or arrays of ints or floats' )
         branch_types[branch_name] = branch_type
 
     # creating branches
     for single_value_key in single_value_keys:
-        datatree.Branch(single_value_key, branches[single_value_key], "%s/%s" % (single_value_key, branch_types[single_value_key]))
+        datatree.Branch(single_value_key, branches[single_value_key],
+                        "%s/%s" % (single_value_key, branch_types[single_value_key]))
     for array_key in array_keys:
-        datatree.Branch(array_key, branches[array_key], "%s[%s]/%s" % (array_key, length_branches[array_key], branch_types[array_key]))
+        assert array_key + '_length' in dataframe.columns
+        datatree.Branch(array_key, branches[array_key],
+                        "%s[%s]/%s" % (array_key, array_key + "_length", branch_types[array_key]))
 
     # filling tree
     for event_index in range(len(dataframe.index)):
