@@ -34,6 +34,8 @@ class TreeMaker(object):
     cache_size = 1000
     branch_selection = None     # List of branches to load during iteration over events
     extra_branches = tuple()    # If the above is empty, load basic branches (set in hax.config) plus these.
+    uses_arrays = False         # Set to True if your treemaker returns array values. This will trigger a different
+                                # root file saving code.
 
     def __init__(self):
         if not self.branch_selection:
@@ -161,7 +163,7 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
     return minitree_path
 
 
-def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
+def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False):
     """Return pandas DataFrame resulting from running treemaker on run_name (can also be a run number).
     :param run_name: name or number of the run to load
     :param treemaker: TreeMaker class (not instance!) to run
@@ -194,13 +196,13 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     skimmed_data = treemaker().get_data(run_name)
     
     # Custom code is needed to save array fields to a ROOT file. Check if we need to / have permission to use it.
-    if not use_arrays and use_root:
+    if not treemaker.uses_arrays and use_root:
         for branch_name in skimmed_data.columns:
             if is_array_field(skimmed_data, branch_name):
-                raise NotImplementedError("Branch %s is an array field, and you want to save to root. Either "
-                         "(1) turn on the use_arrays option, to enable a custom array-field saving code; "
-                         "(2) use pickle as a minitree caching format "
-                         "(3) use the DataExtractor class." % branch_name)
+                raise NotImplementedError("Column %s is an array field, and you want to save to root. Either "
+                         "(1) add a uses_arrays=True attribute to the %s class; or"
+                         "(2) use pickle as a minitree caching format; or"
+                         "(3) use the DataExtractor class." % (branch_name, treemaker_name))
 
     log.debug("Created minitree %s for dataset %s" % (treemaker.__name__, run_name))
 
@@ -222,7 +224,7 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
         pickle_dict = {'metadata': metadata_dict, treemaker.__name__: skimmed_data}
         pickle.dump(pickle_dict, open(minitree_pickle_path, 'wb'))
     if use_root:
-        if use_arrays:
+        if treemaker.uses_arrays:
             dataframe_to_root(skimmed_data, minitree_path, treename=treemaker.__name__, mode='recreate')
         else:
             root_numpy.array2root(skimmed_data.to_records(), minitree_path,
@@ -235,14 +237,13 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     return skimmed_data
 
 
-def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
+def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
     :param datasets: names or numbers of datasets (without .root) to load
     :param treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
-    :param force_reload: rif True, will force mini-trees to be re-made whether they are outdated or not.
+    :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     :param use_root: use ROOT to read/write cached minitrees
     :param use_pickle: use ROOT to read/write cached minitrees
-    :param use_arrays: when using ROOT, use custom code to enable array field saving.
     """
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
@@ -258,8 +259,8 @@ def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_p
 
         dataframes = []
         for dataset in datasets:
-            dataset_frame = load_single(dataset, treemaker, force_reload=force_reload, use_root=use_root,
-                                        use_pickle=use_pickle, use_arrays=use_arrays)
+            dataset_frame = load_single(dataset, treemaker,
+                                        force_reload=force_reload, use_root=use_root, use_pickle=use_pickle)
             dataframes.append(dataset_frame)
 
         # Concatenate mini-trees of this type for all datasets
