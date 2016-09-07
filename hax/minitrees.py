@@ -21,69 +21,6 @@ from hax.paxroot import loop_over_dataset
 from hax.utils import find_file_in_folders, get_user_id
 
 
-def is_array_field(test_dataframe, test_field):
-    if test_dataframe.empty:
-        raise ValueError("No data saved from dataset - DataFrame is empty")
-    test_value = test_dataframe[test_field][0]
-    array_truth_value = (hasattr(test_value, "__len__") and not isinstance(test_value, (str, bytes)))
-    return array_truth_value
-
-
-def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'):
-    branches = {}
-    branch_types = {}
-    length_branches = {}
-    single_value_keys = []
-    array_keys = []
-    array_root_file = ROOT.TFile(root_filename, mode)
-    datatree = ROOT.TTree(treename, "")
-    # setting up branches
-    for branch_name in list(dataframe):
-        branch_type = None
-        # finding branches that contain array lengths
-        if is_array_field(dataframe, branch_name):
-            max_length = -1
-            for length_branch_name in list(dataframe):
-                if np.array_equal(dataframe[length_branch_name][:10], [len(dataframe[branch_name][i]) for i in range(10)]):
-                    length_branches[branch_name] = length_branch_name
-                    max_length = np.amax(dataframe[length_branch_name])
-                    break
-            if max_length == -1:
-                raise KeyError( 'Missing array length key - please include a branch containing array length' )
-            first_element = dataframe[branch_name][0][0]
-            array_keys.append(branch_name)
-        else:
-            max_length = 1
-            first_element = dataframe[branch_name][0]
-            single_value_keys.append(branch_name)
-        # setting branch types
-        if isinstance(first_element, (int, np.integer)):
-            branch_type = 'L'
-            branches[branch_name] = np.array([0]*max_length)
-        elif isinstance(first_element, (float, np.float)):
-            branch_type = 'D'
-            branches[branch_name] = np.array([0.]*max_length)
-        else:
-            raise TypeError( 'Branches must contain ints, floats, or arrays of ints or floats' )
-        branch_types[branch_name] = branch_type
-
-    # creating branches
-    for single_value_key in single_value_keys:
-        datatree.Branch(single_value_key, branches[single_value_key], "%s/%s" % (single_value_key, branch_types[single_value_key]))
-    for array_key in array_keys:
-        datatree.Branch(array_key, branches[array_key], "%s[%s]/%s" % (array_key, length_branches[array_key], branch_types[array_key]))
-
-    # filling tree
-    for event_index in range(len(dataframe.index)):
-        for single_value_key in single_value_keys:
-            branches[single_value_key][0] = dataframe[single_value_key][event_index]
-        for array_key in array_keys:
-            branches[array_key][:len(dataframe[array_key][event_index])] = dataframe[array_key][event_index]
-        datatree.Fill()
-    array_root_file.Write()
-    array_root_file.Close()
-
-
 # Will be updated to contain all treemakers
 treemakers = {}
 
@@ -115,7 +52,8 @@ class TreeMaker(object):
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
-                          branch_selection=self.branch_selection)
+                          branch_selection=self.branch_selection,
+                          desc='making %s minitree' % self.__class__.__name__)
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
             raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
@@ -265,11 +203,12 @@ def get(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False
     if not os.path.exists(creation_dir):
         os.makedirs(creation_dir)
     minitree_path = os.path.join(creation_dir, minitree_filename)
+
     metadata_dict = dict(version=treemaker.__version__,
-                        pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
-                        created_by=get_user_id(),
-                        documentation=treemaker.__doc__,
-                        timestamp=str(datetime.now()))
+                         pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
+                         created_by=get_user_id(),
+                         documentation=treemaker.__doc__,
+                         timestamp=str(datetime.now()))
     if use_pickle:
         # Write metadata
         minitree_pickle_path = os.path.join(creation_dir, minitree_pickle_filename)
@@ -280,7 +219,7 @@ def get(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False
             dataframe_to_root(skimmed_data, minitree_path, treename=treemaker.__name__, mode='recreate')
         else:
             root_numpy.array2root(skimmed_data.to_records(), minitree_path,
-                                          treename=treemaker.__name__, mode='recreate')
+                                  treename=treemaker.__name__, mode='recreate')
         # Write metadata
         bla = ROOT.TNamed('metadata', json.dumps(metadata_dict))
         minitree_f = ROOT.TFile(minitree_path, 'UPDATE')
@@ -335,3 +274,76 @@ def get_treemaker_name_and_class(tm):
         return tm.__name__, tm
     else:
         raise ValueError("%s is not a TreeMaker child class or name, but a %s" % (tm, type(tm)))
+
+
+##
+# Utilities for saving array fields in pandas dataframes to ROOT files
+# This is not supported natively by root_numpy,
+##
+
+def is_array_field(test_dataframe, test_field):
+    """Tests if the column test_field in test_dataframe is an array field
+    :param test_dataframe: dataframe to test
+    :param test_field: column name to test
+    :return: True or False
+    """
+    if test_dataframe.empty:
+        raise ValueError("No data saved from dataset - DataFrame is empty")
+    test_value = test_dataframe[test_field][0]
+    array_truth_value = (hasattr(test_value, "__len__") and not isinstance(test_value, (str, bytes)))
+    return array_truth_value
+
+
+def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'):
+    branches = {}
+    branch_types = {}
+    length_branches = {}
+    single_value_keys = []
+    array_keys = []
+    array_root_file = ROOT.TFile(root_filename, mode)
+    datatree = ROOT.TTree(treename, "")
+
+    # setting up branches
+    for branch_name in list(dataframe):
+        # finding branches that contain array lengths
+        if is_array_field(dataframe, branch_name):
+            max_length = -1
+            for length_branch_name in list(dataframe):
+                if np.array_equal(dataframe[length_branch_name][:10], [len(dataframe[branch_name][i]) for i in range(10)]):
+                    length_branches[branch_name] = length_branch_name
+                    max_length = np.amax(dataframe[length_branch_name])
+                    break
+            if max_length == -1:
+                raise KeyError( 'Missing array length key - please include a branch containing array length' )
+            first_element = dataframe[branch_name][0][0]
+            array_keys.append(branch_name)
+        else:
+            max_length = 1
+            first_element = dataframe[branch_name][0]
+            single_value_keys.append(branch_name)
+        # setting branch types
+        if isinstance(first_element, (int, np.integer)):
+            branch_type = 'L'
+            branches[branch_name] = np.array([0]*max_length)
+        elif isinstance(first_element, (float, np.float)):
+            branch_type = 'D'
+            branches[branch_name] = np.array([0.]*max_length)
+        else:
+            raise TypeError('Branches must contain ints, floats, or arrays of ints or floats' )
+        branch_types[branch_name] = branch_type
+
+    # creating branches
+    for single_value_key in single_value_keys:
+        datatree.Branch(single_value_key, branches[single_value_key], "%s/%s" % (single_value_key, branch_types[single_value_key]))
+    for array_key in array_keys:
+        datatree.Branch(array_key, branches[array_key], "%s[%s]/%s" % (array_key, length_branches[array_key], branch_types[array_key]))
+
+    # filling tree
+    for event_index in range(len(dataframe.index)):
+        for single_value_key in single_value_keys:
+            branches[single_value_key][0] = dataframe[single_value_key][event_index]
+        for array_key in array_keys:
+            branches[array_key][:len(dataframe[array_key][event_index])] = dataframe[array_key][event_index]
+        datatree.Fill()
+    array_root_file.Write()
+    array_root_file.Close()
