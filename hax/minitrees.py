@@ -165,9 +165,7 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     """Return pandas DataFrame resulting from running treemaker on run_name (can also be a run number).
     :param run_name: name or number of the run to load
     :param treemaker: TreeMaker class (not instance!) to run
-    :param force_reload: reload the minitree whether or not an up-to-date cached file exists.
-    :param use_root: use ROOT to read/write cached minitrees
-    :param use_pickle: use ROOT to read/write cached minitrees
+    For other arguments, see load docstring.
 
     Raises FileNotFoundError if we need the parent pax root file, but can't find it.
     """
@@ -189,7 +187,7 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
             loaded_frame = pd.read_pickle(minitree_path)[treemaker_name]
         else:
             loaded_frame = pd.DataFrame.from_records(root_numpy.root2rec(minitree_path))
-        return minitree_path, loaded_frame
+        return loaded_frame
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
@@ -238,10 +236,13 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
 
 
 def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
-    """Return pandas DataFrame with minitrees of several datasets.
-      datasets: names or numbers of datasets (without .root) to load
-      treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
-      force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
+    """Return pandas DataFrame with minitrees of several datasets and treemakers.
+    :param datasets: names or numbers of datasets (without .root) to load
+    :param treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
+    :param force_reload: rif True, will force mini-trees to be re-made whether they are outdated or not.
+    :param use_root: use ROOT to read/write cached minitrees
+    :param use_pickle: use ROOT to read/write cached minitrees
+    :param use_arrays: when using ROOT, use custom code to enable array field saving.
     """
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
@@ -286,7 +287,7 @@ def get_treemaker_name_and_class(tm):
 
 ##
 # Utilities for saving array fields in pandas dataframes to ROOT files
-# This is not supported natively by root_numpy,
+# This is not supported natively by root_numpy.
 ##
 
 def is_array_field(test_dataframe, test_field):
@@ -298,8 +299,7 @@ def is_array_field(test_dataframe, test_field):
     if test_dataframe.empty:
         raise ValueError("No data saved from dataset - DataFrame is empty")
     test_value = test_dataframe[test_field][0]
-    array_truth_value = (hasattr(test_value, "__len__") and not isinstance(test_value, (str, bytes)))
-    return array_truth_value
+    return (hasattr(test_value, "__len__") and not isinstance(test_value, (str, bytes)))
 
 
 def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'):
