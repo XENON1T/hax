@@ -8,7 +8,6 @@ import logging
 import json
 import pickle
 import os
-log = logging.getLogger('hax.minitrees')
 
 import numpy as np
 import pandas as pd
@@ -20,9 +19,10 @@ from hax import runs
 from hax.paxroot import loop_over_dataset
 from hax.utils import find_file_in_folders, get_user_id
 
+log = logging.getLogger('hax.minitrees')
 
-# Will be updated to contain all treemakers
-treemakers = {}
+# update_treemakers() will update this to contain all treemakers included with hax
+TREEMAKERS = {}
 
 
 class TreeMaker(object):
@@ -72,8 +72,8 @@ class TreeMaker(object):
 
 def update_treemakers():
     """Update the list of treemakers hax knows. Called on hax init, you should never have to call this yourself!"""
-    global treemakers
-    treemakers = {}
+    global TREEMAKERS
+    TREEMAKERS = {}
     for module_filename in glob(os.path.join(hax.hax_dir + '/treemakers/*.py')):
         module_name = os.path.splitext(os.path.basename(module_filename))[0]
         if module_name.startswith('_'):
@@ -88,13 +88,13 @@ def update_treemakers():
             if tm_name == 'TreeMaker':
                 # This one is the base class; we get it because we did from ... import TreeMaker at the top of the file
                 continue
-            if tm_name in treemakers:
+            if tm_name in TREEMAKERS:
                 raise ValueError("Two treemakers named %s!" % tm_name)
-            treemakers[tm_name] = tm
+            TREEMAKERS[tm_name] = tm
 
 
 def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=False, use_root=True, use_pickle=False):
-    """Return path to minitree_filename if we can find it and it agrees with the version policy, else returns None.
+    """Return path to minitree_filename if we can find it AND it agrees with the version policy, else returns None.
     If force_reload=True, always returns None.
     """
     if force_reload:
@@ -161,12 +161,16 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
     return minitree_path
 
 
-def get(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
-    """Return path to minitree file from treemaker for run_name (can also be a run number).
-    The file will be re-created if it is not present, outdated, or force_reload is True (default False)
-    Raises FileNotFoundError if we have to create the minitree, but the root file is not found.
+def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pickle=False, use_arrays=False):
+    """Return pandas DataFrame resulting from running treemaker on run_name (can also be a run number).
+    :param run_name: name or number of the run to load
+    :param treemaker: TreeMaker class (not instance!) to run
+    :param force_reload: reload the minitree whether or not an up-to-date cached file exists.
+    :param use_root: use ROOT to read/write cached minitrees
+    :param use_pickle: use ROOT to read/write cached minitrees
+
+    Raises FileNotFoundError if we need the parent pax root file, but can't find it.
     """
-    global treemakers
     run_name = runs.get_run_name(run_name)
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
     if not hasattr(treemaker, '__version__'):
@@ -248,8 +252,8 @@ def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_p
 
         dataframes = []
         for dataset in datasets:
-            minitree_path, dataset_frame = get(dataset, treemaker, force_reload=force_reload, use_root=use_root,
-                                                 use_pickle=use_pickle, use_arrays=use_arrays)
+            dataset_frame = load_single(dataset, treemaker, force_reload=force_reload, use_root=use_root,
+                                        use_pickle=use_pickle, use_arrays=use_arrays)
             dataframes.append(dataset_frame)
 
         # Concatenate mini-trees of this type for all datasets
@@ -265,11 +269,10 @@ def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_p
 
 def get_treemaker_name_and_class(tm):
     """Return (name, class) of treemaker name or class tm"""
-    global treemakers
     if isinstance(tm, str):
-        if not tm in treemakers:
+        if not tm in TREEMAKERS:
             raise ValueError("No TreeMaker named %s known to hax!" % tm)
-        return tm, treemakers[tm]
+        return tm, TREEMAKERS[tm]
     elif isinstance(tm, type) and issubclass(tm, TreeMaker):
         return tm.__name__, tm
     else:
