@@ -45,6 +45,8 @@ class TreeMaker(object):
 
     def process_event(self, event):
         result = self.extract_data(event)
+        if not isinstance(result, dict):
+            raise ValueError("TreeMakers must always extract dictionary")
         # Add the event number to the result. This is required to make joins succeed later on.
         result['event_number'] = event.event_number
         self.cache.append(result)
