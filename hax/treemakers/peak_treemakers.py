@@ -1,3 +1,8 @@
+from hax.minitrees import MultipleRowExtractor
+from collections import defaultdict
+import numpy as np
+import hax
+
 class PeakExtractor(MultipleRowExtractor):
     """Documentation goes here
     """
@@ -19,8 +24,7 @@ class PeakExtractor(MultipleRowExtractor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.event_cut_string = self.build_cut_string(self.event_cut_list, 'event')
-        self.peak_cut_string = self.build_cut_string(self.peak_cut_list, 'peak')
-          
+        self.peak_cut_string = self.build_cut_string(self.peak_cut_list, 'peak')          
     
     def build_cut_string(self, cut_list, obj):
         '''
@@ -40,7 +44,7 @@ class PeakExtractor(MultipleRowExtractor):
     
 
     def extract_data(self, event):
-        if event.event_number > self.stop_after:
+        if event.event_number == self.stop_after:
             raise hax.paxroot.StopEventLoop()
         
         peak_data = []
