@@ -40,13 +40,20 @@ class TreeMaker(object):
     def __init__(self):
         if not self.branch_selection:
             self.branch_selection = hax.config['basic_branches'] + list(self.extra_branches)
+        if not 'event_number' in self.branch_selection:
+            raise ValueError("You need to select at least the event_number branch.")
         self.cache = []
 
     def extract_data(self, event):
         raise NotImplementedError()
 
     def process_event(self, event):
-        self.cache.append(self.extract_data(event))
+        result = self.extract_data(event)
+        if not isinstance(result, dict):
+            raise ValueError("TreeMakers must always extract dictionary")
+        # Add the event number to the result. This is required to make joins succeed later on.
+        result['event_number'] = event.event_number
+        self.cache.append(result)
         self.check_cache()
 
     def get_data(self, dataset):
@@ -55,10 +62,11 @@ class TreeMaker(object):
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
                           branch_selection=self.branch_selection,
-                          desc='making %s minitree' % self.__class__.__name__)
+                          desc='Making %s minitree' % self.__class__.__name__)
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
-            raise RuntimeError("Not a single event was extracted from dataset %s!" % dataset)
+            self.log.warning("Not a single row was extracted from dataset %s!" % dataset)
+            return pd.DataFrame([], columns='event_number')
         else:
             return self.data
 
@@ -70,6 +78,24 @@ class TreeMaker(object):
         else:
             self.data = self.data.append(self.cache, ignore_index=True)
         self.cache = []
+
+
+class MultipleRowExtractor(TreeMaker):
+    """Base class for treemakers that return a list of dictionaries in extract_data.
+    These treemakers can produce anywhere from zeroto  or many rows for a single event.
+    """
+
+    def process_event(self, event):
+        result = self.extract_data(event)
+        if not isinstance(result, (list, tuple)):
+            raise TypeError("MultipleRowExtractor treemakers must extract "
+                            "a list of dictionaries, not a %s" % type(result))
+        # Add the event number to the result. This is required to make joins succeed later on.
+        for i in range(len(result)):
+            result[i]['event_number'] = event.event_number
+        assert len(result) == 0 or isinstance(result[0], dict)
+        self.cache.extend(result)
+        self.check_cache()
 
 
 def update_treemakers():
@@ -237,21 +263,22 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     return skimmed_data
 
 
-def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False):
+def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False, also_fundamentals=True):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
     :param datasets: names or numbers of datasets (without .root) to load
     :param treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
     :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     :param use_root: use ROOT to read/write cached minitrees
     :param use_pickle: use ROOT to read/write cached minitrees
+    :param also_fundamentals: if True (default) also loads the Fundamentals treemaker. This is highly recommended.
     """
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
 
-    # Add the "Fundamentals" treemaker to the beginning; we always want to load this.
-    treemakers = ['Fundamentals'] + treemakers
+    if also_fundamentals:
+        treemakers = ['Fundamentals'] + treemakers
 
     combined_dataframes = []
 
@@ -266,10 +293,24 @@ def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_p
         # Concatenate mini-trees of this type for all datasets
         combined_dataframes.append(pd.concat(dataframes, ignore_index=True))
 
-    # Concatenate mini-trees of all types
+    # Merge mini-trees of all types
     if not len(combined_dataframes):
         raise RuntimeError("No data was extracted? What's going on??")
-    result = pd.concat(combined_dataframes, axis=1)
+    result = combined_dataframes[0]
+    for i in range(1, len(combined_dataframes)):
+        d = combined_dataframes[i]
+        # To avoid creation of duplicate columns (which will get _x and _y suffixes),
+        # look which column names already exist and do not include them in the merge
+        cols_to_use = ['event_number'] + d.columns.difference(result.columns).tolist()
+        result = pd.merge(d[cols_to_use], result, on='event_number')
+
+    if 'index' in result.columns:
+        # Clean up index, remove 'index' column
+        # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
+        # TODO: is this still necessary?
+        result.drop('index', axis=1, inplace=True)
+        result = result.reset_index()
+        result.drop('index', axis=1, inplace=True)
 
     return result
 
