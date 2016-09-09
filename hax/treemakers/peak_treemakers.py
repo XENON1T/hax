@@ -6,7 +6,7 @@ import hax
 class PeakExtractor(MultipleRowExtractor):
     """Base class for reading peak data in minitrees. For more information, check out example 10 in hax/examples.
     """
-    __version__ = '0.0.2'
+    
     # Default branch selection is EVERYTHING in peaks, overwrite for speed increase
     # Don't forget to include branches used in cuts
     extra_branches = ['peaks.*']
