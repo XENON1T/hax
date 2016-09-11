@@ -301,7 +301,7 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']),
         d = combined_dataframes[i]
         # To avoid creation of duplicate columns (which will get _x and _y suffixes),
         # look which column names already exist and do not include them in the merge
-        cols_to_use = ['event_number'] + d.columns.difference(result.columns).tolist()
+        cols_to_use = ['run_number' + 'event_number'] + d.columns.difference(result.columns).tolist()
         result = pd.merge(d[cols_to_use], result, on=['run_number', 'event_number'], how='inner')
 
     if 'index' in result.columns:

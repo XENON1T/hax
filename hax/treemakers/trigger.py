@@ -9,7 +9,7 @@ class LargestTriggeringSignal(TreeMaker):
     Provides:
      - trigger_*, where * is any of the attributes of datastructure.TriggerSignal
     """
-    extra_branches = ['trigger_signals*']
+    branch_selection = ['trigger_signals*', 'event_number']
     __version__ = '0.0.3'
 
     def extract_data(self, event):
