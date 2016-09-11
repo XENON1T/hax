@@ -38,10 +38,16 @@ class TreeMaker(object):
                                 # root file saving code.
 
     def __init__(self):
+        # Support for string arguments
+        if isinstance(self.branch_selection, str):
+            self.branch_selection = [self.branch_selection]
+        if isinstance(self.extra_branches, str):
+            self.extra_branches = [self.extra_branches]
+
         if not self.branch_selection:
             self.branch_selection = hax.config['basic_branches'] + list(self.extra_branches)
-        if not 'event_number' in self.branch_selection:
-            raise ValueError("You need to select at least the event_number branch.")
+        if 'event_number' not in self.branch_selection:
+            self.branch_selection += ['event_number']
         self.cache = []
 
     def extract_data(self, event):
