@@ -1,8 +1,6 @@
 import collections
 import os
 import platform
-import pwd
-import sys
 
 
 def find_file_in_folders(filename, folders):
@@ -34,6 +32,7 @@ def get_user_id():
     :note: on unix based systems you can use the password database to get the login name of the effective process user
     """
     if os.name == "posix":
+        import pwd   # Don't put this at the top of the file, it's not available on windows
         username = pwd.getpwuid(os.geteuid()).pw_name
     else:
         ukn = 'UNKNOWN'
