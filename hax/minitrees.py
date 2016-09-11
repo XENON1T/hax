@@ -147,13 +147,21 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
         minitree_f =  ROOT.TFile(minitree_path)
         minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
 
+    def cleanup():
+        if use_root or not use_pickle:
+            minitree_f.Close()
+        return None
+
     # Check if the minitree has an outdated treemaker version
     if LooseVersion(minitree_metadata['version']) < treemaker.__version__:
         log.debug("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (
             minitree_path, minitree_metadata['version'], treemaker.__version__))
-        if use_root or not use_pickle:
-            minitree_f.Close()
-        return None
+        return cleanup()
+
+    # Check for incompatible hax version (e.g. event_number and run_number columns not yet included in each minitree)
+    if (LooseVersion(minitree_metadata.get('hax_version', '0.0')) < hax.config['minimum_minitree_hax_version']):
+        log.debug("Minitreefile %s is from an incompatible hax version and must be recreated" % minitree_path)
+        return cleanup()
 
     # Check if pax_version agrees with the version policy
     if version_policy == 'latest':
@@ -170,9 +178,7 @@ def _check_minitree_path(minitree_filename, treemaker, run_name, force_reload=Fa
                           "will be recreated." % (minitree_path,
                                                   minitree_metadata.get('pax_version', 'not known'),
                                                   pax_metadata['file_builder_version']))
-                if use_root or not use_pickle:
-                    minitree_f.Close()
-                return None
+                return cleanup()
 
     elif version_policy == 'loose':
         pass

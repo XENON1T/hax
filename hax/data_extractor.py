@@ -1,6 +1,6 @@
 """Extract peak or hit info from processed root file
 """
-
+import warnings
 
 import numpy as np
 import hax
@@ -68,6 +68,7 @@ class DataExtractor():
 
     def __init__(self):
         # Initialize empty data list
+        warnings.warn("DataExtractor is deprecated, please switch to multi-row minitrees instead.", DeprecationWarning)
         self.data = []
 
     def loop_body(self, event):

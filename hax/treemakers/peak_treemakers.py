@@ -1,5 +1,4 @@
 from hax.minitrees import MultipleRowExtractor
-from collections import defaultdict
 import numpy as np
 import hax
 
