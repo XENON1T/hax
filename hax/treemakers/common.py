@@ -9,8 +9,8 @@ class Fundamentals(TreeMaker):
     This minitree is always loaded whether you like it or not :-)
 
     Provides:
-     - run_number: Run number of the run/dataset this event came from
-     - event_number: Event number within the dataset
+     - run_number: Run number of the run/dataset this event came from (common to all treemakers)
+     - event_number: Event number within the dataset (common to all treemakers)
      - event_time: Unix time (in ns since the unix epoch) of the start of the event window
      - event_duration: duration (in ns) of the event
     """
@@ -18,9 +18,7 @@ class Fundamentals(TreeMaker):
     branch_selection = ['event_number', 'start_time', 'stop_time']
 
     def extract_data(self, event):
-        return dict(run_number=self.run_number,
-                    event_number=event.event_number,
-                    event_time=event.start_time,
+        return dict(event_time=event.start_time,
                     event_duration=event.stop_time - event.start_time)
 
 

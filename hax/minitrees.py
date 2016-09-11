@@ -51,8 +51,9 @@ class TreeMaker(object):
         result = self.extract_data(event)
         if not isinstance(result, dict):
             raise ValueError("TreeMakers must always extract dictionary")
-        # Add the event number to the result. This is required to make joins succeed later on.
+        # Add the run and event number to the result. This is required to make joins succeed later on.
         result['event_number'] = event.event_number
+        result['run_number'] = self.run_number
         self.cache.append(result)
         self.check_cache()
 
@@ -90,8 +91,9 @@ class MultipleRowExtractor(TreeMaker):
         if not isinstance(result, (list, tuple)):
             raise TypeError("MultipleRowExtractor treemakers must extract "
                             "a list of dictionaries, not a %s" % type(result))
-        # Add the event number to the result. This is required to make joins succeed later on.
+        # Add the run and event number to the result. This is required to make joins succeed later on.
         for i in range(len(result)):
+            result[i]['run_number'] = self.run_number
             result[i]['event_number'] = event.event_number
         assert len(result) == 0 or isinstance(result[0], dict)
         self.cache.extend(result)
@@ -241,6 +243,7 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
 
     metadata_dict = dict(version=treemaker.__version__,
                          pax_version=hax.paxroot.get_metadata(run_name)['file_builder_version'],
+                         hax_version=hax.__version__,
                          created_by=get_user_id(),
                          documentation=treemaker.__doc__,
                          timestamp=str(datetime.now()))
@@ -263,22 +266,19 @@ def load_single(run_name, treemaker, force_reload=False, use_root=True, use_pick
     return skimmed_data
 
 
-def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_pickle=False, also_fundamentals=True):
+def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']),
+         force_reload=False, use_root=True, use_pickle=False):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
     :param datasets: names or numbers of datasets (without .root) to load
-    :param treemakers: treemaker class (or string with name of class) or list of these to load. Defaults to 'Basics'.
+    :param treemakers: treemaker class (or string with name of class) or list of these to load.
     :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
     :param use_root: use ROOT to read/write cached minitrees
     :param use_pickle: use ROOT to read/write cached minitrees
-    :param also_fundamentals: if True (default) also loads the Fundamentals treemaker. This is highly recommended.
     """
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
-
-    if also_fundamentals:
-        treemakers = ['Fundamentals'] + treemakers
 
     combined_dataframes = []
 
@@ -293,7 +293,7 @@ def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_p
         # Concatenate mini-trees of this type for all datasets
         combined_dataframes.append(pd.concat(dataframes, ignore_index=True))
 
-    # Merge mini-trees of all types
+    # Merge mini-trees of all types by inner join (propagating cuts)
     if not len(combined_dataframes):
         raise RuntimeError("No data was extracted? What's going on??")
     result = combined_dataframes[0]
@@ -302,12 +302,13 @@ def load(datasets, treemakers='Basics', force_reload=False, use_root=True, use_p
         # To avoid creation of duplicate columns (which will get _x and _y suffixes),
         # look which column names already exist and do not include them in the merge
         cols_to_use = ['event_number'] + d.columns.difference(result.columns).tolist()
-        result = pd.merge(d[cols_to_use], result, on='event_number')
+        result = pd.merge(d[cols_to_use], result, on=['run_number', 'event_number'], how='inner')
 
     if 'index' in result.columns:
         # Clean up index, remove 'index' column
         # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
-        # TODO: is this still necessary?
+        # TODO: is this still triggered / necessary?
+        log.debug("Removing weird index column")
         result.drop('index', axis=1, inplace=True)
         result = result.reset_index()
         result.drop('index', axis=1, inplace=True)
