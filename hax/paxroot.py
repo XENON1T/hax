@@ -63,7 +63,7 @@ class StopEventLoop(Exception):
 
 
 def function_results_datasets(datasets_names, event_function=lambda event, **kwargs: None,
-                              branch_selection=None, kwargs=None):
+                              branch_selection=None, kwargs=None, desc=''):
     """Returns a generator which yields the return values of event_function(event) over the datasets specified in
     datasets_names.
 
@@ -97,7 +97,7 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
         try:
             source = range(n_events)
             if hax.config.get('tqdm_on', True):
-                source = tqdm(source)
+                source = tqdm(source, desc='Run %s: %s' % (run_id, desc))
             for event_i in source:
                 t.GetEntry(event_i)
                 event = t.events
@@ -110,7 +110,7 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
             raise e
 
 
-def loop_over_datasets(datasets_names, event_function=lambda event: None, branch_selection=None):
+def loop_over_datasets(datasets_names, event_function=lambda event: None, branch_selection=None, desc=''):
     """Execute event_function(event) over all events in the dataset(s)
     Does not return anything: use function_results_dataset or pass a class method as event_function if you want results.
      - list of datataset names or numbers
@@ -120,7 +120,7 @@ def loop_over_datasets(datasets_names, event_function=lambda event: None, branch
         'basic' (hax.config['basic_branches'] are read), or
         a list of branches to read.
     """
-    for _ in function_results_datasets(datasets_names, event_function, branch_selection):
+    for _ in function_results_datasets(datasets_names, event_function, branch_selection, desc=desc):
         # do nothing with the results
         pass
 

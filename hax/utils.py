@@ -8,6 +8,7 @@ def find_file_in_folders(filename, folders):
     Does not recurse into subdirectories
     """
     for folder in folders:
+        folder = os.path.expanduser(folder)
         full_path = os.path.join(folder, filename)
         if os.path.exists(full_path):
             return full_path

@@ -20,8 +20,13 @@ def build_cut_string(cut_list, obj):
     '''
     Build a string of cuts that can be applied using eval() function.
     '''
+    # If no cut is specified, always pass cut
     if len(cut_list) == 0:
         return 'True'
+    # Check if user entered range_50p_area, since this won't work
+    for cut in cut_list:
+        if cut[:14] == 'range_50p_area':
+            raise ValueError('You cannot use range_50p_area in your cut, use range_area_decile[5] instead!')
     cut_string = '('
     for cut in cut_list[:-1]:
         cut_string += obj + '.' + cut + ') & ('
@@ -58,6 +63,7 @@ def make_named_array(array, field_names):
 
 class DataExtractor():
     """This class is meant for extracting properties that are *not* on the event level, such as peak or hit properties.
+    For more information, check the docs of DataExtractor.get_data().
     """
 
     def __init__(self):
@@ -74,19 +80,28 @@ class DataExtractor():
             for peak in event.peaks:
                 # Check if peak passes the cut
                 if eval(self.peak_cut_string):
-                    # Get peak information
+                    # Get peak information, which is stored in _temp_data
                     _temp_data = []
                     for field in self.peak_fields:
                         if field == 'range_50p_area':
                             _x = list(peak.range_area_decile)[5]
                         elif field in ('x', 'y'):
+                            # In case of x and y need to get position from reconstructed_positions
                             for rp in peak.reconstructed_positions:
                                 if rp.algorithm == 'PosRecTopPatternFit':
                                     _x = getattr(rp, field)
                                     break
                             else:
                                 _x = float('nan')
+                        elif field[-1] == ']':
+                            # This means that the parameter is a list element. We need a slightly different approach
+                            parsed_field = field.split(sep='[')
+                            field_list_name = parsed_field[0]
+                            field_number = int(parsed_field[1][:-1])
+                            _list = getattr(peak, field_list_name)
+                            _x = list(_list)[field_number]
                         else:
+                            # Default case for 'normal'  peak variable
                             _x = getattr(peak, field)
                         _temp_data.append(_x)
                     peak_entry = np.array(_temp_data)
@@ -120,7 +135,7 @@ class DataExtractor():
         """Extract peak or hit data from a dataset.
         Peak or hit can be toggled by specifying level = 'peak' or level = 'hit'.
         Example useage:
-            d = de.get_data(dataset=run_name,level='peak',event_fields = ['event_number'],
+            d = DataExtractor.get_data(dataset=run_name,level='peak',event_fields = ['event_number'],
                 peak_fields=['area'],event_cuts=['event_number > 5', 'event_number < 10'],
                 peak_cuts=['area > 100', 'type = "s1"'],stop_after=10000,added_branches= ['peak.type'])
         """
