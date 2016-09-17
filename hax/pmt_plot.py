@@ -26,7 +26,9 @@ from hax.utils import flatten_dict
 
 # Convert PMT/channel map to record array
 pax_config = load_configuration('XENON1T')      # TODO: depends on experiment, should do after init
-pmt_data = pd.DataFrame([flatten_dict(info, separator=':') for info in pax_config['DEFAULT']['pmts']])
+pmt_data = pd.DataFrame([flatten_dict(info, separator=':')
+                         for info in pax_config['DEFAULT']['pmts']
+                         if 'array' in info])
 pmt_numbering_start = pmt_data['pmt_position'].min()
 
 
