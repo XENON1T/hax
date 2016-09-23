@@ -33,13 +33,12 @@ class PeakExtractor(MultipleRowExtractor):
         if len(cut_list) == 0:
             return 'True'
         # Check if user entered range_50p_area, since this won't work
-        cut_list = [cut.replace('range_50p_area','range_area__decile[5]') for cut in cut_list]
+        cut_list = [cut.replace('range_50p_area','range_area_decile[5]') for cut in cut_list]
         cut_string = '('
         for cut in cut_list[:-1]:
             cut_string += obj + '.' + cut + ') & ('
         cut_string += obj + '.' + cut_list[-1] + ')'
         return cut_string
-    
     
 
     def extract_data(self, event):
