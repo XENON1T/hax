@@ -122,7 +122,9 @@ def update_datasets(query=None):
 
     if version_policy == 'loose':
         # Walk through main_data_paths, looking for root files
-        for data_dir in hax.config.get('main_data_paths', []):
+        # Reversed, since if we find a dataset again, we overwrite, and 
+        # usually people put first priority stuff at the front.
+        for data_dir in reversed(hax.config.get('main_data_paths', [])):
             for candidate in glob(os.path.join(data_dir, '*.root')):
                 # What dataset is this file for?
                 dsetname = os.path.splitext(os.path.basename(candidate))[0]
