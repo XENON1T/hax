@@ -8,11 +8,17 @@ import logging
 import json
 import pickle
 import os
+import warnings
 
 import numpy as np
 import pandas as pd
-import ROOT
-import root_numpy
+
+try:
+    import ROOT
+    import root_numpy
+except ImportError as e:
+    warnings.warn("Error importing ROOT-related libraries: %s. "
+                  "If you try to use ROOT-related functions, hax will crash!" % e)
 
 import hax
 from hax import runs

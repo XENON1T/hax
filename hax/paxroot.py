@@ -4,11 +4,17 @@ import logging
 import os
 import numpy as np
 import json
+import warnings
 
 from tqdm import tqdm
-import ROOT
-from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root
 from pax.exceptions import MaybeOldFormatException
+
+try:
+    import ROOT
+    from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root
+except ImportError as e:
+    warnings.warn("Error importing ROOT-related libraries: %s. "
+                  "If you try to use ROOT-related functions, hax will crash!" % e)
 
 import hax
 from hax import runs
