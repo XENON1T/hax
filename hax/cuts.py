@@ -63,7 +63,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
     if not quiet:
         print(message(desc, n_before, n_now))
 
-        CUT_HISTORY[id(d)] = prev_cuts + [dict(selection_desc=desc, n_before=n_before, n_after=n_now)]
+    CUT_HISTORY[id(d)] = prev_cuts + [dict(selection_desc=desc, n_before=n_before, n_after=n_now)]
 
     return get_retval()
 
@@ -112,7 +112,7 @@ def range_selection(d, axis, bounds, **kwargs):
 
 
 def range_cut(*args, **kwargs):
-    """Select elements from d for which bounds[0] <= d[axis] < bounds[1]. See range_selection docstring."""
+    """Cut elements in a range from the data; see range_selection docstring."""
     kwargs['_invert'] = True
     return range_selection(*args, **kwargs)
 
