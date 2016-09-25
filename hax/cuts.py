@@ -82,7 +82,7 @@ def notnan(d, axis, **kwargs):
 def isfinite(d, axis, **kwargs):
     """Require d[axis] finite. See selection for options and return value."""
     kwargs.setdefault('desc', 'Finite %s' % axis)
-    return selection(d, np.isfinite(d[axis]))
+    return selection(d, np.isfinite(d[axis]), **kwargs)
 
 
 def above(d, axis, threshold, **kwargs):
