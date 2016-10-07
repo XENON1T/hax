@@ -3,6 +3,8 @@ while printing out the passthrough info.
 """
 import pandas as pd
 import numpy as np
+import dask
+import dask.dataframe
 
 import hax
 
@@ -90,15 +92,30 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
 
     # Actually do the cut
     d = d[bools]
-    n_now = len(d)
 
-    passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
-    if not quiet:
-        print(passthrough_message(passthrough_dict))
-    CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
+    # Print and track the passthrough infos
+    if isinstance(d, dask.dataframe.DataFrame):
+        # Cuts history tracking for delayed computations not yet implemented
+        n_before = float('nan')
+        n_now = float('nan')
+        if not quiet:
+            print("%s selection readied for delayed evaluation" % desc)
+        return get_return_value()
+    else:
+        n_now = len(d)
+        passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
+        if not quiet:
+            print(passthrough_message(passthrough_dict))
+        CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
 
     return get_return_value()
 
+
+def _delay_if_needed(d, f):
+    if isinstance(d, (dask.dataframe.DataFrame, dask.dataframe.Series)):
+        return dask.delayed(np.isfinite)(d)
+    else:
+        return f(d)
 
 def cut(d, bools, **kwargs):
     """Same as do_selection, with bools inverted. That is, specify which rows you do NOT want to select."""
@@ -109,12 +126,14 @@ def notnan(d, axis, **kwargs):
     kwargs.setdefault('desc', '%s not NaN' % axis)
     return selection(d, True ^ np.isnan(d[axis]), **kwargs)
 
-
 def isfinite(d, axis, **kwargs):
     """Require d[axis] finite. See selection for options and return value."""
     kwargs.setdefault('desc', 'Finite %s' % axis)
-    return selection(d, np.isfinite(d[axis]), **kwargs)
-
+    if isinstance(d, dask.dataframe.DataFrame):
+        bools = dask.delayed(np.isfinite)(d[axis])
+    else:
+        bools = np.isfinite(d[axis])
+    return selection(d, _delay_if_needed(d[axis], np.isfinite), **kwargs)
 
 def above(d, axis, threshold, **kwargs):
     """Require d[axis] > threshold. See selection for options and return value."""
@@ -139,7 +158,7 @@ def range_selection(d, axis, bounds, **kwargs):
         kwargs.setdefault('desc', '%s NOT in [%s, %s)' % (axis, bounds[0], bounds[1]))
     else:
         kwargs.setdefault('desc', '%s in [%s, %s)' % (axis, bounds[0], bounds[1]))
-    return selection(d, (d[axis] > bounds[0]).values & (d[axis] < bounds[1]).values, **kwargs)
+    return selection(d, (d[axis] > bounds[0]) & (d[axis] < bounds[1]), **kwargs)
 
 
 def range_cut(*args, **kwargs):
@@ -181,6 +200,7 @@ def eval_selection(d, eval_string, **kwargs):
     """
     kwargs.setdefault('desc', eval_string)
     return selection(d, d.eval(eval_string), **kwargs)
+
 
 def eval_cut(d, eval_string, **kwargs):
     kwargs['_invert'] = True
