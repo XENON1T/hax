@@ -10,15 +10,20 @@ import logging
 log = logging.getLogger('hax.cuts')
 
 # Dictionary mapping id of DataFrame objects to list of cut information applied to it.
-# Weakrefs might have been nice here... but as DataFrames are mutable, they can't be hashed
+# Weakrefs would have been really nice here... but as DataFrames are mutable, they can't be hashed,
 # which means we can't place them in a lookup-by-hash container.
 CUT_HISTORY = dict()
 UNNAMED_DESCRIPTION = 'Unnamed'
 
+##
+# Cut history tracking
+##
 
 def history(d):
     """Return pandas dataframe describing cuts history on dataframe."""
-    d_id = id(d)
+    return _history_by_id(id(d))
+
+def _history_by_id(d_id):
     if d_id not in CUT_HISTORY:
         raise ValueError("Cut history for this data not available.")
     hist = pd.DataFrame(CUT_HISTORY[d_id], columns=['selection_desc', 'n_before', 'n_after'])
@@ -27,6 +32,34 @@ def history(d):
     hist['cumulative_fraction_left'] = hist.n_after / hist.iloc[0].n_before
     return hist
 
+def _merge_histories(*ids):
+    # Collect all the history dataframes
+    histories = []
+    for x in ids:
+        q = _history_by_id(x)
+        q['id'] = x
+        histories.append(x)
+    histories = pd.concat(histories)
+
+    new_history = []
+    for desc, x in histories.groupby('desc'):
+        new_history.append(dict(
+            n_before=x.n_before.sum(),
+            selection_desc=desc,
+            n_after=x.n_after.sum())
+
+    return new_history
+
+    histories = [ ]
+    histories
+    for x in history()
+    for x in ids:
+        new_history
+    return merge_histories()
+
+##
+# Cut helper functions
+##
 
 def selection(d, bools, desc=UNNAMED_DESCRIPTION,
               return_passthrough_info=False, quiet=None, _invert=False, force_repeat=False):

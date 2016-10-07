@@ -273,7 +273,8 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
 
 
 def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
-    """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number)
+    """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number), second dataframe
+    describing cut history of preselections.
     :param run_id: name or number of the run to load
     :param treemakers: list of treemaker class / instances to load
     :param force_reload: always remake the minitrees, never load any from disk.
@@ -306,7 +307,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     for ps in preselection:
         result = eval_selection(result, ps)
 
-    return result
+    return result, cuts.history(result)
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
@@ -325,15 +326,23 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     dask_compute_kwargs.setdefault('get', dask.multiprocessing.get)
 
     if delayed or num_workers > 1:
-        result = [dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
-                  for dataset in datasets]
-        result = dask.dataframe.from_delayed(result, meta=result[0].compute())
+        partial_results = []
+        partial_histories = []
+        for dataset in datasets:
+            mashup = dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
+            partial_results.append(dask.delayed(lambda x: x[0], mashup))
+            partial_histories.append(dask.delayed(lambda x: x[1], mashup))
+
+        result = dask.dataframe.from_delayed(partial_results, meta=partial_results[0].compute())
+
+        result = result.drop('index', axis=1)
         if not delayed:
             result = result.compute(num_workers=num_workers, **dask_compute_kwargs)
 
     else:
         combined_dataframes = [load_single_dataset(dataset, treemakers, preselection, force_reload=force_reload)
                                for dataset in datasets]
+
         result = pd.concat(combined_dataframes)
         if 'index' in result.columns:
             # Clean up index, remove 'index' column
