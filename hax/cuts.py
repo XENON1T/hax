@@ -94,7 +94,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
 
     passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
     if not quiet:
-        print(passthrough_message(desc, n_before, n_now))
+        print(passthrough_message(passthrough_dict))
     CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
 
     return get_return_value()
