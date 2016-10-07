@@ -47,7 +47,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
     n_before = n_now = len(d)
 
     # The last part of the function has two entry points, so we need to call this instead of return:
-    def get_retval():
+    def get_return_value():
         if return_passthrough_info:
             return d, n_before, n_now
         return d
@@ -63,7 +63,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
                           "Showing historical passthrough info." % desc)
                 if not quiet:
                     print(message(c['selection_desc'], c['n_before'], c['n_after']))
-                return get_retval()
+                return get_return_value()
 
     # Actually do the cut
     d = d[bools]
@@ -74,13 +74,12 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
 
     CUT_HISTORY[id(d)] = prev_cuts + [dict(selection_desc=desc, n_before=n_before, n_after=n_now)]
 
-    return get_retval()
+    return get_return_value()
 
 
 def cut(d, bools, **kwargs):
     """Same as do_selection, with bools inverted. That is, specify which rows you do NOT want to select."""
     return selection(d, True ^ bools, **kwargs)
-
 
 def notnan(d, axis, **kwargs):
     """Require that d[axis] is not NaN. See selection for options and return value."""
@@ -147,3 +146,19 @@ def range_cuts(*args, **kwargs):
     """Do cuts based on one or more (axis, bounds) tuples. See range_selections docstring."""
     kwargs['_invert'] = True
     range_selections(*args, **kwargs)
+
+
+##
+# pandas.DataFrame.eval selections
+##
+
+def eval_selection(d, eval_string, **kwargs):
+    """Apply a selection specified by a pandas.DataFrame.eval string that returns the boolean array.
+    If no description is provided, the eval string itself is used as the description.
+    """
+    kwargs.setdefault('desc', eval_string)
+    return selection(d, d.eval(eval_string), **kwargs)
+
+def eval_cut(d, eval_string, **kwargs):
+    kwargs['_invert'] = True
+    return eval_selection(d, eval_string, **kwargs)

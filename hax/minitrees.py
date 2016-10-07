@@ -9,9 +9,11 @@ import os
 
 import numpy as np
 import pandas as pd
+import dask
 
 import hax
 from hax import runs
+from hax.cuts import eval_selection
 from .paxroot import loop_over_dataset
 from .utils import find_file_in_folders, get_user_id, load_pickles, save_pickles
 from .minitree_formats import get_format
@@ -232,10 +234,10 @@ def check(treemaker, run_id, force_reload=False):
     return True, minitree_path
 
 
-def load_single(run_id, treemaker, force_reload=False, return_metadata=False):
+def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=False):
     """Return pandas DataFrame resulting from running treemaker on run_id (name or number)
     :param run_id: name or number of the run to load
-    :param treemaker: TreeMaker class (not instance!) to run
+    :param treemaker: TreeMaker class or class name (but not TreeMaker instance!) to run
     :param force_reload: always remake the minitree, never load it from disk.
     :param return_metadata: instead return (metadata_dict, dataframe)
     """
@@ -264,51 +266,75 @@ def load_single(run_id, treemaker, force_reload=False, return_metadata=False):
     return skimmed_data
 
 
-def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']),
-         force_reload=False, use_root=True, use_pickle=False):
-    """Return pandas DataFrame with minitrees of several datasets and treemakers.
-    :param datasets: names or numbers of datasets (without .root) to load
-    :param treemakers: treemaker class (or string with name of class) or list of these to load.
-    :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
-    :param use_root: use ROOT to read/write cached minitrees
-    :param use_pickle: use ROOT to read/write cached minitrees
+def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
+    """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number)
+    :param run_id: name or number of the run to load
+    :param treemakers: list of treemaker class / instances to load
+    :param force_reload: always remake the minitrees, never load any from disk.
     """
-    if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
-        datasets = [datasets]
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
-
-    combined_dataframes = []
+    if isinstance(preselection, str):
+        preselection = [preselection]
+    if preselection is None:
+        preselection = []
+    dataframes = []
 
     for treemaker in treemakers:
+        dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
+        dataframes.append(dataset_frame)
 
-        dataframes = []
-        for dataset in datasets:
-            dataset_frame = load_single(dataset, treemaker, force_reload=force_reload)
-            dataframes.append(dataset_frame)
-
-        # Concatenate mini-trees of this type for all datasets
-        combined_dataframes.append(pd.concat(dataframes, ignore_index=True))
-
-    # Merge mini-trees of all types by inner join (propagating cuts)
-    if not len(combined_dataframes):
+    # Merge mini-trees of all types by inner join
+    # (propagating "cuts" applied by skipping rows in MultipleRowExtractor)
+    if not len(dataframes):
         raise RuntimeError("No data was extracted? What's going on??")
-    result = combined_dataframes[0]
-    for i in range(1, len(combined_dataframes)):
-        d = combined_dataframes[i]
+    result = dataframes[0]
+    for i in range(1, len(dataframes)):
+        d = dataframes[i]
         # To avoid creation of duplicate columns (which will get _x and _y suffixes),
         # look which column names already exist and do not include them in the merge
         cols_to_use = ['run_number', 'event_number'] + d.columns.difference(result.columns).tolist()
         result = pd.merge(d[cols_to_use], result, on=['run_number', 'event_number'], how='inner')
 
-    if 'index' in result.columns:
-        # Clean up index, remove 'index' column
-        # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
-        # TODO: is this still triggered / necessary?
-        log.debug("Removing weird index column")
-        result.drop('index', axis=1, inplace=True)
-        result = result.reset_index()
-        result.drop('index', axis=1, inplace=True)
+    # Apply pre-selection cuts before moving on to the next dataset
+    for ps in preselection:
+        result = eval_selection(result, ps)
+
+
+def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
+         delayed=False, num_workers=1, dask_compute_kwargs=None):
+    """Return pandas DataFrame with minitrees of several datasets and treemakers.
+    :param datasets: names or numbers of datasets (without .root) to load
+    :param treemakers: treemaker class (or string with name of class) or list of these to load.
+    :param preselection: string or list of strings parseable by pd.eval. Should return bool array, to be used
+    for pre-selecting events to load for each dataset.
+    :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
+    """
+    if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
+        datasets = [datasets]
+    if dask_compute_kwargs is None:
+        dask_compute_kwargs = {}
+    dask_compute_kwargs.setdefault('get', dask.multiprocessing.get)
+
+    if delayed or num_workers > 1:
+        result = [dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
+                  for dataset in datasets]
+        result = dask.dataframe.from_delayed(result, meta=result[0].compute())
+        if not delayed:
+            result = result.compute(num_workers=num_workers, **dask_compute_kwargs)
+
+    else:
+        combined_dataframes = [load_single_dataset(dataset, treemakers, preselection, force_reload=force_reload)
+                               for dataset in datasets]
+        result = pd.concat(combined_dataframes)
+        if 'index' in result.columns:
+            # Clean up index, remove 'index' column
+            # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
+            # TODO: is this still triggered / necessary?
+            log.debug("Removing weird index column")
+            result.drop('index', axis=1, inplace=True)
+            result = result.reset_index()
+            result.drop('index', axis=1, inplace=True)
 
     return result
 
