@@ -70,15 +70,24 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
     if quiet is None:
         quiet = hax.config['print_passthrough_info']
 
-    global CUT_HISTORY
-    prev_cuts = CUT_HISTORY.get(id(d), [])
-    n_before = n_now = len(d)
-
     # The last part of the function has two entry points, so we need to call this instead of return:
     def get_return_value():
         if return_passthrough_info:
             return d, n_before, n_now
         return d
+
+    if isinstance(d, dask.dataframe.DataFrame):
+        # Cuts history tracking for delayed computations not yet implemented
+        n_before = float('nan')
+        n_now = float('nan')
+        d = d[bools]
+        if not quiet:
+            print("%s selection readied for delayed evaluation" % desc)
+        return get_return_value()
+
+    global CUT_HISTORY
+    prev_cuts = CUT_HISTORY.get(id(d), [])
+    n_before = n_now = len(d)
 
     if desc != UNNAMED_DESCRIPTION and not force_repeat:
         # Check if this cut has already been done
@@ -94,28 +103,13 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
     d = d[bools]
 
     # Print and track the passthrough infos
-    if isinstance(d, dask.dataframe.DataFrame):
-        # Cuts history tracking for delayed computations not yet implemented
-        n_before = float('nan')
-        n_now = float('nan')
-        if not quiet:
-            print("%s selection readied for delayed evaluation" % desc)
-        return get_return_value()
-    else:
-        n_now = len(d)
-        passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
-        if not quiet:
-            print(passthrough_message(passthrough_dict))
-        CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
+    n_now = len(d)
+    passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
+    if not quiet:
+        print(passthrough_message(passthrough_dict))
+    CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
 
     return get_return_value()
-
-
-def _delay_if_needed(d, f):
-    if isinstance(d, (dask.dataframe.DataFrame, dask.dataframe.Series)):
-        return dask.delayed(np.isfinite)(d)
-    else:
-        return f(d)
 
 def cut(d, bools, **kwargs):
     """Same as do_selection, with bools inverted. That is, specify which rows you do NOT want to select."""
@@ -124,22 +118,20 @@ def cut(d, bools, **kwargs):
 def notnan(d, axis, **kwargs):
     """Require that d[axis] is not NaN. See selection for options and return value."""
     kwargs.setdefault('desc', '%s not NaN' % axis)
-    return selection(d, True ^ np.isnan(d[axis]), **kwargs)
+    return selection(d, d[axis].notnull(), **kwargs)
 
 def isfinite(d, axis, **kwargs):
     """Require d[axis] finite. See selection for options and return value."""
     kwargs.setdefault('desc', 'Finite %s' % axis)
     if isinstance(d, dask.dataframe.DataFrame):
-        bools = dask.delayed(np.isfinite)(d[axis])
-    else:
-        bools = np.isfinite(d[axis])
-    return selection(d, _delay_if_needed(d[axis], np.isfinite), **kwargs)
+        raise NotImplementedError("isfinite not yet implemented for delayed computations. "
+                                  "Maybe cuts.notnan suffices?")
+    return selection(d, np.isfinite(d[axis]), **kwargs)
 
 def above(d, axis, threshold, **kwargs):
     """Require d[axis] > threshold. See selection for options and return value."""
     kwargs.setdefault('desc', '%s above %s' % (axis, threshold))
     return selection(d, d[axis] > threshold, **kwargs)
-
 
 def below(d, axis, threshold, **kwargs):
     """Require d[axis] < threshold. See selection for options and return value."""
