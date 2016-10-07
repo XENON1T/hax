@@ -328,15 +328,19 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     partial_histories = []
     for dataset in datasets:
         mashup = dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
-        partial_results.append(dask.delayed(lambda x: x[0], mashup))
-        partial_histories.append(dask.delayed(lambda x: x[1], mashup))
+        partial_results.append(dask.delayed(lambda x: x[0])(mashup))
+        partial_histories.append(dask.delayed(lambda x: x[1])(mashup))
 
     result = dask.dataframe.from_delayed(partial_results, meta=partial_results[0].compute())
     result = result.drop('index', axis=1)
 
     if not delayed:
-        result, partial_histories = dask.compute(result, partial_histories,
-                                                 num_workers=num_workers, **dask_compute_kwargs)
+        # Dask doesn't seem to want to descend into the lists beyond the first.
+        # So we mash things into one list before calling compute, then split it again
+        mashedup_result = dask.compute(*([result] + partial_histories),
+                                       num_workers=num_workers, **dask_compute_kwargs)
+        result = mashedup_result[0]
+        partial_histories = mashedup_result[1:]
         cuts.record_combined_histories(result, partial_histories)
 
         if 'index' in result.columns:

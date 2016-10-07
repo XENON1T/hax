@@ -40,7 +40,7 @@ def record_combined_histories(d, partial_histories, quiet=False):
                  n_before=sum([q[cut_i]['n_before'] for q in partial_histories]),
                  n_after=sum([q[cut_i]['n_after'] for q in partial_histories]))
         if not quiet:
-            print(passthrough_message(q['selection_desc'], q['n_before'], q['n_now']))
+            print(passthrough_message(q))
         new_history.append(q)
     CUT_HISTORY[id(d)] = new_history
 
@@ -48,8 +48,11 @@ def record_combined_histories(d, partial_histories, quiet=False):
 # Cut helper functions
 ##
 
-def passthrough_message(desc, n_before, n_now):
-    return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_now, n_now / n_before * 100)
+def passthrough_message(passthrough_dict):
+    desc = passthrough_dict['selection_desc']
+    n_before = passthrough_dict['n_before']
+    n_after = passthrough_dict['n_after']
+    return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_after, n_after / n_before * 100)
 
 def selection(d, bools, desc=UNNAMED_DESCRIPTION,
               return_passthrough_info=False, quiet=None, _invert=False, force_repeat=False):
@@ -82,17 +85,17 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
                 log.debug("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat. "
                           "Showing historical passthrough info." % desc)
                 if not quiet:
-                    print(passthrough_message(c['selection_desc'], c['n_before'], c['n_after']))
+                    print(passthrough_message(c))
                 return get_return_value()
 
     # Actually do the cut
     d = d[bools]
     n_now = len(d)
 
+    passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
     if not quiet:
         print(passthrough_message(desc, n_before, n_now))
-
-    CUT_HISTORY[id(d)] = prev_cuts + [dict(selection_desc=desc, n_before=n_before, n_after=n_now)]
+    CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
 
     return get_return_value()
 
