@@ -1,6 +1,9 @@
 import collections
 import os
 import platform
+import pickle
+import itertools
+import gzip
 
 
 def find_file_in_folders(filename, folders):
@@ -63,3 +66,30 @@ def flatten_dict(d, separator=':', _parent_key=''):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def load_pickles(filename, load_first=None):
+    """Returns list of pickles stored in filename.
+    :param load_first: number of pickles to read. Otherwise reads until file is exhausted
+    """
+    if load_first is None:
+        counter = itertools.count()
+    else:
+        counter = range(load_first)
+    with gzip.open(filename, mode='rb') as infile:
+        result = []
+        for _ in counter:
+            try:
+                result.append(pickle.load(infile))
+            except EOFError:
+                if load_first is not None:
+                    raise
+    return result
+
+
+def save_pickles(filename, *args):
+    """Compresses and pickles any objects in filename.
+    The pickles are stacked: load them with load_pickles"""
+    with gzip.open(filename, 'wb') as outfile:
+        for thing in args:
+            pickle.dump(thing, outfile)
