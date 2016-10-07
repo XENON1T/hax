@@ -62,16 +62,17 @@ def get_trigger_data(run_id, select_data_types='all', format_version=2):
             data[k] = np.concatenate(data[k])
 
         else:
-            data[k] = np.vstack(data[k])
-
             if k in matrix_fields:
                 if format_version <= 1:
+                    data[k] = np.vstack(data[k])
                     # Arrays were flattened when they are converted to strings
                     n = np.sqrt(data[k].shape[1]).astype('int')
                     data[k] = data[k].reshape((-1, n, n))
                 else:
                     # Not flattened, just need to stack
                     data[k] = np.stack(data[k])
+            else:
+                data[k] = np.vstack(data[k])
 
     if select_data_types != 'all' and len(select_data_types) == 1:
         return data[select_data_types[0]]
