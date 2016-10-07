@@ -10,6 +10,7 @@ import os
 import numpy as np
 import pandas as pd
 import dask
+import dask.multiprocessing
 
 import hax
 from hax import runs
@@ -135,7 +136,7 @@ def _minitree_filename(run_name, treemaker_name, extension):
     return "%s_%s.%s" % (run_name, treemaker_name, extension)
 
 
-def check(treemaker, run_id, force_reload=False):
+def check(run_id, treemaker, force_reload=False):
     """Return if the minitree exists and where it is found / where to make it.
     :param treemaker: treemaker name or class
     :param run_id: run name or number
@@ -167,6 +168,7 @@ def check(treemaker, run_id, force_reload=False):
         minitree_path = find_file_in_folders(minitree_filename, hax.config['minitree_paths'])
     except FileNotFoundError:
         # Maybe it exists, but was made in a non-preferred file format
+        log.debug("Minitree %s not found" % minitree_filename)
         for mt_format in hax.config['other_minitree_formats']:
             if mt_format == preferred_format:
                 # Already tried this format
@@ -175,13 +177,14 @@ def check(treemaker, run_id, force_reload=False):
                 try:
                     minitree_filename = _minitree_filename(run_name, treemaker_name, mt_format)
                     minitree_path = find_file_in_folders(minitree_filename, hax.config['minitree_paths'])
+                    log.debug("Minitree found in non-preferred format: %s" % minitree_filename)
                     break
                 except FileNotFoundError:
+                    log.debug("Not found in non-preferred formats either. Minitree will be created.")
                     pass
         else:
             # Not found in any format
-            log.debug("Minitree %s not found, will be created" % minitree_filename)
-            return False, path_to_new
+            return sorry_not_available
 
     log.debug("Found minitree at %s" % minitree_path)
 
@@ -231,17 +234,18 @@ def check(treemaker, run_id, force_reload=False):
                                                                               version_policy))
             return sorry_not_available
 
-    return True, minitree_path
+    return treemaker, True, minitree_path
 
 
 def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=False):
     """Return pandas DataFrame resulting from running treemaker on run_id (name or number)
+    :returns: pandas.DataFrame
     :param run_id: name or number of the run to load
     :param treemaker: TreeMaker class or class name (but not TreeMaker instance!) to run
     :param force_reload: always remake the minitree, never load it from disk.
     :param return_metadata: instead return (metadata_dict, dataframe)
     """
-    treemaker, already_made, minitree_path = check(treemaker, run_id, force_reload=force_reload)
+    treemaker, already_made, minitree_path = check(run_id, treemaker, force_reload=force_reload)
 
     if already_made:
         return get_format(minitree_path).load_data()
@@ -250,7 +254,7 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
     # This will raise FileNotFoundError if the root file is not found
     skimmed_data = treemaker().get_data(run_id)
 
-    log.debug("Created minitree %s for dataset %s" % (treemaker.__name__, run_id))
+    log.debug("Retrieved %s minitree data for dataset %s" % (treemaker.__name__, run_id))
 
     metadata_dict = dict(version=treemaker.__version__,
                          pax_version=hax.paxroot.get_metadata(run_id)['file_builder_version'],
@@ -263,6 +267,7 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
 
     if return_metadata:
         return metadata_dict, skimmed_data
+
     return skimmed_data
 
 
@@ -299,6 +304,8 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
         result = eval_selection(result, ps)
+
+    return result
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,

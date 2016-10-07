@@ -15,15 +15,15 @@ except ImportError as e:
 from hax.utils import save_pickles, load_pickles
 
 
-def get_format(path):
+def get_format(path, treemaker=None):
     path, ext = os.path.splitext(path)
     if ext not in MINITREE_FORMATS:
         raise ValueError("Unknown minitree extension in filename %s" % path)
-    return MINITREE_FORMATS[ext](path)
+    return MINITREE_FORMATS[ext](path, treemaker)
 
 
 class MinitreeDataFormat():
-    def __init__(self, path, treemaker=None):
+    def __init__(self, path, treemaker):
         self.path = path
         self.treemaker = treemaker
 
