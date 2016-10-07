@@ -16,7 +16,7 @@ from hax.utils import save_pickles, load_pickles
 
 
 def get_format(path, treemaker=None):
-    path, ext = os.path.splitext(path)
+    _, ext = os.path.splitext(path)
     if ext not in MINITREE_FORMATS:
         raise ValueError("Unknown minitree extension in filename %s" % path)
     return MINITREE_FORMATS[ext](path, treemaker)
@@ -50,7 +50,7 @@ class ROOTFormat(MinitreeDataFormat):
         return minitree_metadata
 
     def load_data(self):
-        pd.DataFrame.from_records(root_numpy.root2rec(self.path))
+        return pd.DataFrame.from_records(root_numpy.root2rec(self.path))
 
     def save_data(self, metadata, data):
         if self.treemaker.uses_arrays:
@@ -66,7 +66,6 @@ class ROOTFormat(MinitreeDataFormat):
                                     "(2) add a uses_arrays=True attribute to the %s class; or "
                                     "(3) use pickle as your minitree format." % (branch_name,
                                                                                  self.treemaker.__class__.__name__))
-
             root_numpy.array2root(data.to_records(), self.path,
                                   treename=self.treemaker.__name__, mode='recreate')
 

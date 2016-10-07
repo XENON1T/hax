@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import dask
 import dask.multiprocessing
+import dask.dataframe
 
 import hax
 from hax import runs
