@@ -19,7 +19,7 @@ data_types = {
 matrix_fields = ['trigger_signals_histogram', 'count_of_2pmt_coincidences']
 
 
-def get_trigger_data(run_id, select_data_types='all'):
+def get_trigger_data(run_id, select_data_types='all', format_version=2):
     """Return dictionary with the trigger data from run_id
     select_data_types can be 'all', a trigger data type name, or a list of trigger data type names.
     If you want to find out which data types exists, use 'all' and look at the keys of the dictionary.
@@ -41,7 +41,12 @@ def get_trigger_data(run_id, select_data_types='all'):
             d = zlib.decompress(d)
             d = bson.BSON.decode(d)
             if 'data' in d:
-                d = np.fromstring(d['data'], dtype=data_types.get(data_type, np.int))
+                if format_version >= 2:
+                    # Numpy arrays stored as lists
+                    d = np.array(d['data'], dtype=data_types.get(data_type, np.int))
+                else:
+                    # Numpy arrays stored as strings
+                    d = np.fromstring(d['data'], dtype=data_types.get(data_type, np.int))
             data[data_type].append(d)
 
     # Flatten / post-process the data
@@ -60,8 +65,13 @@ def get_trigger_data(run_id, select_data_types='all'):
             data[k] = np.vstack(data[k])
 
             if k in matrix_fields:
-                n = np.sqrt(data[k].shape[1]).astype('int')
-                data[k] = data[k].reshape((-1, n, n))
+                if format_version <= 1:
+                    # Arrays were flattened when they are converted to strings
+                    n = np.sqrt(data[k].shape[1]).astype('int')
+                    data[k] = data[k].reshape((-1, n, n))
+                else:
+                    # Not flattened, just need to stack
+                    data[k] = np.stack(data[k])
 
     if select_data_types != 'all' and len(select_data_types) == 1:
         return data[select_data_types[0]]

@@ -4,6 +4,11 @@ while printing out the passthrough info.
 import pandas as pd
 import numpy as np
 
+import hax
+
+import logging
+log = logging.getLogger('hax.cuts')
+
 # Dictionary mapping id of DataFrame objects to list of cut information applied to it.
 # Weakrefs might have been nice here... but as DataFrames are mutable, they can't be hashed
 # which means we can't place them in a lookup-by-hash container.
@@ -24,15 +29,19 @@ def history(d):
 
 
 def selection(d, bools, desc=UNNAMED_DESCRIPTION,
-              return_passthrough_info=False, quiet=False, _invert=False, force_repeat=False):
+              return_passthrough_info=False, quiet=None, _invert=False, force_repeat=False):
     """Returns d[bools], print out passthrough info.
      - data on which to perform the selection (pandas dataframe)
      - bools: boolean array of same length as d. If True, row will be in selection returned.
      - return_passthrough_info: if True (default False), return d[bools], len_d_before, len_d_now instead
-     - quiet: if True (default False), does not print passthrough info.
+     - quiet: prints passthrough info if False, not if True.
+              The default is controlled by the hax init option 'print_passthrough_info'
      - _invert: inverts bools before applying them
      - force_repeat: do the selection even if a cut with an identical description has already been performed.
     """
+    if quiet is None:
+        quiet = hax.config['print_passthrough_info']
+
     global CUT_HISTORY
     prev_cuts = CUT_HISTORY.get(id(d), [])
     n_before = n_now = len(d)
@@ -44,15 +53,15 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
         return d
 
     def message(desc, n_before, n_now):
-        return "%s selection: %d events removed (%0.2f%% passed)" % (desc, n_before - n_now, n_now / n_before * 100)
+        return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_now, n_now / n_before * 100)
 
     if desc != UNNAMED_DESCRIPTION and not force_repeat:
         # Check if this cut has already been done
         for c in prev_cuts:
             if c['selection_desc'] == desc:
-                if not quiet:
-                    print("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat. "
+                log.debug("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat. "
                           "Showing historical passthrough info." % desc)
+                if not quiet:
                     print(message(c['selection_desc'], c['n_before'], c['n_after']))
                 return get_retval()
 
