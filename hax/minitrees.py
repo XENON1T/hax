@@ -14,10 +14,9 @@ import dask.multiprocessing
 import dask.dataframe
 
 import hax
-from hax import runs
-from hax.cuts import eval_selection
+from hax import runs, cuts
 from .paxroot import loop_over_dataset
-from .utils import find_file_in_folders, get_user_id, load_pickles, save_pickles
+from .utils import find_file_in_folders, get_user_id
 from .minitree_formats import get_format
 
 log = logging.getLogger('hax.minitrees')
@@ -273,8 +272,8 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
 
 
 def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
-    """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number), second dataframe
-    describing cut history of preselections.
+    """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number),
+    list of dicts describing cut histories.
     :param run_id: name or number of the run to load
     :param treemakers: list of treemaker class / instances to load
     :param force_reload: always remake the minitrees, never load any from disk.
@@ -305,9 +304,9 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
-        result = eval_selection(result, ps)
+        result = cuts.eval_selection(result, ps, quiet=True)
 
-    return result, cuts.history(result)
+    return result, cuts.CUT_HISTORY.get(id(result), [])
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
@@ -325,25 +324,21 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
         dask_compute_kwargs = {}
     dask_compute_kwargs.setdefault('get', dask.multiprocessing.get)
 
-    if delayed or num_workers > 1:
-        partial_results = []
-        partial_histories = []
-        for dataset in datasets:
-            mashup = dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
-            partial_results.append(dask.delayed(lambda x: x[0], mashup))
-            partial_histories.append(dask.delayed(lambda x: x[1], mashup))
+    partial_results = []
+    partial_histories = []
+    for dataset in datasets:
+        mashup = dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
+        partial_results.append(dask.delayed(lambda x: x[0], mashup))
+        partial_histories.append(dask.delayed(lambda x: x[1], mashup))
 
-        result = dask.dataframe.from_delayed(partial_results, meta=partial_results[0].compute())
+    result = dask.dataframe.from_delayed(partial_results, meta=partial_results[0].compute())
+    result = result.drop('index', axis=1)
 
-        result = result.drop('index', axis=1)
-        if not delayed:
-            result = result.compute(num_workers=num_workers, **dask_compute_kwargs)
+    if not delayed:
+        result, partial_histories = dask.compute(result, partial_histories,
+                                                 num_workers=num_workers, **dask_compute_kwargs)
+        cuts.record_combined_histories(result, partial_histories)
 
-    else:
-        combined_dataframes = [load_single_dataset(dataset, treemakers, preselection, force_reload=force_reload)
-                               for dataset in datasets]
-
-        result = pd.concat(combined_dataframes)
         if 'index' in result.columns:
             # Clean up index, remove 'index' column
             # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
@@ -352,6 +347,10 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
             result.drop('index', axis=1, inplace=True)
             result = result.reset_index()
             result.drop('index', axis=1, inplace=True)
+
+    else:
+        # Magic for tracking of cut histories while using dask.dataframe here...
+        pass
 
     return result
 

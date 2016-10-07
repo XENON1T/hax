@@ -21,9 +21,7 @@ UNNAMED_DESCRIPTION = 'Unnamed'
 
 def history(d):
     """Return pandas dataframe describing cuts history on dataframe."""
-    return _history_by_id(id(d))
-
-def _history_by_id(d_id):
+    d_id = id(d)
     if d_id not in CUT_HISTORY:
         raise ValueError("Cut history for this data not available.")
     hist = pd.DataFrame(CUT_HISTORY[d_id], columns=['selection_desc', 'n_before', 'n_after'])
@@ -32,34 +30,26 @@ def _history_by_id(d_id):
     hist['cumulative_fraction_left'] = hist.n_after / hist.iloc[0].n_before
     return hist
 
-def _merge_histories(*ids):
-    # Collect all the history dataframes
-    histories = []
-    for x in ids:
-        q = _history_by_id(x)
-        q['id'] = x
-        histories.append(x)
-    histories = pd.concat(histories)
 
+def record_combined_histories(d, partial_histories, quiet=False):
+    global CUT_HISTORY
     new_history = []
-    for desc, x in histories.groupby('desc'):
-        new_history.append(dict(
-            n_before=x.n_before.sum(),
-            selection_desc=desc,
-            n_after=x.n_after.sum())
-
-    return new_history
-
-    histories = [ ]
-    histories
-    for x in history()
-    for x in ids:
-        new_history
-    return merge_histories()
+    # Loop over cuts
+    for cut_i, cut in enumerate(partial_histories[0]):
+        q = dict(selection_desc=cut['selection_desc'],
+                 n_before=sum([q[cut_i]['n_before'] for q in partial_histories]),
+                 n_after=sum([q[cut_i]['n_after'] for q in partial_histories]))
+        if not quiet:
+            print(passthrough_message(q['selection_desc'], q['n_before'], q['n_now']))
+        new_history.append(q)
+    CUT_HISTORY[id(d)] = new_history
 
 ##
 # Cut helper functions
 ##
+
+def passthrough_message(desc, n_before, n_now):
+    return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_now, n_now / n_before * 100)
 
 def selection(d, bools, desc=UNNAMED_DESCRIPTION,
               return_passthrough_info=False, quiet=None, _invert=False, force_repeat=False):
@@ -85,9 +75,6 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
             return d, n_before, n_now
         return d
 
-    def message(desc, n_before, n_now):
-        return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_now, n_now / n_before * 100)
-
     if desc != UNNAMED_DESCRIPTION and not force_repeat:
         # Check if this cut has already been done
         for c in prev_cuts:
@@ -95,7 +82,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
                 log.debug("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat. "
                           "Showing historical passthrough info." % desc)
                 if not quiet:
-                    print(message(c['selection_desc'], c['n_before'], c['n_after']))
+                    print(passthrough_message(c['selection_desc'], c['n_before'], c['n_after']))
                 return get_return_value()
 
     # Actually do the cut
@@ -103,7 +90,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
     n_now = len(d)
 
     if not quiet:
-        print(message(desc, n_before, n_now))
+        print(passthrough_message(desc, n_before, n_now))
 
     CUT_HISTORY[id(d)] = prev_cuts + [dict(selection_desc=desc, n_before=n_before, n_after=n_now)]
 
