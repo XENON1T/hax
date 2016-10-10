@@ -34,6 +34,7 @@ def history(d):
 
 
 def record_combined_histories(d, partial_histories, quiet=False):
+    """Record history for dataframe d by combining list of dictionaries partial_histories"""
     global CUT_HISTORY
     new_history = []
     # Loop over cuts
@@ -51,6 +52,7 @@ def record_combined_histories(d, partial_histories, quiet=False):
 ##
 
 def passthrough_message(passthrough_dict):
+    """Prints passthrough info given dictionary with selection_desc, n_before, n_after"""
     desc = passthrough_dict['selection_desc']
     n_before = passthrough_dict['n_before']
     n_after = passthrough_dict['n_after']
@@ -68,7 +70,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
      - force_repeat: do the selection even if a cut with an identical description has already been performed.
     """
     if quiet is None:
-        quiet = hax.config['print_passthrough_info']
+        quiet = not hax.config['print_passthrough_info']
 
     # The last part of the function has two entry points, so we need to call this instead of return:
     def get_return_value():

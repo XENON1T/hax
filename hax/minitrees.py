@@ -276,6 +276,8 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     list of dicts describing cut histories.
     :param run_id: name or number of the run to load
     :param treemakers: list of treemaker class / instances to load
+    :param preselection: String or list of strings passed to pandas.eval. Should return bool array, to be used
+    for pre-selecting events to load for each dataset.
     :param force_reload: always remake the minitrees, never load any from disk.
     """
     if isinstance(treemakers, (type, str)):
@@ -310,19 +312,22 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
-         delayed=False, num_workers=1, dask_compute_kwargs=None):
+         delayed=False, num_workers=1, compute_options=None):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
     :param datasets: names or numbers of datasets (without .root) to load
     :param treemakers: treemaker class (or string with name of class) or list of these to load.
     :param preselection: string or list of strings parseable by pd.eval. Should return bool array, to be used
     for pre-selecting events to load for each dataset.
     :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
+    :param delayed:  Instead of computing a pandas DataFrame, return a dask DataFrame (default False)
+    :param num_workers: Number of dask workers to use in computation (if delayed=False)
+    :param compute_options: Dictionary of extra options passed to dask.compute
     """
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
-    if dask_compute_kwargs is None:
-        dask_compute_kwargs = {}
-    dask_compute_kwargs.setdefault('get', dask.multiprocessing.get)
+    if compute_options is None:
+        compute_options = {}
+    compute_options.setdefault('get', dask.multiprocessing.get)
 
     partial_results = []
     partial_histories = []
@@ -332,13 +337,12 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
         partial_histories.append(dask.delayed(lambda x: x[1])(mashup))
 
     result = dask.dataframe.from_delayed(partial_results, meta=partial_results[0].compute())
-    result = result.drop('index', axis=1)
 
     if not delayed:
         # Dask doesn't seem to want to descend into the lists beyond the first.
         # So we mash things into one list before calling compute, then split it again
         mashedup_result = dask.compute(*([result] + partial_histories),
-                                       num_workers=num_workers, **dask_compute_kwargs)
+                                       num_workers=num_workers, **compute_options)
         result = mashedup_result[0]
         partial_histories = mashedup_result[1:]
         cuts.record_combined_histories(result, partial_histories)

@@ -39,7 +39,6 @@ class PeakExtractor(MultipleRowExtractor):
             cut_string += obj + '.' + cut + ') & ('
         cut_string += obj + '.' + cut_list[-1] + ')'
         return cut_string
-    
 
     def extract_data(self, event):
         if event.event_number == self.stop_after:
