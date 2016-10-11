@@ -3,6 +3,8 @@ while printing out the passthrough info.
 """
 import pandas as pd
 import numpy as np
+import dask
+import dask.dataframe
 
 import hax
 
@@ -10,11 +12,14 @@ import logging
 log = logging.getLogger('hax.cuts')
 
 # Dictionary mapping id of DataFrame objects to list of cut information applied to it.
-# Weakrefs might have been nice here... but as DataFrames are mutable, they can't be hashed
+# Weakrefs would have been really nice here... but as DataFrames are mutable, they can't be hashed,
 # which means we can't place them in a lookup-by-hash container.
 CUT_HISTORY = dict()
 UNNAMED_DESCRIPTION = 'Unnamed'
 
+##
+# Cut history tracking
+##
 
 def history(d):
     """Return pandas dataframe describing cuts history on dataframe."""
@@ -28,6 +33,31 @@ def history(d):
     return hist
 
 
+def record_combined_histories(d, partial_histories, quiet=False):
+    """Record history for dataframe d by combining list of dictionaries partial_histories"""
+    global CUT_HISTORY
+    new_history = []
+    # Loop over cuts
+    for cut_i, cut in enumerate(partial_histories[0]):
+        q = dict(selection_desc=cut['selection_desc'],
+                 n_before=sum([q[cut_i]['n_before'] for q in partial_histories]),
+                 n_after=sum([q[cut_i]['n_after'] for q in partial_histories]))
+        if not quiet:
+            print(passthrough_message(q))
+        new_history.append(q)
+    CUT_HISTORY[id(d)] = new_history
+
+##
+# Cut helper functions
+##
+
+def passthrough_message(passthrough_dict):
+    """Prints passthrough info given dictionary with selection_desc, n_before, n_after"""
+    desc = passthrough_dict['selection_desc']
+    n_before = passthrough_dict['n_before']
+    n_after = passthrough_dict['n_after']
+    return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_after, n_after / n_before * 100)
+
 def selection(d, bools, desc=UNNAMED_DESCRIPTION,
               return_passthrough_info=False, quiet=None, _invert=False, force_repeat=False):
     """Returns d[bools], print out passthrough info.
@@ -40,20 +70,26 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
      - force_repeat: do the selection even if a cut with an identical description has already been performed.
     """
     if quiet is None:
-        quiet = hax.config['print_passthrough_info']
-
-    global CUT_HISTORY
-    prev_cuts = CUT_HISTORY.get(id(d), [])
-    n_before = n_now = len(d)
+        quiet = not hax.config['print_passthrough_info']
 
     # The last part of the function has two entry points, so we need to call this instead of return:
-    def get_retval():
+    def get_return_value():
         if return_passthrough_info:
             return d, n_before, n_now
         return d
 
-    def message(desc, n_before, n_now):
-        return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_now, n_now / n_before * 100)
+    if isinstance(d, dask.dataframe.DataFrame):
+        # Cuts history tracking for delayed computations not yet implemented
+        n_before = float('nan')
+        n_now = float('nan')
+        d = d[bools]
+        if not quiet:
+            print("%s selection readied for delayed evaluation" % desc)
+        return get_return_value()
+
+    global CUT_HISTORY
+    prev_cuts = CUT_HISTORY.get(id(d), [])
+    n_before = n_now = len(d)
 
     if desc != UNNAMED_DESCRIPTION and not force_repeat:
         # Check if this cut has already been done
@@ -62,43 +98,42 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
                 log.debug("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat. "
                           "Showing historical passthrough info." % desc)
                 if not quiet:
-                    print(message(c['selection_desc'], c['n_before'], c['n_after']))
-                return get_retval()
+                    print(passthrough_message(c))
+                return get_return_value()
 
     # Actually do the cut
     d = d[bools]
+
+    # Print and track the passthrough infos
     n_now = len(d)
-
+    passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
     if not quiet:
-        print(message(desc, n_before, n_now))
+        print(passthrough_message(passthrough_dict))
+    CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
 
-    CUT_HISTORY[id(d)] = prev_cuts + [dict(selection_desc=desc, n_before=n_before, n_after=n_now)]
-
-    return get_retval()
-
+    return get_return_value()
 
 def cut(d, bools, **kwargs):
     """Same as do_selection, with bools inverted. That is, specify which rows you do NOT want to select."""
     return selection(d, True ^ bools, **kwargs)
 
-
 def notnan(d, axis, **kwargs):
     """Require that d[axis] is not NaN. See selection for options and return value."""
     kwargs.setdefault('desc', '%s not NaN' % axis)
-    return selection(d, True ^ np.isnan(d[axis]), **kwargs)
-
+    return selection(d, d[axis].notnull(), **kwargs)
 
 def isfinite(d, axis, **kwargs):
     """Require d[axis] finite. See selection for options and return value."""
     kwargs.setdefault('desc', 'Finite %s' % axis)
+    if isinstance(d, dask.dataframe.DataFrame):
+        raise NotImplementedError("isfinite not yet implemented for delayed computations. "
+                                  "Maybe cuts.notnan suffices?")
     return selection(d, np.isfinite(d[axis]), **kwargs)
-
 
 def above(d, axis, threshold, **kwargs):
     """Require d[axis] > threshold. See selection for options and return value."""
     kwargs.setdefault('desc', '%s above %s' % (axis, threshold))
     return selection(d, d[axis] > threshold, **kwargs)
-
 
 def below(d, axis, threshold, **kwargs):
     """Require d[axis] < threshold. See selection for options and return value."""
@@ -117,7 +152,7 @@ def range_selection(d, axis, bounds, **kwargs):
         kwargs.setdefault('desc', '%s NOT in [%s, %s)' % (axis, bounds[0], bounds[1]))
     else:
         kwargs.setdefault('desc', '%s in [%s, %s)' % (axis, bounds[0], bounds[1]))
-    return selection(d, (d[axis] > bounds[0]).values & (d[axis] < bounds[1]).values, **kwargs)
+    return selection(d, (d[axis] > bounds[0]) & (d[axis] < bounds[1]), **kwargs)
 
 
 def range_cut(*args, **kwargs):
@@ -147,3 +182,20 @@ def range_cuts(*args, **kwargs):
     """Do cuts based on one or more (axis, bounds) tuples. See range_selections docstring."""
     kwargs['_invert'] = True
     range_selections(*args, **kwargs)
+
+
+##
+# pandas.DataFrame.eval selections
+##
+
+def eval_selection(d, eval_string, **kwargs):
+    """Apply a selection specified by a pandas.DataFrame.eval string that returns the boolean array.
+    If no description is provided, the eval string itself is used as the description.
+    """
+    kwargs.setdefault('desc', eval_string)
+    return selection(d, d.eval(eval_string), **kwargs)
+
+
+def eval_cut(d, eval_string, **kwargs):
+    kwargs['_invert'] = True
+    return eval_selection(d, eval_string, **kwargs)
