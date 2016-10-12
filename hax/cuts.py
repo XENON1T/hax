@@ -152,7 +152,7 @@ def range_selection(d, axis, bounds, **kwargs):
         kwargs.setdefault('desc', '%s NOT in [%s, %s)' % (axis, bounds[0], bounds[1]))
     else:
         kwargs.setdefault('desc', '%s in [%s, %s)' % (axis, bounds[0], bounds[1]))
-    return selection(d, (d[axis] > bounds[0]) & (d[axis] < bounds[1]), **kwargs)
+    return selection(d, (d[axis] >= bounds[0]) & (d[axis] < bounds[1]), **kwargs)
 
 
 def range_cut(*args, **kwargs):
