@@ -263,7 +263,8 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
                          documentation=treemaker.__doc__,
                          timestamp=str(datetime.now()))
 
-    get_format(minitree_path, treemaker).save_data(metadata_dict, skimmed_data)
+    if hax.config['minitree_caching']:
+        get_format(minitree_path, treemaker).save_data(metadata_dict, skimmed_data)
 
     if return_metadata:
         return metadata_dict, skimmed_data
