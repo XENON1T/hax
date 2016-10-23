@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
+import hax
+
 try:
     import ROOT
     import root_numpy
@@ -44,10 +46,7 @@ class PickleFormat(MinitreeDataFormat):
 
 class ROOTFormat(MinitreeDataFormat):
     def load_metadata(self):
-        minitree_f = ROOT.TFile(self.path)
-        minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
-        minitree_f.Close()
-        return minitree_metadata
+        return hax.paxroot._get_metadata(self.path)
 
     def load_data(self):
         return pd.DataFrame.from_records(root_numpy.root2rec(self.path))
