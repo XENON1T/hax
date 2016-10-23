@@ -360,7 +360,11 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
                                        num_workers=num_workers, **compute_options)
         result = mashedup_result[0]
         partial_histories = mashedup_result[1:]
-        cuts.record_combined_histories(result, partial_histories)
+        # Combine the histories of partial results.
+        # For unavailable minitrees, the histories will be empty: filter these empty histories out
+        partial_histories = [x for x in partial_histories if len(x)]
+        if len(partial_histories):
+            cuts.record_combined_histories(result, partial_histories)
 
         if 'index' in result.columns:
             # Clean up index, remove 'index' column

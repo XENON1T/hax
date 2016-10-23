@@ -24,7 +24,7 @@ from hax.utils import find_file_in_folders
 log = logging.getLogger('hax.paxroot')
 
 
-def open_pax_rootfile(run_id):
+def open_pax_rootfile(run_id, load_class=True):
     """Opens pax root file for run_id, compiling classes/dictionaries as needed. Returns TFile object.
     """
     try:
@@ -35,28 +35,29 @@ def open_pax_rootfile(run_id):
         filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
     if not filename:
         raise ValueError("Cannot find processed data for run name %s." % run_name)
-    return _open_pax_rootfile(filename)
+    return _open_pax_rootfile(filename, load_class=True)
 
-def _open_pax_rootfile(filename):
+def _open_pax_rootfile(filename, load_class):
     """Opens pax root file filename, compiling classes/dictionaries as needed. Returns TFile object.
     """
     if not os.path.exists(filename):
         raise ValueError("%s does not exist!" % filename)
-    try:
-        load_pax_event_class_from_root(filename)
-    except MaybeOldFormatException:
-        log.warning("Root file %s does not include pax event class. Normal for pax < 4.5."
-                    "Falling back to event class for pax %s" % (filename, hax.config['old_pax_class_version']))
-        # Load the pax class for the data format version
-        load_event_class(os.path.join(hax.config['old_pax_classes_dir'],
-                                      'pax_event_class_%d.cpp' % hax.config['old_pax_class_version']))
+    if load_class:
+        try:
+            load_pax_event_class_from_root(filename)
+        except MaybeOldFormatException:
+            log.warning("Root file %s does not include pax event class. Normal for pax < 4.5."
+                        "Falling back to event class for pax %s" % (filename, hax.config['old_pax_class_version']))
+            # Load the pax class for the data format version
+            load_event_class(os.path.join(hax.config['old_pax_classes_dir'],
+                                          'pax_event_class_%d.cpp' % hax.config['old_pax_class_version']))
     return ROOT.TFile(filename)
 
 
 def get_metadata(run_id):
     """Returns the metadata dictionary stored in the pax root file for run_id.
     """
-    f = open_pax_rootfile(run_id)
+    f = open_pax_rootfile(run_id, load_class=False)
     metadata = f.Get('pax_metadata').GetTitle()
     metadata = json.loads(metadata)
     f.Close()
