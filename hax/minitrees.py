@@ -250,6 +250,11 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
     if already_made:
         return get_format(minitree_path).load_data()
 
+    if not hax.config['make_minitrees']:
+        # The user didn't want me to make a new minitree :-( Return an empty dataframe
+        log.info("Minitree for %s not found, not creating it since make_minitrees is False.")
+        return pd.DataFrame()
+
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
     skimmed_data = treemaker().get_data(run_id)
