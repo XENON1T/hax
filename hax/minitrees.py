@@ -318,7 +318,10 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
-        result = cuts.eval_selection(result, ps, quiet=True)
+        # For some reason when we do this through dask, the repetition check does not work properly.
+        # It isn't necessary here anyway, it's meant for use convenience.
+        # Hm... this sounds like there is some bigger problem or dark magic going on...
+        result = cuts.eval_selection(result, ps, quiet=True, force_repeat=True)
 
     return result, cuts.CUT_HISTORY.get(id(result), [])
 
