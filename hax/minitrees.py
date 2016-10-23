@@ -251,9 +251,9 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
         return get_format(minitree_path).load_data()
 
     if not hax.config['make_minitrees']:
-        # The user didn't want me to make a new minitree :-( Return an empty dataframe
-        log.info("Minitree for %s not found, not creating it since make_minitrees is False.")
-        return pd.DataFrame()
+        # The user didn't want me to make a new minitree :-(
+        raise NoMinitreeAvailable("Minitree %s:%s not created since make_minitrees is False." % (
+                run_id, treemaker.__name__))
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
@@ -295,13 +295,19 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     dataframes = []
 
     for treemaker in treemakers:
-        dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
+        try:
+            dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
+        except NoMinitreeAvailable as e:
+            log.debug(str(e))
+            continue
         dataframes.append(dataset_frame)
+
+    if not len(dataframes):
+        log.debug("None of the minitrees in this dataset were available")
+        return pd.DataFrame([], columns=['event_number', 'run_number']), {}
 
     # Merge mini-trees of all types by inner join
     # (propagating "cuts" applied by skipping rows in MultipleRowExtractor)
-    if not len(dataframes):
-        raise RuntimeError("No data was extracted? What's going on??")
     result = dataframes[0]
     for i in range(1, len(dataframes)):
         d = dataframes[i]
@@ -383,3 +389,7 @@ def get_treemaker_name_and_class(tm):
     if not hasattr(tm_class, '__version__'):
         raise AttributeError("Please add a __version__ attribute to treemaker %s." % tm_name)
     return tm_name, tm_class
+
+
+class NoMinitreeAvailable(Exception):
+    pass
