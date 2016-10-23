@@ -66,7 +66,7 @@ def update_datasets(query=None):
 
         if query is None:
             query = {}
-        query['detector'] = hax.config.get('detector', 'tpc')
+        query['detector'] = hax.config.get('detector', hax.config['detector'])
 
         log.debug("Updating datasets from runs database... ")
         cursor = collection.find(query,
@@ -156,7 +156,7 @@ def get_run_info(run_id):
         return datasets[datasets['name'] == run_name].iloc[0].to_dict()
     elif hax.config['experiment'] == 'XENON1T':
         collection = get_rundb_collection()
-        result = list(collection.find({'name': run_name}))
+        result = list(collection.find({'name': run_name, 'detector': hax.config['detector']}))
         if len(result) == 0:
             raise ValueError("Run named %s not found in run db!" % run_name)
         if len(result) > 1:
