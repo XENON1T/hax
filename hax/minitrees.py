@@ -318,7 +318,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     for ps in preselection:
         result = cuts.eval_selection(result, ps, quiet=True)
 
-    return result, cuts.CUT_HISTORY.get(id(result), [])
+    return result, cuts._get_history(result)
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
