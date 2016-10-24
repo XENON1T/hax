@@ -11,7 +11,7 @@ from pax.exceptions import MaybeOldFormatException
 
 try:
     import ROOT
-    from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root
+    from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root, ShutUpROOT
 except ImportError as e:
     warnings.warn("Error importing ROOT-related libraries: %s. "
                   "If you try to use ROOT-related functions, hax will crash!" % e)
@@ -68,7 +68,9 @@ def get_metadata(run_id):
 
 
 def _get_metadata(filename):
-    f = _open_pax_rootfile(filename, load_class=False)
+    # Suppress warning about classes not being loaded (we're doing that on purpose)
+    with ShutUpROOT():
+        f = _open_pax_rootfile(filename, load_class=False)
     metadata = f.Get('pax_metadata').GetTitle()
     metadata = json.loads(metadata)
     f.Close()
