@@ -304,6 +304,8 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
 
     # Merge mini-trees of all types by inner join
     # (propagating "cuts" applied by skipping rows in MultipleRowExtractor)
+    if not len(dataframes):
+        raise RuntimeError("No data was extracted? What's going on??")
     result = dataframes[0]
     for i in range(1, len(dataframes)):
         d = dataframes[i]
