@@ -33,6 +33,7 @@ def get_filename(run_id):
         filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
     if not filename:
         raise ValueError("Cannot find processed data for run name %s." % run_id)
+    return filename
 
 
 def open_pax_rootfile(run_id, load_class=True):
