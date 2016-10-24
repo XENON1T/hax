@@ -299,12 +299,8 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
             dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
         except NoMinitreeAvailable as e:
             log.debug(str(e))
-            continue
+            return pd.DataFrame([], columns=['event_number', 'run_number']), []
         dataframes.append(dataset_frame)
-
-    if not len(dataframes):
-        log.debug("None of the minitrees in this dataset were available")
-        return pd.DataFrame([], columns=['event_number', 'run_number']), {}
 
     # Merge mini-trees of all types by inner join
     # (propagating "cuts" applied by skipping rows in MultipleRowExtractor)
