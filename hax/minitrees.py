@@ -359,21 +359,21 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
         mashedup_result = dask.compute(*([result] + partial_histories),
                                        num_workers=num_workers, **compute_options)
         result = mashedup_result[0]
-        partial_histories = mashedup_result[1:]
-        # Combine the histories of partial results.
-        # For unavailable minitrees, the histories will be empty: filter these empty histories out
-        partial_histories = [x for x in partial_histories if len(x)]
-        if len(partial_histories):
-            cuts.record_combined_histories(result, partial_histories)
 
         if 'index' in result.columns:
             # Clean up index, remove 'index' column
             # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
-            # TODO: is this still triggered / necessary?
             log.debug("Removing weird index column")
             result.drop('index', axis=1, inplace=True)
             result = result.reset_index()
             result.drop('index', axis=1, inplace=True)
+
+        # Combine the histories of partial results.
+        # For unavailable minitrees, the histories will be empty: filter these empty histories out
+        partial_histories = mashedup_result[1:]
+        partial_histories = [x for x in partial_histories if len(x)]
+        if len(partial_histories):
+            cuts.record_combined_histories(result, partial_histories)
 
     else:
         # Magic for tracking of cut histories while using dask.dataframe here...
