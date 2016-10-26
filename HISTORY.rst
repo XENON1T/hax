@@ -1,3 +1,11 @@
+1.1.0
+-----
+* Out-of-core treemaking and preselections (#37)
+* Double scatter treemaker (#36)
+* Cut helpers and history tracking (#35)
+* Option to load only minitrees which exist (#38) and don't make any minitree files (8cbe2ce2f)
+
+
 1.0.0
 -----
 * MultipleRowExtractor: 0 to many rows- per event minitrees  (#33)
