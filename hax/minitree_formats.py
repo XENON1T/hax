@@ -44,6 +44,7 @@ class PickleFormat(MinitreeDataFormat):
 
 class ROOTFormat(MinitreeDataFormat):
     def load_metadata(self):
+        # This is NOT the same as paxroot.get_metadata, that's for pax ROOT files...
         minitree_f = ROOT.TFile(self.path)
         minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
         minitree_f.Close()

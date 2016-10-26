@@ -250,6 +250,11 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
     if already_made:
         return get_format(minitree_path).load_data()
 
+    if not hax.config['make_minitrees']:
+        # The user didn't want me to make a new minitree :-(
+        raise NoMinitreeAvailable("Minitree %s:%s not created since make_minitrees is False." % (
+                run_id, treemaker.__name__))
+
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
     skimmed_data = treemaker().get_data(run_id)
@@ -290,7 +295,11 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     dataframes = []
 
     for treemaker in treemakers:
-        dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
+        try:
+            dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
+        except NoMinitreeAvailable as e:
+            log.debug(str(e))
+            return pd.DataFrame([], columns=['event_number', 'run_number']), []
         dataframes.append(dataset_frame)
 
     # Merge mini-trees of all types by inner join
@@ -309,7 +318,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     for ps in preselection:
         result = cuts.eval_selection(result, ps, quiet=True)
 
-    return result, cuts.CUT_HISTORY.get(id(result), [])
+    return result, cuts._get_history(result)
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
@@ -345,17 +354,21 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
         mashedup_result = dask.compute(*([result] + partial_histories),
                                        num_workers=num_workers, **compute_options)
         result = mashedup_result[0]
-        partial_histories = mashedup_result[1:]
-        cuts.record_combined_histories(result, partial_histories)
 
         if 'index' in result.columns:
             # Clean up index, remove 'index' column
             # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
-            # TODO: is this still triggered / necessary?
             log.debug("Removing weird index column")
             result.drop('index', axis=1, inplace=True)
             result = result.reset_index()
             result.drop('index', axis=1, inplace=True)
+
+        # Combine the histories of partial results.
+        # For unavailable minitrees, the histories will be empty: filter these empty histories out
+        partial_histories = mashedup_result[1:]
+        partial_histories = [x for x in partial_histories if len(x)]
+        if len(partial_histories):
+            cuts.record_combined_histories(result, partial_histories)
 
     else:
         # Magic for tracking of cut histories while using dask.dataframe here...
@@ -378,3 +391,7 @@ def get_treemaker_name_and_class(tm):
     if not hasattr(tm_class, '__version__'):
         raise AttributeError("Please add a __version__ attribute to treemaker %s." % tm_name)
     return tm_name, tm_class
+
+
+class NoMinitreeAvailable(Exception):
+    pass

@@ -11,10 +11,6 @@ import hax
 import logging
 log = logging.getLogger('hax.cuts')
 
-# Dictionary mapping id of DataFrame objects to list of cut information applied to it.
-# Weakrefs would have been really nice here... but as DataFrames are mutable, they can't be hashed,
-# which means we can't place them in a lookup-by-hash container.
-CUT_HISTORY = dict()
 UNNAMED_DESCRIPTION = 'Unnamed'
 
 ##
@@ -23,19 +19,23 @@ UNNAMED_DESCRIPTION = 'Unnamed'
 
 def history(d):
     """Return pandas dataframe describing cuts history on dataframe."""
-    d_id = id(d)
-    if d_id not in CUT_HISTORY:
+    if not hasattr(d, 'cut_history'):
         raise ValueError("Cut history for this data not available.")
-    hist = pd.DataFrame(CUT_HISTORY[d_id], columns=['selection_desc', 'n_before', 'n_after'])
+    hist = pd.DataFrame(d.cut_history, columns=['selection_desc', 'n_before', 'n_after'])
     hist['n_removed'] = hist.n_before - hist.n_after
     hist['fraction_passed'] = hist.n_after / hist.n_before
     hist['cumulative_fraction_left'] = hist.n_after / hist.iloc[0].n_before
     return hist
 
 
+def _get_history(d):
+    if not hasattr(d, 'cut_history'):
+        return []
+    return d.cut_history
+
+
 def record_combined_histories(d, partial_histories, quiet=False):
     """Record history for dataframe d by combining list of dictionaries partial_histories"""
-    global CUT_HISTORY
     new_history = []
     # Loop over cuts
     for cut_i, cut in enumerate(partial_histories[0]):
@@ -45,7 +45,7 @@ def record_combined_histories(d, partial_histories, quiet=False):
         if not quiet:
             print(passthrough_message(q))
         new_history.append(q)
-    CUT_HISTORY[id(d)] = new_history
+    d.cut_history = new_history
 
 ##
 # Cut helper functions
@@ -87,8 +87,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
             print("%s selection readied for delayed evaluation" % desc)
         return get_return_value()
 
-    global CUT_HISTORY
-    prev_cuts = CUT_HISTORY.get(id(d), [])
+    prev_cuts = _get_history(d)
     n_before = n_now = len(d)
 
     if desc != UNNAMED_DESCRIPTION and not force_repeat:
@@ -109,7 +108,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
     passthrough_dict = dict(selection_desc=desc, n_before=n_before, n_after=n_now)
     if not quiet:
         print(passthrough_message(passthrough_dict))
-    CUT_HISTORY[id(d)] = prev_cuts + [passthrough_dict]
+    d.cut_history = prev_cuts + [passthrough_dict]
 
     return get_return_value()
 

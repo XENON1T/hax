@@ -11,7 +11,7 @@ from pax.exceptions import MaybeOldFormatException
 
 try:
     import ROOT
-    from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root
+    from pax.plugins.io.ROOTClass import load_event_class, load_pax_event_class_from_root, ShutUpROOT
 except ImportError as e:
     warnings.warn("Error importing ROOT-related libraries: %s. "
                   "If you try to use ROOT-related functions, hax will crash!" % e)
@@ -24,9 +24,7 @@ from hax.utils import find_file_in_folders
 log = logging.getLogger('hax.paxroot')
 
 
-def open_pax_rootfile(run_id):
-    """Opens pax root file for run_id, compiling classes/dictionaries as needed. Returns TFile object.
-    """
+def get_filename(run_id):
     try:
         run_name = runs.get_run_name(run_id)
         filename = runs.datasets.loc[runs.datasets['name'] == run_name].iloc[0].location
@@ -34,29 +32,45 @@ def open_pax_rootfile(run_id):
         print("Don't know a run named %s, trying to find it anyway..." % run_id)
         filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
     if not filename:
-        raise ValueError("Cannot find processed data for run name %s." % run_name)
-    return _open_pax_rootfile(filename)
+        raise ValueError("Cannot find processed data for run name %s." % run_id)
+    return filename
 
-def _open_pax_rootfile(filename):
+
+def open_pax_rootfile(run_id, load_class=True):
+    """Opens pax root file for run_id, compiling classes/dictionaries as needed. Returns TFile object.
+    if load_class is False, will not load the event class. You'll only be able to read metadata from the file.
+    """
+    return _open_pax_rootfile(get_filename(run_id), load_class=load_class)
+
+
+def _open_pax_rootfile(filename, load_class=True):
     """Opens pax root file filename, compiling classes/dictionaries as needed. Returns TFile object.
+    if load_class is False, will not load the event class. You'll only be able to read metadata from the file.
     """
     if not os.path.exists(filename):
         raise ValueError("%s does not exist!" % filename)
-    try:
-        load_pax_event_class_from_root(filename)
-    except MaybeOldFormatException:
-        log.warning("Root file %s does not include pax event class. Normal for pax < 4.5."
-                    "Falling back to event class for pax %s" % (filename, hax.config['old_pax_class_version']))
-        # Load the pax class for the data format version
-        load_event_class(os.path.join(hax.config['old_pax_classes_dir'],
-                                      'pax_event_class_%d.cpp' % hax.config['old_pax_class_version']))
+    if load_class:
+        try:
+            load_pax_event_class_from_root(filename)
+        except MaybeOldFormatException:
+            log.warning("Root file %s does not include pax event class. Normal for pax < 4.5."
+                        "Falling back to event class for pax %s" % (filename, hax.config['old_pax_class_version']))
+            # Load the pax class for the data format version
+            load_event_class(os.path.join(hax.config['old_pax_classes_dir'],
+                                          'pax_event_class_%d.cpp' % hax.config['old_pax_class_version']))
     return ROOT.TFile(filename)
 
 
 def get_metadata(run_id):
     """Returns the metadata dictionary stored in the pax root file for run_id.
     """
-    f = open_pax_rootfile(run_id)
+    return _get_metadata(get_filename(run_id))
+
+
+def _get_metadata(filename):
+    # Suppress warning about classes not being loaded (we're doing that on purpose)
+    with ShutUpROOT():
+        f = _open_pax_rootfile(filename, load_class=False)
     metadata = f.Get('pax_metadata').GetTitle()
     metadata = json.loads(metadata)
     f.Close()
