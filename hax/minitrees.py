@@ -322,7 +322,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
 
 
 def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
-         delayed=False, num_workers=1, compute_options=None):
+         delayed=False, num_workers=1, compute_options=None, cache_file=None, remake_cache=False):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
     :param datasets: names or numbers of datasets (without .root) to load
     :param treemakers: treemaker class (or string with name of class) or list of these to load.
@@ -332,7 +332,18 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     :param delayed:  Instead of computing a pandas DataFrame, return a dask DataFrame (default False)
     :param num_workers: Number of dask workers to use in computation (if delayed=False)
     :param compute_options: Dictionary of extra options passed to dask.compute
+    :param cache_file: Save/load the result to an hdf5 file with filename specified by cahce_file.
+                       Useful if you load in a large volume of data with many preselections.
+    :param remake_cache: If True, and cache file given, reload (don't remake) minitrees and overwrite the cache file.
     """
+    if cache_file and not remake_cache and os.path.exists(cache_file):
+        # We don't have to do anything and can just load from the cache file
+        store = pd.HDFStore(cache_file)
+        result = store['data']
+        result.cut_history = store.get_storer('data').attrs.cut_history
+        store.close()
+        return result
+
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if compute_options is None:
@@ -373,6 +384,17 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     else:
         # Magic for tracking of cut histories while using dask.dataframe here...
         pass
+
+    if cache_file:
+        # Save the result to the cache file
+        dirname = os.path.dirname(cache_file)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
+        store = pd.HDFStore(cache_file)
+        store.put('data', result)
+        # Store the cuts history for the data
+        store.get_storer('data').attrs.cut_history = cuts._get_history(result)
+        store.close()
 
     return result
 

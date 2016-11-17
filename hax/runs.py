@@ -146,22 +146,42 @@ def update_datasets(query=None):
                 if len(bla):
                     datasets.loc[bla[0], 'raw_data_found'] = True
 
-def get_run_info(run_id):
+def get_run_info(run_id, projection_query=None):
     """Returns a dictionary with the runs database info for a given run_id.
     For XENON1T, this queries the runs db to get the complete run doc.
+    projection_query can be:
+       None (default): the entire run doc will be returned
+       string, runs db field name (with dots indicating subfields): query and return only that field.
+       anything else: passed as projection to pymongo.collection.find
+    For example 'processor.DEFAULT.electron_lifetime_liquid' returns the electron lifetime.
     """
     global datasets
+
+    if isinstance(projection_query, str):
+        single_field_mode = True
+        pq = {projection_query: True}
+    else:
+        single_field_mode = False
+        pq = projection_query
+
     run_name = get_run_name(run_id)
     if hax.config['experiment'] == 'XENON100':
         return datasets[datasets['name'] == run_name].iloc[0].to_dict()
     elif hax.config['experiment'] == 'XENON1T':
         collection = get_rundb_collection()
-        result = list(collection.find({'name': run_name, 'detector': hax.config['detector']}))
+        result = list(collection.find({'name': run_name, 'detector': hax.config['detector']},
+                                      pq))
         if len(result) == 0:
             raise ValueError("Run named %s not found in run db!" % run_name)
         if len(result) > 1:
             raise ValueError("More than one run named %s found in run db???" % run_name)
-        return result[0]
+        result = result[0]
+
+        if single_field_mode:
+            # Extract the single field the user requested
+            for subkey in projection_query.split('.'):
+                result = result[subkey]
+        return result
 
 get_dataset_info = get_run_info    # Synonym
 

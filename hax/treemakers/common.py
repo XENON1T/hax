@@ -151,3 +151,20 @@ class LargestPeakProperties(TreeMaker):
             result.update(self.get_properties(peaks[p_index], prefix=p_type + '_'))
 
         return result
+
+
+class TotalProperties(TreeMaker):
+    """Aggregate properties of signals in the entire event
+
+    Provides:
+     - total_peak_area, the total area (pe) in all peaks in the event (even non-tpc peaks)
+     - n_pulses, the total number of pulses in the event (for pax versions >6.0.0
+     - n_peaks, the total number of peaks in the event (including non-tpc peaks and lone hits)
+    """
+    __version__ = '0.1.0'
+    branch_selection = ['peaks.area', 'n_pulses']
+
+    def extract_data(self, event):
+        return dict(total_peak_area=sum([p.area for p in event.peaks]),
+                    n_pulses=event.n_pulses,
+                    n_peaks=len(event.peaks))
