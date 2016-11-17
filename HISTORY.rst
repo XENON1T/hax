@@ -1,3 +1,7 @@
+1.1.1
+-----
+* cache_file option to minitrees, TotalPeakProperties treemaker #40
+
 1.1.0
 -----
 * Out-of-core treemaking and preselections (#37)
