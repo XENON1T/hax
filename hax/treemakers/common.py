@@ -115,6 +115,7 @@ class LargestPeakProperties(TreeMaker):
     """
     extra_branches = ['peaks.n_hits', 'peaks.hit_time_std', 'peaks.center_time',
                       'peaks.n_saturated_channels', 'peaks.n_contributing_channels']
+    peak_types = ['s1', 's2', 'lone_hit', 'unknown']
     __version__ = '0.1'
 
     # Simple peak properties to get. Logic for range_x0p_area and xy is separate.
@@ -122,8 +123,13 @@ class LargestPeakProperties(TreeMaker):
                               'n_hits', 'hit_time_std', 'center_time',
                               'n_saturated_channels', 'n_contributing_channels']
 
-    def get_properties(self, peak, prefix=''):
-        """Return dictionary with peak properties, keys prefixed with prefix"""
+    def get_properties(self, peak=None, prefix=''):
+        """Return dictionary with peak properties, keys prefixed with prefix
+        if peak is None, will return nans for all values
+        """
+        if peak is None:
+            return {prefix + k: float('nan') for k in
+                    self.peak_properties_to_get + ['range_50p_area', 'range_90p_area', 'x', 'y']}
         result = {field: getattr(peak, field) for field in self.peak_properties_to_get}
         result['range_50p_area'] = peak.range_area_decile[5]
         result['range_90p_area'] = peak.range_area_decile[9]
@@ -147,8 +153,11 @@ class LargestPeakProperties(TreeMaker):
                     largest_peak_per_type[p_type] = (p_i, p.area)
 
         result = {}
-        for p_type, (p_index, _) in largest_peak_per_type.items():
-            result.update(self.get_properties(peaks[p_index], prefix=p_type + '_'))
+        for p_type in self.peak_types:
+            upd = self.get_properties(peak=peaks[largest_peak_per_type[p_type][0]]
+                                           if p_type in largest_peak_per_type else None,
+                                      prefix=p_type + '_')
+            result.update(upd)
 
         return result
 
