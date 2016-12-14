@@ -2,12 +2,7 @@
 ## Plot some data on the PMT arrays
 ##
 ## Jelle, February 2016
-## May go into hax soon...
 ##
-## Known issue's I'm to lazy to fix right now:
-##  - on physical layout, color and/or size probably not on same scale in two subplots 
-##    unless vmin&vmax are specified explicitly.
-##  - Have categorical labels event if _channel present. Make digitizer obey _channel suffix convention.
 from collections import defaultdict
 
 import numpy as np

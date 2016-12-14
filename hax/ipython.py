@@ -1,22 +1,7 @@
-from textwrap import dedent
+from .misc import code_hider as _shortcut_to_real_code_hider_do_not_use_thats_why_it_starts_with_an_underscore
+
 
 def code_hider():
-    """Make a button in the jupyter notebook to hide all code"""
-    # Stolen from stackoverflow... forget which question
-    # I would really like these buttons for every individual cell.. but I don't know how
-    from IPython.display import HTML    # Please keep here, don't want hax to depend on ipython!
-    return HTML(dedent('''
-                       <script>
-                       code_show=true
-                       function code_toggle() {
-                        if (code_show){
-                        $('div.input').hide();
-                          } else {
-                        $('div.input').show();
-                        }
-                        code_show = !code_show
-                       }
-                       $( document ).ready(code_toggle);
-                       </script>
-                       <form action="javascript:code_toggle()"><input type="submit"
-                       value="Show/hide  all code in this notebook"></form>'''))
+    print("hax.ipython is deprecated, please use hax.misc.code_hider() instead for the code hider button. "
+          "We'll remove this shortcut soon, it's not safe to have a python file named 'ipython.py' in hax.")
+    return _shortcut_to_real_code_hider_do_not_use_thats_why_it_starts_with_an_underscore()

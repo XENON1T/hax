@@ -10,8 +10,8 @@ __version__ = '1.1.1'
 # I am surprised this works (even if we do 'from hax' instead of 'from .')
 # as some of the modules do 'import hax' or 'from hax.foo import bar'.. shouldn't we get circular imports??
 # I need to read up on python packaging more...
-from . import ipython, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor, \
-              slow_control, trigger_data
+from . import misc, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor, \
+              slow_control, trigger_data, ipython
 
 # Store the directory of hax (i.e. this file's directory) as HAX_DIR
 hax_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -36,7 +36,6 @@ def init(filename=None, **kwargs):
     global config
     configp = ConfigParser(inline_comment_prefixes='#', strict=True)
     configp.read(filename)
-    log.debug("Read in hax configuration file %s" % filename)
 
     # Pick the correct section for this host
     section_to_use = 'DEFAULT'
@@ -50,6 +49,11 @@ def init(filename=None, **kwargs):
     config = {}
     for key, value in configp[section_to_use].items():
         config[key] = eval(value, {'hax_dir': hax_dir, 'os': os})
+
+    # Set the logging level of the root logger (and therefore all loggers that don't have a special loglevel specified)
+    # This is better than basicConfig, which only works once in a python session (and pax already uses it :-()
+    logging.getLogger().setLevel(getattr(logging, config.get('log_level', 'INFO')))
+    log.debug("Read in hax configuration file %s and set up logging" % filename)
 
     # Override with kwargs
     config.update(kwargs)

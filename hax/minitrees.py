@@ -338,11 +338,7 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     """
     if cache_file and not remake_cache and os.path.exists(cache_file):
         # We don't have to do anything and can just load from the cache file
-        store = pd.HDFStore(cache_file)
-        result = store['data']
-        result.cut_history = store.get_storer('data').attrs.cut_history
-        store.close()
-        return result
+        return load_cache_file(cache_file)
 
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
@@ -386,17 +382,30 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
         pass
 
     if cache_file:
-        # Save the result to the cache file
-        dirname = os.path.dirname(cache_file)
-        if dirname and not os.path.exists(dirname):
-            os.makedirs(dirname)
-        store = pd.HDFStore(cache_file)
-        store.put('data', result)
-        # Store the cuts history for the data
-        store.get_storer('data').attrs.cut_history = cuts._get_history(result)
-        store.close()
+        save_cache_file(result, cache_file)
 
     return result
+
+
+def load_cache_file(cache_file):
+    """Load minitree dataframe + cut history from a cache file"""
+    store = pd.HDFStore(cache_file)
+    result = store['data']
+    result.cut_history = store.get_storer('data').attrs.cut_history
+    store.close()
+    return result
+
+
+def save_cache_file(data, cache_file):
+    """Save minitree dataframe + cut history to a cache file"""
+    dirname = os.path.dirname(cache_file)
+    if dirname and not os.path.exists(dirname):
+        os.makedirs(dirname)
+    store = pd.HDFStore(cache_file)
+    store.put('data', data)
+    # Store the cuts history for the data
+    store.get_storer('data').attrs.cut_history = cuts._get_history(data)
+    store.close()
 
 
 def get_treemaker_name_and_class(tm):
