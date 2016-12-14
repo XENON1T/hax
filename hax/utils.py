@@ -1,3 +1,8 @@
+"""Utilities for use INSIDE hax (and perhaps random weird use outside hax)
+If you have a nice function that doesn't fit anywhere, misc.py is where you want to go
+"""
+
+
 import collections
 import os
 import platform
@@ -88,7 +93,7 @@ def load_pickles(filename, load_first=None):
 
 
 def save_pickles(filename, *args):
-    """Compresses and pickles any objects in filename.
+    """Compresses and pickles *args to filename.
     The pickles are stacked: load them with load_pickles"""
     with gzip.open(filename, 'wb') as outfile:
         for thing in args:
