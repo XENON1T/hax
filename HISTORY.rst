@@ -1,6 +1,13 @@
+1.2.0
+-----
+* Loading of partial minitrees / extending existing minitree dataframes #51
+* Miscellaneous convenience functions #50
+
+
 1.1.1
 -----
 * cache_file option to minitrees, TotalPeakProperties treemaker #40
+
 
 1.1.0
 -----
