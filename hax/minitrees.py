@@ -15,7 +15,7 @@ import dask.dataframe
 
 import hax
 from hax import runs, cuts
-from .paxroot import loop_over_dataset
+from .paxroot import loop_over_dataset, function_results_datasets
 from .utils import find_file_in_folders, get_user_id
 from .minitree_formats import get_format
 
@@ -63,11 +63,12 @@ class TreeMaker(object):
         self.cache.append(result)
         self.check_cache()
 
-    def get_data(self, dataset):
+    def get_data(self, dataset, event_list=None):
         """Return data extracted from running over dataset"""
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         loop_over_dataset(dataset, self.process_event,
+                          event_lists=event_list,
                           branch_selection=self.branch_selection,
                           desc='Making %s minitree' % self.__class__.__name__)
         self.check_cache(force_empty=True)
@@ -237,14 +238,27 @@ def check(run_id, treemaker, force_reload=False):
     return treemaker, True, minitree_path
 
 
-def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=False):
+def load_single_minitree(run_id,
+                         treemaker,
+                         force_reload=False,
+                         return_metadata=False,
+                         save_file=None,
+                         event_list=None):
     """Return pandas DataFrame resulting from running treemaker on run_id (name or number)
     :returns: pandas.DataFrame
     :param run_id: name or number of the run to load
     :param treemaker: TreeMaker class or class name (but not TreeMaker instance!) to run
     :param force_reload: always remake the minitree, never load it from disk.
     :param return_metadata: instead return (metadata_dict, dataframe)
+    :param save_file: save the results to a minitree file on disk.
+    :param event_list: List of event numbers to visit. Forces save_file=False, force_reload=True.
     """
+    if save_file is None:
+        save_file = hax.config['minitree_caching']
+    if event_list is not None:
+        save_file = False
+        force_reload = True
+
     treemaker, already_made, minitree_path = check(run_id, treemaker, force_reload=force_reload)
 
     if already_made:
@@ -257,7 +271,7 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
-    skimmed_data = treemaker().get_data(run_id)
+    skimmed_data = treemaker().get_data(run_id, event_list=event_list)
 
     log.debug("Retrieved %s minitree data for dataset %s" % (treemaker.__name__, run_id))
 
@@ -265,10 +279,11 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
                          pax_version=hax.paxroot.get_metadata(run_id)['file_builder_version'],
                          hax_version=hax.__version__,
                          created_by=get_user_id(),
+                         event_list=event_list,
                          documentation=treemaker.__doc__,
                          timestamp=str(datetime.now()))
 
-    if hax.config['minitree_caching']:
+    if save_file:
         get_format(minitree_path, treemaker).save_data(metadata_dict, skimmed_data)
 
     if return_metadata:
@@ -277,7 +292,7 @@ def load_single_minitree(run_id, treemaker, force_reload=False, return_metadata=
     return skimmed_data
 
 
-def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
+def load_single_dataset(run_id, treemakers, preselection=None, force_reload=False, event_list=None):
     """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number),
     list of dicts describing cut histories.
     :param run_id: name or number of the run to load
@@ -285,6 +300,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     :param preselection: String or list of strings passed to pandas.eval. Should return bool array, to be used
     for pre-selecting events to load for each dataset.
     :param force_reload: always remake the minitrees, never load any from disk.
+    :param event_list: List of event numbers to visit. Disables load from / save to file.
     """
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
@@ -296,7 +312,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
 
     for treemaker in treemakers:
         try:
-            dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload)
+            dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload, event_list=event_list)
         except NoMinitreeAvailable as e:
             log.debug(str(e))
             return pd.DataFrame([], columns=['event_number', 'run_number']), []
@@ -308,11 +324,7 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
         raise RuntimeError("No data was extracted? What's going on??")
     result = dataframes[0]
     for i in range(1, len(dataframes)):
-        d = dataframes[i]
-        # To avoid creation of duplicate columns (which will get _x and _y suffixes),
-        # look which column names already exist and do not include them in the merge
-        cols_to_use = ['run_number', 'event_number'] + d.columns.difference(result.columns).tolist()
-        result = pd.merge(d[cols_to_use], result, on=['run_number', 'event_number'], how='inner')
+        result = _merge_minitrees(result, dataframes[i])
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
@@ -321,7 +333,15 @@ def load_single_dataset(run_id, treemakers, preselection, force_reload=False):
     return result, cuts._get_history(result)
 
 
-def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
+def _merge_minitrees(mt1, mt2):
+    """Returns merger of minitree dataframes mt1 and mt2, which have the same """
+    # To avoid creation of duplicate columns (which will get _x and _y suffixes),
+    # look which column names already exist and do not include them in the merge
+    cols_to_use = ['run_number', 'event_number'] + mt2.columns.difference(mt1.columns).tolist()
+    return pd.merge(mt2[cols_to_use], mt1, on=['run_number', 'event_number'], how='inner')
+
+
+def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
          delayed=False, num_workers=1, compute_options=None, cache_file=None, remake_cache=False):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
     :param datasets: names or numbers of datasets (without .root) to load
@@ -339,6 +359,9 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     if cache_file and not remake_cache and os.path.exists(cache_file):
         # We don't have to do anything and can just load from the cache file
         return load_cache_file(cache_file)
+
+    if datasets is None:
+        raise ValueError("If you're not loading from a cache file, specify at least some datasets to load")
 
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
@@ -384,6 +407,27 @@ def load(datasets, treemakers=tuple(['Fundamentals', 'Basics']), preselection=No
     if cache_file:
         save_cache_file(result, cache_file)
 
+    return result
+
+
+def function_over_events(function, dataframe, branch_selection=None, **kwargs):
+    """Generator which yields function(event, **kwargs) of each processed data event in dataframe"""
+    for run_number, events in pd.groupby(dataframe, 'run_number'):
+        yield from function_results_datasets(run_number,
+                                             function,
+                                             events.event_number.values,
+                                             branch_selection=branch_selection,
+                                             kwargs=kwargs)
+
+
+def extend(data, treemakers):
+    new_minitrees = []
+    for run_number, events in pd.groupby(data, 'run_number'):
+        new_minitrees.append(load_single_dataset(run_number,
+                                                 treemakers,
+                                                 event_list=events.event_number.values)[0])
+    result = _merge_minitrees(data, pd.concat(new_minitrees))
+    result.cut_history = data.cut_history
     return result
 
 

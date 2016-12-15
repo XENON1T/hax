@@ -82,28 +82,39 @@ class StopEventLoop(Exception):
     pass
 
 
-def function_results_datasets(datasets_names, event_function=lambda event, **kwargs: None,
-                              branch_selection=None, kwargs=None, desc=''):
+def function_results_datasets(datasets_names,
+                              event_function=lambda event, **kwargs: None,
+                              event_lists=None,
+                              branch_selection=None,
+                              kwargs=None,
+                              desc=''):
     """Returns a generator which yields the return values of event_function(event) over the datasets specified in
     datasets_names.
-
-    Parameters are equivalent to loop_over_datasets, except for the addition of kwargs, which allows for additional
-    arguments to be passed to event_function if the function is able to take more than one. kwargs should be a dict
-    mapping argument names to their respective values.
+    :param dataset_names: list of datataset names or numbers, or string/int of a single dataset name/number
+    :param event_function: function to run over each event
+    :param event_lists: a list of event numbers (if you're loading in a single dataset) to visit,
+     or a list of lists of event numbers for each of the datasets passed in datasets_names.
+    :param branch_selection: can be
+        None (all branches are read),
+        'basic' (hax.config['basic_branches'] are read), or
+        a list of branches to read.
+    :param kwargs: dictionary of extra arguments to pass to event_function.
     Example: kwargs={'x': 2, 'y': 3} --> function called like: event_function(event, x=2, y=3)
+    :param desc: Description used in the tqdm progressbar
     """
     if kwargs is None:
         kwargs = {}
 
     if not isinstance(datasets_names, (list, tuple, np.ndarray)):
         datasets_names = [datasets_names]
+        if event_lists is not None:
+            event_lists = [event_lists]
 
-    for run_id in datasets_names:
+    for dset_i, run_id in enumerate(datasets_names):
         rootfile = open_pax_rootfile(run_id)
         # If you get "'TObject' object has no attribute 'GetEntries'" here,
         # we renamed the tree to T1 or TPax or something... or you're trying to load a Xerawdp root file!
         t = rootfile.Get('tree')
-        n_events = t.GetEntries()
 
         if branch_selection == 'basic':
             branch_selection = hax.config['basic_branches']
@@ -115,9 +126,18 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
                 t.SetBranchStatus(bn, 1)
 
         try:
-            source = range(n_events)
+            if event_lists is None:
+                # Visit all events
+                n_events = t.GetEntries()
+                source = range(n_events)
+            else:
+                # Visit only the desired events
+                source = event_lists[dset_i]
+                n_events = len(source)
             if hax.config.get('tqdm_on', True):
-                source = tqdm(source, desc='Run %s: %s' % (run_id, desc))
+                source = tqdm(source,
+                              desc='Run %s: %s' % (run_id, desc),
+                              total=n_events)
             for event_i in source:
                 t.GetEntry(event_i)
                 event = t.events
@@ -130,17 +150,12 @@ def function_results_datasets(datasets_names, event_function=lambda event, **kwa
             raise e
 
 
-def loop_over_datasets(datasets_names, event_function=lambda event: None, branch_selection=None, desc=''):
-    """Execute event_function(event) over all events in the dataset(s)
+def loop_over_datasets(*args, **kwargs):
+    """Execute a function over all events in the dataset(s)
     Does not return anything: use function_results_dataset or pass a class method as event_function if you want results.
-     - list of datataset names or numbers
-     - event_function: function to run
-     - branch selection: can be
-        None (all branches are read),
-        'basic' (hax.config['basic_branches'] are read), or
-        a list of branches to read.
+    See function_results_datasets for possible options.
     """
-    for _ in function_results_datasets(datasets_names, event_function, branch_selection, desc=desc):
+    for _ in function_results_datasets(*args, **kwargs):
         # do nothing with the results
         pass
 

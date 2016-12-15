@@ -92,7 +92,6 @@ class Basics(TreeMaker):
             if p.detector == 'tpc':
                 peak_type = p.type
             else:
-                # Lump all non-lone-hit veto peaks together as 'veto'
                 if p.type == 'lone_hit':
                     peak_type = 'lone_hit_%s' % p.detector    # Will not be saved
                 else:
