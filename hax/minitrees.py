@@ -352,7 +352,7 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
         result = _merge_minitrees(result, dataframes[i])
 
     #
-    if is_blind(run_id):
+    if 'Basics' in treemakers and is_blind(run_id):
         preselection.append(hax.config['blinding_cut'])
 
     # Apply pre-selection cuts before moving on to the next dataset
