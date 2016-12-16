@@ -292,6 +292,27 @@ def load_single_minitree(run_id,
     return skimmed_data
 
 
+def is_blind(run_id):
+    """Determine if a dataset should be blinded based on the runDB
+    :param run_id: name or number of the run to load
+    """
+    try:
+        tags = hax.runs.get_run_info(run_id,
+                                     projection_query='tags')
+    except KeyError:
+            tags = []
+    except ValueError:
+        # Couldn't find in runDB so blind by default
+        return True
+
+    tag_names = [tag['name'] for tag in tags]
+
+    # underscore means that it is a protected tag
+    if 'blinded' in tag_names or '_blinded' in tag_names:
+        return True
+
+    return False
+
 def load_single_dataset(run_id, treemakers, preselection=None, force_reload=False, event_list=None):
     """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number),
     list of dicts describing cut histories.
@@ -325,6 +346,10 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     result = dataframes[0]
     for i in range(1, len(dataframes)):
         result = _merge_minitrees(result, dataframes[i])
+
+    #
+    if is_blind(run_id):
+        preselection.append(hax.config['cut'])
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
