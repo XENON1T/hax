@@ -296,6 +296,9 @@ def is_blind(run_id):
     """Determine if a dataset should be blinded based on the runDB
     :param run_id: name or number of the run to load
     """
+    if hax.config['experiment'] != 'XENON1T':
+        return False
+
     try:
         tags = hax.runs.get_run_info(run_id,
                                      projection_query='tags')
@@ -303,6 +306,7 @@ def is_blind(run_id):
             tags = []
     except ValueError:
         # Couldn't find in runDB so blind by default
+        log.warning("Blinding by default since cannot find run.")
         return True
 
     tag_names = [tag['name'] for tag in tags]
