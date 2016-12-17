@@ -73,8 +73,8 @@ class TreeMaker(object):
                           desc='Making %s minitree' % self.__class__.__name__)
         self.check_cache(force_empty=True)
         if not hasattr(self, 'data'):
-            self.log.warning("Not a single row was extracted from dataset %s!" % dataset)
-            return pd.DataFrame([], columns='event_number')
+            log.warning("Not a single row was extracted from dataset %s!" % dataset)
+            return pd.DataFrame([], columns=['event_number', 'run_number'])
         else:
             return self.data
 
