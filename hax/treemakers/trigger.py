@@ -1,6 +1,9 @@
 import numpy as np
 from pax.datastructure import TriggerSignal
+
+import hax
 from hax.minitrees import TreeMaker
+from hax.trigger_data import get_aqm_pulses
 
 
 class LargestTriggeringSignal(TreeMaker):
@@ -21,3 +24,91 @@ class LargestTriggeringSignal(TreeMaker):
         ts = tss[int(np.argmax([t.n_pulses for t in tss]))]
         return {"trigger_" + k: getattr(ts, k)
                 for k in [a[0] for a in TriggerSignal.get_fields_data(TriggerSignal())]}
+
+
+class Proximity(hax.minitrees.TreeMaker):
+    """Information on the proximity of other events and acquisition monitor signals (e.g. busy and muon veto trigger)
+    Provides:
+     - previous_x: Time (in ns) between the time center of the event and the previous x (see below for various x).
+       This also considers any x inside the event.
+     - next_x: same, for time to next x
+     - nearest_x: Time to the nearest x. NB: If the nearest x is in the past, this time is negative!
+
+    x denotes the object of interest, and could be either:
+     - muon_veto_trigger.
+     - busy: a busy-on or busy-off signal
+     - hev: a high-energy veto on or -off signal
+     - event: any event (excluding itself :-)
+     - 1e5_pe_event: any event with total peak area > 1e5 pe (excluding itself)
+     - 3e5_pe_event: "" 3e5 pe "
+     - 1e6_pe_event: "" 1e6 pe "
+    """
+    __version__ = '0.0.11'
+    branch_selection = ['event_number', 'start_time', 'stop_time']
+
+    aqm_labels = ['muon_veto_trigger', 'busy', 'hev']
+
+    def get_data(self, dataset, event_list=None):
+        aqm_pulses = get_aqm_pulses(dataset)
+
+        # Load the fundamentals and totalproperties minitree
+        # Yes, minitrees loading other minitrees, the fun has begun :-)
+        event_data = hax.minitrees.load(dataset, ['Fundamentals', 'TotalProperties'])
+        # Note integer division here, not optional: float arithmetic is too inprecise
+        # (fortuately our digitizer sampling resolution is an even number of nanoseconds...)
+        event_data['center_time'] = event_data.event_time + event_data.event_duration // 2
+
+        # Build the various lists of 2-tuples (label, times) to search through
+        self.search_these = ([(x, aqm_pulses[x]) for x in self.aqm_labels] +
+                             [(boundary + 'pe_event', event_data[event_data.total_peak_area >
+                                                               eval(boundary)].center_time.values)
+                                  for boundary in ['1e5', '3e5', '1e6']] +
+                             [('event', event_data.center_time.values)])
+
+        # super() does not play nice with dask computations, for some reason
+        return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
+
+    def extract_data(self, event):
+        # Again, integer division is not optional here!
+        t = (event.start_time + event.stop_time) // 2
+        result = dict()
+
+        for label, x in self.search_these:
+            prev = 'previous_%s' % label
+            nxt = 'next_%s' % label
+
+            # Find the first object (at or) after t
+            if label == 'event':
+                i = event.event_number
+            else:
+                i = np.searchsorted(x, t)   # Index in x of the first value >= t
+
+            if i == 0:
+                result[prev] = float('inf')
+            else:
+                result[prev] = t - x[i - 1]
+
+            # Check if the sought-after object is exactly at t
+            # This is always true if label == 'event', only very rarely for aqm signals.
+            # (but then we don't want to advance the 'next' index, it's important that the signal
+            #  is right in the center!)
+            if i != len(x) and x[i] == t and label not in self.aqm_labels:
+                # The real 'next' is one further:
+                i += 1
+            else:
+                assert label != 'event'
+
+            if i == len(x):
+                result[nxt] = float('inf')
+            else:
+                result[nxt] = x[i] - t
+
+            # Include the 'nearest' variable. This is negative if the nearest sought-after object
+            # is in the past.
+            tnr = 'nearest_' + label
+            if result[nxt] > result[prev]:
+                result[tnr] = - result[prev]
+            else:
+                result[tnr] = result[nxt]
+
+        return result
