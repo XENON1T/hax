@@ -56,9 +56,9 @@ def update_datasets(query=None):
             dsets = pd.concat((dsets, pd.DataFrame([{'tpc': tpc, 'run': run}] * len(dsets))),
                               axis=1)
             if datasets is not None and len(datasets):
-                datasets = dsets
+                datasets = pd.concat((datasets, dsets), ignore_index=True)
             else:
-                datasets = pd.concat((datasets, dsets))
+                datasets = dsets
 
     elif experiment == 'XENON1T':
         collection = get_rundb_collection()
@@ -210,7 +210,7 @@ def get_run_number(run_id):
     try:
         if hax.config['experiment'] == 'XENON100':
             # Convert from XENON100 dataset name (like xe100_120402_2000) to number
-            if run_id.startwith('xe100_'):
+            if run_id.startswith('xe100_'):
                 run_id = run_id[6:]
             run_id = run_id.replace('_', '')
             run_id = run_id[:10]
