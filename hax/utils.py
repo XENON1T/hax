@@ -89,6 +89,7 @@ def load_pickles(filename, load_first=None):
             except EOFError:
                 if load_first is not None:
                     raise
+                break
     return result
 
 

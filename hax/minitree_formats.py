@@ -33,7 +33,7 @@ class MinitreeDataFormat():
 
 class PickleFormat(MinitreeDataFormat):
     def load_metadata(self):
-        return load_pickles(self.path, load_first=1)
+        return load_pickles(self.path, load_first=1)[0]
 
     def load_data(self):
         return load_pickles(self.path)[1]
