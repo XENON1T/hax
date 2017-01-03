@@ -183,7 +183,7 @@ class TotalProperties(TreeMaker):
                                          for p in peaks
                                          if p.detector == 'tpc'])
         if len(event.interactions):
-            main_s2_left = peaks[peaks.interactions[0].s2].left
+            main_s2_left = peaks[event.interactions[0].s2].left
             result['area_before_main_s2'] = sum([p.area
                                                  for p in peaks
                                                  if p.detector == 'tpc' and p.left < main_s2_left])
