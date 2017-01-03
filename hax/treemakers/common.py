@@ -175,16 +175,17 @@ class TotalProperties(TreeMaker):
     branch_selection = ['peaks.area', 'n_pulses', 'peaks.detector', 'interactions.s2', 'peaks.left', 'peaks.type']
 
     def extract_data(self, event):
+        peaks = event.peaks
         result = dict(n_pulses=event.n_pulses,
-                      n_peaks=len(event.peaks))
-        result['n_true_peaks'] = len([True for p in event.peaks if p.type != 'lone_hit'])
+                      n_peaks=len(peaks))
+        result['n_true_peaks'] = len([True for p in peaks if p.type != 'lone_hit'])
         result['total_peak_area'] = sum([p.area
-                                         for p in event.peaks
+                                         for p in peaks
                                          if p.detector == 'tpc'])
-        if len(interactions):
+        if len(event.interactions):
             main_s2_left = peaks[peaks.interactions[0].s2].left
             result['area_before_main_s2'] = sum([p.area
-                                                 for p in event.peaks
+                                                 for p in peaks
                                                  if p.detector == 'tpc' and p.left < main_s2_left])
         else:
             result['area_before_main_s2'] = 0
