@@ -165,14 +165,28 @@ class TotalProperties(TreeMaker):
     """Aggregate properties of signals in the entire event
 
     Provides:
-     - total_peak_area, the total area (pe) in all peaks in the event (even non-tpc peaks)
-     - n_pulses, the total number of pulses in the event (for pax versions >6.0.0
-     - n_peaks, the total number of peaks in the event (including non-tpc peaks and lone hits)
+     - n_pulses, the total number of raw pulses in the event (for pax versions >6.0.0)
+     - n_peaks, the total number of TPC peaks in the event (including lone hits)
+     - n_true_peaks, the total number of TPC peaks in the event to which at least two PMTs contribute
+     - total_peak_area, the total area (pe) in all TPC peaks in the event
+     - area_before_main_s2, same, but including only peaks that occur before the main s2 (if there is one, else 0)
     """
-    __version__ = '0.1.0'
-    branch_selection = ['peaks.area', 'n_pulses']
+    __version__ = '0.2.0'
+    branch_selection = ['peaks.area', 'n_pulses', 'peaks.detector', 'interactions.s2', 'peaks.left', 'peaks.type']
 
     def extract_data(self, event):
-        return dict(total_peak_area=sum([p.area for p in event.peaks]),
-                    n_pulses=event.n_pulses,
-                    n_peaks=len(event.peaks))
+        result = dict(n_pulses=event.n_pulses,
+                      n_peaks=len(event.peaks))
+        result['n_true_peaks'] = len([True for p in event.peaks if p.type != 'lone_hit'])
+        result['total_peak_area'] = sum([p.area
+                                         for p in event.peaks
+                                         if p.detector == 'tpc'])
+        if len(interactions):
+            main_s2_left = peaks[peaks.interactions[0].s2].left
+            result['area_before_main_s2'] = sum([p.area
+                                                 for p in event.peaks
+                                                 if p.detector == 'tpc' and p.left < main_s2_left])
+        else:
+            result['area_before_main_s2'] = 0
+
+        return result
