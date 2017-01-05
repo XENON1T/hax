@@ -48,6 +48,10 @@ def update_datasets(query=None):
 
     version_policy = hax.config['pax_version_policy']
 
+    if not hax.config.get('use_runs_db', True):
+        hax.log.info("Not looking for datasets in runs, db since you put use_runs_db = False")
+        return
+
     if experiment == 'XENON100':
         # Fetch runs information from static csv files in runs info
         for rundbfile in glob(os.path.join(hax.config['runs_info_dir'], '*.csv')):
