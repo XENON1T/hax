@@ -150,6 +150,7 @@ def update_datasets(query=None):
                 if len(bla):
                     datasets.loc[bla[0], 'raw_data_found'] = True
 
+
 def get_run_info(run_id, projection_query=None):
     """Returns a dictionary with the runs database info for a given run_id.
     For XENON1T, this queries the runs db to get the complete run doc.
@@ -159,8 +160,6 @@ def get_run_info(run_id, projection_query=None):
        anything else: passed as projection to pymongo.collection.find
     For example 'processor.DEFAULT.electron_lifetime_liquid' returns the electron lifetime.
     """
-    global datasets
-
     if isinstance(projection_query, str):
         single_field_mode = True
         pq = {projection_query: True}
@@ -168,24 +167,38 @@ def get_run_info(run_id, projection_query=None):
         single_field_mode = False
         pq = projection_query
 
-    run_name = get_run_name(run_id)
+    multi_run_mode = isinstance(run_id, (list, tuple))
+    if multi_run_mode:
+        run_names = [get_run_name(x) for x in run_id]
+    else:
+        run_names = [get_run_name(run_id)]
+
     if hax.config['experiment'] == 'XENON100':
-        return datasets[datasets['name'] == run_name].iloc[0].to_dict()
+        if multi_run_mode or single_field_mode:
+            raise NotImplementedError("For XENON100, only single-run, full run info queries are supported")
+        return datasets[np.in1d(datasets['name'], run_names)].iloc[0].to_dict()
+
     elif hax.config['experiment'] == 'XENON1T':
         collection = get_rundb_collection()
-        result = list(collection.find({'name': run_name, 'detector': hax.config['detector']},
+        result = list(collection.find({'name': {'$in': run_names},
+                                       'detector': hax.config['detector']},
                                       pq))
         if len(result) == 0:
-            raise ValueError("Run named %s not found in run db!" % run_name)
+            raise ValueError("No runs matching %s found in run db!" % str(run_names))
         if len(result) > 1:
-            raise ValueError("More than one run named %s found in run db???" % run_name)
-        result = result[0]
+            if not multi_run_mode:
+                raise ValueError("More than one run named %s found in run db???" % run_names[0])
 
         if single_field_mode:
             # Extract the single field the user requested
             for subkey in projection_query.split('.'):
-                result = result[subkey]
-        return result
+
+                for i in range(len(result)):
+                    result[i] = result[i][subkey]
+
+        if multi_run_mode:
+            return result
+        return result[0]
 
 get_dataset_info = get_run_info    # Synonym
 
