@@ -1,3 +1,16 @@
+1.3.0
+-----
+* Blinding (#54, #61)
+* Tag-based run selection helper (#62)
+* TotalProperties bugfix (#58)
+* Proximity minitrees, acquisition monitor pulses access (#55)
+* Init hax without runs db access (#27)
+* Multi-run queries for get_run_info (#41)
+* Flexible policy for patch releases (#59, #49)
+* Fix for XENON100 data access
+* Fox pickle minitree format
+
+
 1.2.0
 -----
 * Loading of partial minitrees / extending existing minitree dataframes #51
