@@ -139,13 +139,18 @@ def _minitree_filename(run_name, treemaker_name, extension):
 
 def check(run_id, treemaker, force_reload=False):
     """Return if the minitree exists and where it is found / where to make it.
+
     :param treemaker: treemaker name or class
+
     :param run_id: run name or number
+
     :param force_reload: ignore available minitrees, just tell me where to write the new one.
-    :returns : (treemaker, available, path).
+
+    :returns: (treemaker, available, path).
       - treemaker_class: class of the treemaker you named.
       - already_made is True if there is an up-to-date minitree we can load, False otherwise (always if force_reload)
       - path is the path to the minitree to load if it is available, otherwise path where we should create the minitree.
+
     """
     run_name = runs.get_run_name(run_id)
     treemaker_name, treemaker = get_treemaker_name_and_class(treemaker)
@@ -245,13 +250,20 @@ def load_single_minitree(run_id,
                          save_file=None,
                          event_list=None):
     """Return pandas DataFrame resulting from running treemaker on run_id (name or number)
-    :returns: pandas.DataFrame
+
     :param run_id: name or number of the run to load
+
     :param treemaker: TreeMaker class or class name (but not TreeMaker instance!) to run
+
     :param force_reload: always remake the minitree, never load it from disk.
+
     :param return_metadata: instead return (metadata_dict, dataframe)
+
     :param save_file: save the results to a minitree file on disk.
+
     :param event_list: List of event numbers to visit. Forces save_file=False, force_reload=True.
+
+    :returns: pandas.DataFrame
     """
     if save_file is None:
         save_file = hax.config['minitree_caching']
@@ -294,6 +306,7 @@ def load_single_minitree(run_id,
 
 def is_blind(run_id):
     """Determine if a dataset should be blinded based on the runDB
+
     :param run_id: name or number of the run to load
     """
     if hax.config['experiment'] != 'XENON1T':
@@ -317,15 +330,23 @@ def is_blind(run_id):
 
     return False
 
+
 def load_single_dataset(run_id, treemakers, preselection=None, force_reload=False, event_list=None):
-    """Return pandas DataFrame resulting from running multiple treemakers on run_id (name or number),
-    list of dicts describing cut histories.
+    """Run multiple treemakers on a single run
+
+    :returns: (pandas DataFrame, list of dicts describing cut histories)
+
     :param run_id: name or number of the run to load
+
     :param treemakers: list of treemaker class / instances to load
+
     :param preselection: String or list of strings passed to pandas.eval. Should return bool array, to be used
-    for pre-selecting events to load for each dataset.
+                         for pre-selecting events to load for each dataset.
+
     :param force_reload: always remake the minitrees, never load any from disk.
+
     :param event_list: List of event numbers to visit. Disables load from / save to file.
+
     """
     if isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
@@ -373,17 +394,27 @@ def _merge_minitrees(mt1, mt2):
 def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
          delayed=False, num_workers=1, compute_options=None, cache_file=None, remake_cache=False):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
+
     :param datasets: names or numbers of datasets (without .root) to load
+
     :param treemakers: treemaker class (or string with name of class) or list of these to load.
+
     :param preselection: string or list of strings parseable by pd.eval. Should return bool array, to be used
-    for pre-selecting events to load for each dataset.
+                         for pre-selecting events to load for each dataset.
+
     :param force_reload: if True, will force mini-trees to be re-made whether they are outdated or not.
+
     :param delayed:  Instead of computing a pandas DataFrame, return a dask DataFrame (default False)
+
     :param num_workers: Number of dask workers to use in computation (if delayed=False)
+
     :param compute_options: Dictionary of extra options passed to dask.compute
+
     :param cache_file: Save/load the result to an hdf5 file with filename specified by cahce_file.
                        Useful if you load in a large volume of data with many preselections.
+
     :param remake_cache: If True, and cache file given, reload (don't remake) minitrees and overwrite the cache file.
+
     """
     if cache_file and not remake_cache and os.path.exists(cache_file):
         # We don't have to do anything and can just load from the cache file
@@ -440,7 +471,8 @@ def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselecti
 
 
 def function_over_events(function, dataframe, branch_selection=None, **kwargs):
-    """Generator which yields function(event, **kwargs) of each processed data event in dataframe"""
+    """Generator which yields `function(event, **kwargs)` of each processed data event in dataframe
+    """
     for run_number, events in pd.groupby(dataframe, 'run_number'):
         yield from function_results_datasets(run_number,
                                              function,
@@ -450,6 +482,13 @@ def function_over_events(function, dataframe, branch_selection=None, **kwargs):
 
 
 def extend(data, treemakers):
+    """Extends the dataframe data by loading treemakers for the remaining events
+    See https://github.com/XENON1T/hax/pull/52 for more information.
+
+    :param data: dataframe, assumed to be event-per-row
+
+    :param treemakers: list of treemakers to load
+    """
     new_minitrees = []
     for run_number, events in pd.groupby(data, 'run_number'):
         new_minitrees.append(load_single_dataset(run_number,

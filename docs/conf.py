@@ -26,8 +26,10 @@ sys.modules.update((mod_name, MagicMock()) for mod_name in ['numpy', 'numpy.ma',
                                                             'matplotlib', 'matplotlib.pyplot',
                                                             'ROOT', 'root_numpy',
                                                             'bson', 'dask', 'dask.dataframe', 'dask.multiprocessing',
-                                                            'pax', 'pax.plugins.io.ROOTClass', 'pax.exceptions', 'pymongo',
-                                                            'pax.configuration'])
+                                                            'pax', 'pax.plugins.io.ROOTClass', 'pax.exceptions',
+                                                            'pax.configuration', 'pax.datastructure',
+                                                            'pymongo',
+                                                            ])
 
 # -- General configuration ------------------------------------------------
 

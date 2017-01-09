@@ -35,6 +35,14 @@ hax.minitrees module
     :undoc-members:
     :show-inheritance:
 
+hax.misc module
+---------------
+
+.. automodule:: hax.misc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hax.paxroot module
 ------------------
 
@@ -71,6 +79,14 @@ hax.slow_control module
 -----------------------
 
 .. automodule:: hax.slow_control
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hax.trigger_data module
+-----------------------
+
+.. automodule:: hax.trigger_data
     :members:
     :undoc-members:
     :show-inheritance:

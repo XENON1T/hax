@@ -20,6 +20,14 @@ hax.treemakers.cut_booleans_examples module
     :undoc-members:
     :show-inheritance:
 
+hax.treemakers.DoubleScatter module
+-----------------------------------
+
+.. automodule:: hax.treemakers.DoubleScatter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hax.treemakers.examples module
 ------------------------------
 
@@ -28,6 +36,21 @@ hax.treemakers.examples module
     :undoc-members:
     :show-inheritance:
 
+hax.treemakers.peak_treemakers module
+-------------------------------------
+
+.. automodule:: hax.treemakers.peak_treemakers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+hax.treemakers.trigger
+----------------------
+
+.. automodule:: hax.treemakers.trigger
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Module contents
 ---------------

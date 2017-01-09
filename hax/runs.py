@@ -183,10 +183,14 @@ def version_is_consistent_with_policy(version):
 def get_run_info(run_id, projection_query=None):
     """Returns a dictionary with the runs database info for a given run_id.
     For XENON1T, this queries the runs db to get the complete run doc.
-    projection_query can be:
-       None (default): the entire run doc will be returned
-       string, runs db field name (with dots indicating subfields): query and return only that field.
-       anything else: passed as projection to pymongo.collection.find
+
+    :param run_id: name or number, or list of such, of runs to query
+
+    :param projection_query: can be
+      - None (default): the entire run doc will be returned
+      - string: runs db field name (with dots indicating subfields), we'll query and return only that field.
+      - anything else: passed as projection to pymongo.collection.find
+
     For example 'processor.DEFAULT.electron_lifetime_liquid' returns the electron lifetime.
     """
     if isinstance(projection_query, str):

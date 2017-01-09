@@ -28,7 +28,6 @@ def inspect_events_from_minitree(events, *args, **kwargs):
 def inspect_events(run_id, event_numbers, focus='all', save_to_dir=None, config_override=None):
     """Show the pax event display for the events in run_id,
 
-    The dataframe must at least contain 'Basics'; currently only supports XENON100 run 10.
     focus can be 'all' (default) which shows the entire event, 'largest', 'first', 'main_s1', or 'main_s2'
     """
     # Config to let pax fo plotting

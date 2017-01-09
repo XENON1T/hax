@@ -2,9 +2,14 @@ from textwrap import dedent
 
 
 def dataframe_to_wiki(df, float_digits=5, title='Awesome table'):
-    """Convert a pandas dataframe to a dokuwiki table (which you can copy-paste onto the XENON wiki
-     float_digits: Round float-ing point values to this number of digits.
-     title: title of the table.
+    """Convert a pandas dataframe to a dokuwiki table (which you can copy-paste onto the XENON wiki)
+
+    :param df: dataframe to convert
+
+    :param float_digits: Round float-ing point values to this number of digits.
+
+    :param title: title of the table.
+
     """
     table = '^ %s ' % title + '^' * (len(df.columns) - 1) + '^\n'
     table += '^ ' + ' ^ '.join(df.columns) + ' ^\n'

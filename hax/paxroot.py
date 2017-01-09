@@ -90,16 +90,22 @@ def function_results_datasets(datasets_names,
                               desc=''):
     """Returns a generator which yields the return values of event_function(event) over the datasets specified in
     datasets_names.
+
     :param dataset_names: list of datataset names or numbers, or string/int of a single dataset name/number
+
     :param event_function: function to run over each event
+
     :param event_lists: a list of event numbers (if you're loading in a single dataset) to visit,
-     or a list of lists of event numbers for each of the datasets passed in datasets_names.
+                        or a list of lists of event numbers for each of the datasets passed in datasets_names.
+
     :param branch_selection: can be
-        None (all branches are read),
-        'basic' (hax.config['basic_branches'] are read), or
-        a list of branches to read.
+     - None (all branches are read),
+     - 'basic' (hax.config['basic_branches'] are read), or
+     - a list of branches to read.
+
     :param kwargs: dictionary of extra arguments to pass to event_function.
-    Example: kwargs={'x': 2, 'y': 3} --> function called like: event_function(event, x=2, y=3)
+                   For example: kwargs={'x': 2, 'y': 3} --> function called like: event_function(event, x=2, y=3)
+
     :param desc: Description used in the tqdm progressbar
     """
     if kwargs is None:
