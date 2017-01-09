@@ -206,14 +206,14 @@ def check(run_id, treemaker, force_reload=False):
     # Check if pax_version agrees with the version policy.
     version_policy = hax.config['pax_version_policy']
     if version_policy == 'latest':
-        # What the latest pax version is differs per dataset. For now we'll open the root file to find out
-        # TODO: we shouldn't need to; the runs db keeps track of this, and we use it in hax.runs for this purpose!
+        # What the latest pax version is differs per dataset. We'll open the root file to find out
+        # (you may think we can use the runs db info instead, but that won't work on e.g. MC root files)
         try:
             pax_metadata = hax.paxroot.get_metadata(run_name)
         except FileNotFoundError:
             log.warning("Minitree %s was found, but the main data root file was not. "
                         "Your version policy is 'latest', but I can't check whether you really have the latest... "
-                        "well, let's load it and see what happens." % minitree_path)
+                        "I'll load the cached minitree and assume you know what you are doing." % minitree_path)
         else:
             if ('pax_version' not in minitree_metadata or
                     LooseVersion(minitree_metadata['pax_version']) <
@@ -229,7 +229,7 @@ def check(run_id, treemaker, force_reload=False):
         pass
 
     else:
-        if not minitree_metadata['pax_version'] == version_policy:
+        if not hax.runs.version_is_consistent_with_policy(minitree_metadata.get('pax_version', 'unknown')):
             log.debug("Minitree found from pax version %s, but you required pax version %s. "
                       "Will attempt to create it from the main root file." % (minitree_metadata['pax_version'],
                                                                               version_policy))

@@ -75,15 +75,15 @@ def update_datasets(query=None):
         log.debug("Updating datasets from runs database... ")
         cursor = collection.find(query,
                                 ['name', 'number', 'start', 'end', 'source',
-                                 'reader.self_trigger',
+                                 'reader.self_trigger', 'reader.ini.name',
                                  'trigger.events_built', 'trigger.status',
                                  'tags.name',
                                  'data'])
         for doc in cursor:
             # Process and flatten the doc
-            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])   # Convert tags to single string
+            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])  # Convert tags to single string
             doc = flatten_dict(doc, separator='__')
-            del doc['_id']   # Remove the Mongo document ID
+            del doc['_id']  # Remove the Mongo document ID
             if 'data' in doc:
                 data_docs = doc['data']
                 del doc['data']
@@ -99,16 +99,21 @@ def update_datasets(query=None):
                                            and hax.config['cax_key'] in d['host']
                                            and d['status'] == 'transferred')]
 
-                # Choose whether to use this data / which data to use, based on the version policy
+                if version_policy != 'latest':
+                    # Filter out versions not consistent with the version policy.
+                    # We will take the latest of the remaining ones later later.
+                    processed_data_docs = [d for d in processed_data_docs
+                                           if version_is_consistent_with_policy(d['pax_version'])]
+
+                # If there is a processed data consistent with the version policy, set its location
                 doc['location'] = ''
-                if processed_data_docs:
-                    if version_policy == 'latest':
-                        doc['location'] = max(processed_data_docs,
-                                              key=lambda x: LooseVersion(x['pax_version']))['location']
-                    else:
-                        for dd in processed_data_docs:
-                            if dd['pax_version'][1:] == hax.config['pax_version_policy']:
-                                doc['location'] = dd['location']
+                doc['pax_version'] = ''
+                if len(processed_data_docs):
+                    # Take the data doc with the most recent policy-consistent pax version
+                    data_we_take = max(processed_data_docs,
+                                       key=lambda x: LooseVersion(x['pax_version']))
+                    doc['location'] = data_we_take['location']
+                    doc['pax_version'] = data_we_take['pax_version'][1:]
 
             docs.append(doc)
 
@@ -116,6 +121,8 @@ def update_datasets(query=None):
         log.debug("... done.")
 
     # These may or may not have been set already:
+    if not 'pax_version' in datasets:
+        datasets['pax_version'] = [''] * len(datasets)
     if not 'location' in datasets:
         datasets['location'] = [''] * len(datasets)
     if not 'raw_data_subfolder' in datasets:
@@ -150,6 +157,28 @@ def update_datasets(query=None):
                 if len(bla):
                     datasets.loc[bla[0], 'raw_data_found'] = True
 
+
+def version_tuple(v):
+    """Convert a version indication string (e.g. "6.2.1") into a tuple of integers"""
+    if v.startswith('v'):
+        v = v[1:]
+    return tuple(map(int, (v.split("."))))
+
+
+def version_is_consistent_with_policy(version):
+    """Returns if the pax version is consistent with the pax version policy.
+    If policy is 6.2.1, only '6.2.1' (or 'v6.2.1') gives True
+    If policy is 6.2, any of 6.2.0, 6.2.1 etc. gives True
+    """
+    vp = hax.config['pax_version_policy']
+    if vp in ['loose', 'latest']:
+        raise RuntimeError("This function should not be called if pax_version_policy is %s" % vp)
+    vp = version_tuple(vp)
+    version = version_tuple(version)
+    for i, x in enumerate(vp):
+        if version[i] != vp[i]:
+            return False
+    return True
 
 def get_run_info(run_id, projection_query=None):
     """Returns a dictionary with the runs database info for a given run_id.
