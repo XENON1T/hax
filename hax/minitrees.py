@@ -304,33 +304,6 @@ def load_single_minitree(run_id,
     return skimmed_data
 
 
-def is_blind(run_id):
-    """Determine if a dataset should be blinded based on the runDB
-
-    :param run_id: name or number of the run to load
-    """
-    if hax.config['experiment'] != 'XENON1T':
-        return False
-
-    try:
-        tags = hax.runs.get_run_info(run_id,
-                                     projection_query='tags')
-    except KeyError:
-            tags = []
-    except ValueError:
-        # Couldn't find in runDB so blind by default
-        log.warning("Blinding by default since cannot find run.")
-        return True
-
-    tag_names = [tag['name'] for tag in tags]
-
-    # underscore means that it is a protected tag
-    if 'blinded' in tag_names or '_blinded' in tag_names:
-        return True
-
-    return False
-
-
 def load_single_dataset(run_id, treemakers, preselection=None, force_reload=False, event_list=None):
     """Run multiple treemakers on a single run
 
@@ -372,9 +345,12 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     for i in range(1, len(dataframes)):
         result = _merge_minitrees(result, dataframes[i])
 
-    #
-    if 'Basics' in treemakers and is_blind(run_id):
-        preselection.append(hax.config['blinding_cut'])
+    # Apply the blinding cut if required. Normally this is already done by minitrees.load, but perhaps someone calls
+    # load_single_dataset_directly.
+    if (hax.config['blinding_cut'] not in preselection and
+          ('Basics' in treemakers or hax.treemakers.Basics in treemakers) and
+          hax.runs.is_blind(run_id)):
+        preselection = [hax.config['blinding_cut']] + preselection
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
@@ -422,12 +398,27 @@ def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselecti
 
     if datasets is None:
         raise ValueError("If you're not loading from a cache file, specify at least some datasets to load")
+    if isinstance(preselection, str):
+        preselection = [preselection]
+    if preselection is None:
+        preselection = []
 
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
     if compute_options is None:
         compute_options = {}
     compute_options.setdefault('get', dask.multiprocessing.get)
+
+    # If the blinding cut is required for any of the datasets, apply it to all of them.
+    # This avoids crashing or paradoxical cut histories.
+    if (hax.config['blinding_cut'] not in preselection and
+          ('Basics' in treemakers or hax.treemakers.Basics in treemakers)):
+        is_blind = [hax.runs.is_blind(run_id) for run_id in datasets]
+        if any(is_blind):
+            if not all(is_blind):
+                log.warning("You're mixing blind and unblind datasets. "
+                            "The blinding cut will be applied to all data you're loading.")
+            preselection = [hax.config['blinding_cut']] + preselection
 
     partial_results = []
     partial_histories = []
