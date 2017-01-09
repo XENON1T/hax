@@ -8,7 +8,7 @@
 * Multi-run queries for get_run_info (#41)
 * Flexible policy for patch releases (#59, #49)
 * Fix for XENON100 data access
-* Fox pickle minitree format
+* Fix pickle minitree format
 
 
 1.2.0
