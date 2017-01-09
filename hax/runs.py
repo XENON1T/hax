@@ -5,6 +5,8 @@ from distutils.version import LooseVersion
 import logging
 from glob import glob
 import os
+import fnmatch
+import re
 
 from tqdm import tqdm
 import pandas as pd
@@ -273,6 +275,66 @@ def get_run_number(run_id):
         return 0
 
 
+def tags_selection(dsets=None, include=None, exclude=None, pattern_type='fnmatch', ignore_underscore=True):
+    """Return runs by tag selection criteria.
+
+    :param dsets: pandas DataFrame, subset of datasets from hax.runs.datasets.
+                  If not provided, uses hax.runs.datasets itself (all datasets).
+
+    :param include: String or list of strings of patterns of tags to include
+
+    :param exclude: String or list of strings of patterns of tags to exclude.
+                    Exclusion criteria  have higher priority than inclusion criteria.
+
+    :param pattern_type: Type of pattern matching to use. Defaults to 'fnmatch', which means you can use
+                         unix shell-style wildcards (?, *). Alternative is 're', which means you can use
+                         full python regular expressions.
+
+    :param ignore_underscore: Ignore the underscore at the start of some tags (indicating some degree of
+                              officialness or automation) when matching.
+
+    Examples:
+     - `tags_selection(include='blinded')` select all datasets with a blinded or _blinded tag.
+     - `tags_selection(include='*blinded')` ... with blinded or _blinded, unblinded, blablinded, etc.
+     - `tags_selection(include=['blinded', 'unblinded'])` ... with blinded OR unblinded, but not blablinded.
+     - `tags_selection(include='blinded', exclude=['bad', 'messy'])` select blinded dsatasets
+        that aren't bad or messy
+    """
+    if dsets is None:
+        dsets = hax.runs.datasets
+
+    if include is not None:
+        dsets = dsets[_tags_match(dsets, include, pattern_type, ignore_underscore)]
+    if exclude is not None:
+        dsets = dsets[True ^ _tags_match(dsets, exclude, pattern_type, ignore_underscore)]
+
+    return dsets
+
+
+def _tags_match(dsets, patterns, pattern_type, ignore_underscore):
+    result = np.zeros(len(dsets), dtype=np.bool)
+
+    if isinstance(patterns, str):
+        patterns = [patterns]
+
+    for i, tags in enumerate(dsets.tags):
+        result[i] = any([any([_tag_match(tag, pattern, pattern_type, ignore_underscore)
+                              for tag in tags.split(',')
+                              for pattern in patterns])])
+
+    return result
+
+
+def _tag_match(tag, pattern, pattern_type, ignore_underscore):
+    if ignore_underscore and tag.startswith('_'):
+        tag = tag[1:]
+    if pattern_type == 'fnmatch':
+        return fnmatch.fnmatch(tag, pattern)
+    elif pattern_type == 're':
+        return bool(re.match(pattern, tag))
+    raise NotImplementedError
+
+    
 def is_blind(run_id):
     """Determine if a dataset should be blinded based on the runDB
 
@@ -299,3 +361,4 @@ def is_blind(run_id):
         return True
 
     return False
+  
