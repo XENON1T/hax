@@ -402,6 +402,8 @@ def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselecti
         preselection = [preselection]
     if preselection is None:
         preselection = []
+    if isinstance(treemakers, (type, str)):
+        treemakers = [treemakers]
 
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
         datasets = [datasets]
