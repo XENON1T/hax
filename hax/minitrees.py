@@ -29,9 +29,16 @@ class TreeMaker(object):
     """Treemaker base class.
 
     If you're seeing this as the documentation of an actual TreeMaker, somebody forgot to add documentation
-    for their treemaker
+    for their treemaker.
+
+    A treemaker loops the extract_data function over events. This function returns a dictionary.
+    Since dictionaries take a lot of memory, we periodically convert them into pandas dataframes
+    (interval with which this occurs is controlled by the cache_size attribute).
+    At the end of data extraction, the various dataframes are concatenated.
+
+    You must instantiate a new treemaker for every extraction.
     """
-    cache_size = 1000
+    cache_size = 5000
     branch_selection = None     # List of branches to load during iteration over events
     extra_branches = tuple()    # If the above is empty, load basic branches (set in hax.config) plus these.
     uses_arrays = False         # Set to True if your treemaker returns array values. This will trigger a different
@@ -48,7 +55,9 @@ class TreeMaker(object):
             self.branch_selection = hax.config['basic_branches'] + list(self.extra_branches)
         if 'event_number' not in self.branch_selection:
             self.branch_selection += ['event_number']
+
         self.cache = []
+        self.data = []
 
     def extract_data(self, event):
         raise NotImplementedError()
@@ -72,20 +81,19 @@ class TreeMaker(object):
                           branch_selection=self.branch_selection,
                           desc='Making %s minitree' % self.__class__.__name__)
         self.check_cache(force_empty=True)
-        if not hasattr(self, 'data'):
+        if not len(self.data):
             log.warning("Not a single row was extracted from dataset %s!" % dataset)
             return pd.DataFrame([], columns=['event_number', 'run_number'])
         else:
-            return self.data
+            hax.log.debug("Extraction completed, now concatenating data")
+            return pd.concat(self.data, ignore_index=True)
 
     def check_cache(self, force_empty=False):
         if not len(self.cache) or (len(self.cache) < self.cache_size and not force_empty):
             return
-        if not hasattr(self, 'data'):
-            self.data = pd.DataFrame(self.cache)
-        else:
-            self.data = self.data.append(self.cache, ignore_index=True)
+        self.data.append(pd.DataFrame(self.cache))
         self.cache = []
+
 
 
 class MultipleRowExtractor(TreeMaker):
