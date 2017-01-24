@@ -24,6 +24,8 @@ parser.add_argument('--treemakers', nargs='+', default=tuple(['Fundamentals', 'B
                     help="Space-separated lists of types of minitrees to make.")
 parser.add_argument('--force_reload', action='store_true', default=False,
                     help="Force re-creation of mini-trees, even if they are not outdated.")
+parser.add_argument('--pax_version_policy', default=None,
+                    help="Pax version policy to use. See https://github.com/XENON1T/hax/pull/30.")
 parser.add_argument('--preferred_minitree_format', default=None,
                     help="Minitree file format to prefer. If not given, the default format set in hax.ini will be used")
 
@@ -35,7 +37,7 @@ if args.version:
 
 # Load hax.init override options set on command line, then init hax
 options = dict()
-option_names = ['main_data_paths', 'preferred_minitree_format']
+option_names = ['main_data_paths', 'preferred_minitree_format', 'pax_version_policy']
 for on in option_names:
     ov = getattr(args, on)
     if ov:
