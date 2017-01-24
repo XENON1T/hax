@@ -3,6 +3,8 @@ import requests
 import logging
 import os
 
+from pytz import timezone
+import parsedatetime
 import numpy as np
 import pandas as pd
 from Crypto.Cipher import DES
@@ -11,6 +13,14 @@ import hax
 
 log = logging.getLogger('hax.slow_control')
 sc_variables = None
+
+
+def get_utc_datetime(x):
+    """Return a UTC-localized datetime.datetime object corresponding to the human-readable date/time x"""
+    cal = parsedatetime.Calendar()
+    return cal.parseDT(datetimeString=x,
+                       sourceTime=datetime.utcnow(),
+                       tzinfo=timezone("UTC"))[0]
 
 
 def init_sc_interface():
@@ -66,13 +76,11 @@ def get_sc_data(name, run=None, start=None, end=None):
 
     :param run: run number/name to return data for. If passed, start/end is ignored.
 
-    :param start: datetime.datetime object, start of time range. Assumed to be UTC.
+    :param start: String indicating start of time range, in arbitrary format (thanks to parsedatetime)
 
-    :param end: datetime.datetime object, end of time range. Assumed to be UTC.
+    :param end: String indicating end of time range, in arbitrary format
 
     :return: pandas Series of the values, with index the time in UTC.
-
-    Adapted from code by Daniel Coderre and Auke-Pieter Colijn.
     """
     c = hax.config
 
@@ -86,8 +94,9 @@ def get_sc_data(name, run=None, start=None, end=None):
         q = hax.runs.datasets.query('number == %d' % hax.runs.get_run_number(run)).iloc[0]
         start = q.start
         end = q.end
-    start = int(start.strftime("%s"))
-    end = int(end.strftime("%s"))
+    else:
+        start = get_utc_datetime(start)
+        end = get_utc_datetime(end)
 
     params = {
         "name": name,

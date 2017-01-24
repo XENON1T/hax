@@ -8,3 +8,5 @@ multihist>=0.5.0
 pycrypto
 #pax
 #ROOT
+pytz
+parsedatetime
