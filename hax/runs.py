@@ -24,18 +24,24 @@ datasets = None
 
 rundb_client = None
 
+
+def get_rundb_password():
+    """Return the password to the runs db, if we know it"""
+    if 'mongo_password' in hax.config:
+        return hax.config['mongo_password']
+    elif 'MONGO_PASSWORD' in os.environ:
+        return os.environ['MONGO_PASSWORD']
+    else:
+        raise ValueError('Please set the MONGO_PASSWORD environment variable or the hax.mongo_password option '
+                         'to access the runs database.')
+
+
 def get_rundb_collection():
+    """Return the pymongo handle to the runs db collection. You can use this to do queries like .find etc."""
     global rundb_client
     if rundb_client is None:
         # Connect to the runs database
-        if 'mongo_password' in hax.config:
-            password = hax.config['mongo_password']
-        elif 'MONGO_PASSWORD' in os.environ:
-            password = os.environ['MONGO_PASSWORD']
-        else:
-            raise ValueError('Please set the MONGO_PASSWORD environment variable or the hax.mongo_password option '
-                             'to access the runs database.')
-        rundb_client = pymongo.MongoClient(hax.config['runs_url'].format(password=password))
+        rundb_client = pymongo.MongoClient(hax.config['runs_url'].format(password=get_rundb_password()))
     db = rundb_client[hax.config['runs_database']]
     return db[hax.config['runs_collection']]
 
