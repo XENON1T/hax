@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import requests
 import logging
-import os
 
 from pytz import timezone
 import parsedatetime
@@ -23,7 +22,7 @@ def get_utc_datetime(x, return_type='timestamp'):
                         Otherwise, return a datetime.datetime UTC-localized object.
     """
     cal = parsedatetime.Calendar()
-    f = cal.parseDT(datetimeString=x,
+    d = cal.parseDT(datetimeString=x,
                     sourceTime=datetime.utcnow(),
                     tzinfo=timezone("UTC"))[0]
     if return_type == 'timestamp':
@@ -32,7 +31,6 @@ def get_utc_datetime(x, return_type='timestamp'):
         # Datetimes in python really are a mess
         return (d - datetime(1970, 1, 1, tzinfo=timezone('UTC'))) / timedelta(seconds=1)
     return d
-
 
 
 def init_sc_interface():
@@ -80,11 +78,11 @@ def get_sc_name(name):
     raise UnknownSlowControlMonikerException("Don't known any slow control moniker matching %s" % name)
 
 
-def get_sc_data(name, run=None, start=None, end=None):
+def get_sc_data(names, run=None, start=None, end=None):
     """
     Retrieve the data from the historian database (hax.slow_control.get is just a synonym of this function)
 
-    :param name: name of a slow control variable; see get_historian_name.
+    :param names: name or list of names of slow control variables; see get_historian_name.
 
     :param run: run number/name to return data for. If passed, start/end is ignored.
 
@@ -92,9 +90,17 @@ def get_sc_data(name, run=None, start=None, end=None):
 
     :param end: String indicating end of time range, in arbitrary format
 
-    :return: pandas Series of the values, with index the time in UTC.
+    :return: pandas Series of the values, with index the time in UTC. If you requested multiple names, pandas DataFrame
     """
     c = hax.config
+
+    if isinstance(names, (list, tuple)):
+        # Get multiple values, return in a single dataframe. I hope the variables all have the same time resolution,
+        # otherwise you get NaNs...
+        df = pd.DataFrame([get_sc_data(name, run=run, start=start, end=end) for name in names]).T
+        df.columns = names
+        return df
+    name = names
 
     try:
         name = get_sc_name(name)
