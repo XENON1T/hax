@@ -24,6 +24,8 @@ parser.add_argument('--treemakers', nargs='+', default=tuple(['Fundamentals', 'B
                     help="Space-separated lists of types of minitrees to make.")
 parser.add_argument('--force_reload', action='store_true', default=False,
                     help="Force re-creation of mini-trees, even if they are not outdated.")
+parser.add_argument('--preferred_minitree_format', default=None,
+                    help="Minitree file format to prefer. If not given, the default format set in hax.ini will be used")
 
 args = parser.parse_args()
 
@@ -31,10 +33,15 @@ if args.version:
     print(hax.__version__)
     exit()
 
+# Load hax.init override options set on command line, then init hax
 options = dict()
-if args.main_data_paths:
-    options['main_data_paths'] = args.main_data_paths
+option_names = ['main_data_paths', 'preferred_minitree_format']
+for on in option_names:
+    ov = getattr(args, on)
+    if ov:
+        options[on] = ov        
 hax.init(**options)
+
 log = logging.getLogger('haxer')
 log.info("Welcome to hax version %s" % hax.__version__)
 log.debug("Will search for root files in %s" % hax.config['main_data_paths'])
