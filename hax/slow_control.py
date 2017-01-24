@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 import requests
 import logging
@@ -6,12 +7,22 @@ from pytz import timezone
 import parsedatetime
 import numpy as np
 import pandas as pd
-from Crypto.Cipher import DES
 
 import hax
 
 log = logging.getLogger('hax.slow_control')
 sc_variables = None
+
+
+def get_sc_api_key():
+    """Return the slow control API key, if we know it"""
+    if 'sc_api_key' in hax.config:
+        return hax.config['sc_api_key']
+    elif 'SC_API_KEY' in os.environ:
+        return os.environ['SC_API_KEY']
+    else:
+        raise ValueError('Please set the SC_API_KEY environment variable or the hax.sc_api_key option '
+                         'to access the slow control web API.')
 
 
 def get_utc_datetime(x, return_type='timestamp'):
@@ -36,11 +47,6 @@ def get_utc_datetime(x, return_type='timestamp'):
 def init_sc_interface():
     """Initialize the slow control interface access and list of variables"""
     global sc_variables
-
-    # Decrypt the slow control API key with the runs db password
-    # (we can't store the plaintext API key in an open-source program)
-    des = DES.new(hax.runs.get_rundb_password()[:8], DES.MODE_ECB)
-    hax.config['sc_api_key'] = des.decrypt(hax.config['sc_api_key_encrypted']).decode('utf-8')
 
     sc_variables = pd.read_csv(hax.config['sc_variable_list'])
 
@@ -122,7 +128,7 @@ def get_sc_data(names, run=None, start=None, end=None):
         "StartDateUnix": start,
         "EndDateUnix": end,
         "username": c['sc_api_username'],
-        "api_key": c['sc_api_key'],
+        "api_key": get_sc_api_key(),
     }
     r = requests.get(c['sc_api_url'], params=params)
 
