@@ -58,12 +58,11 @@ def init(filename=None, **kwargs):
     # Override with kwargs
     config.update(kwargs)
 
-    # This import can't be at the top, would be circular
-    from hax.runs import update_datasets
-    update_datasets()
-
-    from hax.minitrees import update_treemakers
-    update_treemakers()
+    # Call some inits of the submodules
+    import hax
+    hax.runs.update_datasets()
+    hax.minitrees.update_treemakers()
+    hax.slow_control.init_sc_interface()
 
     if not config['cax_key'] or config['cax_key'] == 'sorry_I_dont_have_one':
         log.warning("You're not at a XENON analysis facility, or hax can't detect at which analysis facility you are.")
