@@ -20,7 +20,7 @@ def init_sc_interface():
     # Decrypt the slow control API key with the runs db password
     # (we can't store the plaintext API key in an open-source program)
     des = DES.new(hax.runs.get_rundb_password()[:8], DES.MODE_ECB)
-    hax.config['sc_api_key'] = des.decrypt(sc_api_key_encrypted).decode('utf-8')
+    hax.config['sc_api_key'] = des.decrypt(hax.config['sc_api_key_encrypted']).decode('utf-8')
 
     sc_variables = pd.read_csv(hax.config['sc_variable_list'])
 
