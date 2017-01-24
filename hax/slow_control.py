@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 import logging
 import os
@@ -15,12 +15,24 @@ log = logging.getLogger('hax.slow_control')
 sc_variables = None
 
 
-def get_utc_datetime(x):
-    """Return a UTC-localized datetime.datetime object corresponding to the human-readable date/time x"""
+def get_utc_datetime(x, return_type='timestamp'):
+    """Return UTC timestamp or a python UTC-localized datetime object corresponding to the human-readable date/time x
+    :param x: string with a human-readable date/time indication (e.g. "now"). If you specify something absolute, it will
+              be taken as UTC.
+    :param return_type: if 'timestamp' (default), return the time as number of seconds since the epoch.
+                        Otherwise, return a datetime.datetime UTC-localized object.
+    """
     cal = parsedatetime.Calendar()
-    return cal.parseDT(datetimeString=x,
-                       sourceTime=datetime.utcnow(),
-                       tzinfo=timezone("UTC"))[0]
+    f = cal.parseDT(datetimeString=x,
+                    sourceTime=datetime.utcnow(),
+                    tzinfo=timezone("UTC"))[0]
+    if return_type == 'timestamp':
+        # To convert to a UTC epoch timestamp, further trickery is necessary
+        # see http://stackoverflow.com/questions/8777753/converting-datetime-date-to-utc-timestamp-in-python
+        # Datetimes in python really are a mess
+        return (d - datetime(1970, 1, 1, tzinfo=timezone('UTC'))) / timedelta(seconds=1)
+    return d
+
 
 
 def init_sc_interface():
