@@ -111,6 +111,7 @@ def get_sc_data(names, run=None, start=None, end=None):
         "api_key": get_sc_api_key(),
     }
     r = requests.get(c['sc_api_url'], params=params)
+    r.raise_for_status()    # If there is an error, raise here instead of giving weird error later
 
     dates = []
     values = []
