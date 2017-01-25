@@ -3,12 +3,11 @@ from datetime import datetime, timedelta
 import requests
 import logging
 
-from pytz import timezone
-import parsedatetime
 import numpy as np
 import pandas as pd
 
 import hax
+from hax.utils import human_to_utc_datetime, utc_timestamp
 
 log = logging.getLogger('hax.slow_control')
 sc_variables = None
@@ -23,25 +22,6 @@ def get_sc_api_key():
     else:
         raise ValueError('Please set the SC_API_KEY environment variable or the hax.sc_api_key option '
                          'to access the slow control web API.')
-
-
-def get_utc_datetime(x, return_type='timestamp'):
-    """Return UTC timestamp or a python UTC-localized datetime object corresponding to the human-readable date/time x
-    :param x: string with a human-readable date/time indication (e.g. "now"). If you specify something absolute, it will
-              be taken as UTC.
-    :param return_type: if 'timestamp' (default), return the time as number of seconds since the epoch.
-                        Otherwise, return a datetime.datetime UTC-localized object.
-    """
-    cal = parsedatetime.Calendar()
-    d = cal.parseDT(datetimeString=x,
-                    sourceTime=datetime.utcnow(),
-                    tzinfo=timezone("UTC"))[0]
-    if return_type == 'timestamp':
-        # To convert to a UTC epoch timestamp, further trickery is necessary
-        # see http://stackoverflow.com/questions/8777753/converting-datetime-date-to-utc-timestamp-in-python
-        # Datetimes in python really are a mess
-        return (d - datetime(1970, 1, 1, tzinfo=timezone('UTC'))) / timedelta(seconds=1)
-    return d
 
 
 def init_sc_interface():
@@ -119,14 +99,14 @@ def get_sc_data(names, run=None, start=None, end=None):
         start = q.start
         end = q.end
     else:
-        start = get_utc_datetime(start)
-        end = get_utc_datetime(end)
+        start = human_to_utc_datetime(start)
+        end = human_to_utc_datetime(end)
 
     params = {
         "name": name,
         "QueryType": "lab",
-        "StartDateUnix": start,
-        "EndDateUnix": end,
+        "StartDateUnix": int(utc_timestamp(start)),
+        "EndDateUnix": int(utc_timestamp(end)),
         "username": c['sc_api_username'],
         "api_key": get_sc_api_key(),
     }

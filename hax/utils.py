@@ -1,14 +1,46 @@
 """Utilities for use INSIDE hax (and perhaps random weird use outside hax)
 If you have a nice function that doesn't fit anywhere, misc.py is where you want to go
 """
-
-
 import collections
 import os
 import platform
 import pickle
 import itertools
 import gzip
+
+import pytz
+from pytz import timezone
+from datetime import datetime, timedelta
+import parsedatetime
+
+
+def human_to_utc_datetime(x):
+    """Return a python UTC-localized datetime object corresponding to the human-readable date/time x
+    :param x: string with a human-readable date/time indication (e.g. "now"). If you specify something absolute, it will
+              be taken as UTC.
+    """
+
+    return parsedatetime.Calendar().parseDT(datetimeString=x,
+                                            sourceTime=datetime.utcnow(),
+                                            tzinfo=timezone("UTC"))[0]
+
+
+def utc_timestamp(d):
+    """Convert a UTC datetime object d to (float) seconds in the UTC since the UTC unix epoch.
+    If you pass a timezone-naive datetime object, it will be treated as UTC.
+    """
+    if isinstance(d, pd.tslib.Timestamp):
+        # Pandas datetime timestamp whatever thing
+        if d.tz != pytz.utc:
+            d = d.tz_localize('UTC')
+    else:
+        # Normal datetime object
+        if d.tzinfo != pytz.utc:
+            d = pytz.utc.localize(d)
+    # Yes, you have to write it out like this, there is no convenient method.
+    # See http://stackoverflow.com/questions/8777753/converting-datetime-date-to-utc-timestamp-in-python
+    # Datetimes in python really are a mess...
+    return (d - datetime(1970, 1, 1, tzinfo=timezone('UTC'))) / timedelta(seconds=1)
 
 
 def find_file_in_folders(filename, folders):
