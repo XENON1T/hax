@@ -106,6 +106,10 @@ def get_aqm_pulses(run_id):
     aqm_channel = {(pmt_map[v[0]]['digitizer']['module'], pmt_map[v[0]]['digitizer']['channel']): k
                    for k, v in pax_config['DEFAULT']['channels_in_detector'].items() if len(v) == 1}
 
+    # Temp hack for the muon veto synchronization channel, which hasn't been added to pax (it would result in
+    # incompatible raw data files)
+    aqm_channel[(167, 6)] = 'mv_sync'
+
     if not os.path.exists(filename):
         dirname = os.path.dirname(filename)
         if not os.path.exists(dirname):
