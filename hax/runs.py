@@ -252,7 +252,11 @@ def datasets_query(query):
 def get_run_name(run_id):
     """Return run name matching run_id. Returns run_id if run_id is string (presumably already run name)"""
     if isinstance(run_id, str):
-        return run_id
+        # Already have a string: assume this is the run name
+        # ... However, somtimes people pass in full paths (e.g. when loading files untracked by the runs db).
+        # We don't want slashes in the "run name", it should be something safe to join to other things.
+        # Hence:
+        return os.path.basename(run_id)
     try:
         return datasets_query('number == %d' % run_id)[0]
     except Exception as e:
