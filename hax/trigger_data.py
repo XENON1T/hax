@@ -31,8 +31,20 @@ def get_trigger_data(run_id, select_data_types='all', format_version=2):
 
     data = defaultdict(list)
     run_name = hax.runs.get_run_name(run_id)
-    f = zipfile.ZipFile(os.path.join(hax.config['raw_data_local_path'],
-                                     run_name, 'trigger_monitor_data.zip'))
+    filename = os.path.join(hax.config['raw_data_local_path'], run_name, 'trigger_monitor_data.zip')
+
+    if not os.path.exists(filename):
+        special_path = hax.config['trigger_data_special_path']
+        if special_path:
+            # Get the file from the special path
+            filename = special_path.format(run_number=hax.runs.get_run_number(run_id))
+            if not os.path.exists(filename):
+                raise FileNotFoundError("Can't find trigger data for run %d, not even in special path..." % run_id)
+
+        else:
+            raise FileNotFoundError("Can't find trigger data for run %d, and don't have a special path.")
+
+    f = zipfile.ZipFile(filename)
     for doc_name in f.namelist():
         data_type, index = doc_name.split('=')
         if select_data_types != 'all':
@@ -91,6 +103,23 @@ def get_aqm_pulses(run_id):
                             hax.runs.get_run_name(run_id),
                             basename)
 
+    if not os.path.exists(filename):
+        special_path = hax.config['acquisition_monitor_special_path']
+        if special_path:
+            # Get the file from the special path
+            filename = special_path.format(run_number=hax.runs.get_run_number(run_id))
+            if not os.path.exists(filename):
+                raise FileNotFoundError("Can't find acquisition monitor data for run %d, "
+                                        "not even in special path..." % run_id)
+
+        else:
+            dirname = os.path.dirname(filename)
+            if not os.path.exists(dirname):
+                raise FileNotFoundError("Raw data directory for %s not found -- "
+                                        "required to get acquisition monitor pulses" % run_id)
+            raise FileNotFoundError("Can't load acquisition monitor pulses, no file named %s in %s" % (basename,
+                                                                                                       dirname))
+
     # Get the run start time in ns since the unix epoch. This isn't known with such accuracy,
     # but we use the exact same determination here as in the event builder.
     # Hence we can compare the times to the event times.
@@ -109,13 +138,6 @@ def get_aqm_pulses(run_id):
     # Temp hack for the muon veto synchronization channel, which hasn't been added to pax (it would result in
     # incompatible raw data files)
     aqm_channel[(167, 6)] = 'mv_sync'
-
-    if not os.path.exists(filename):
-        dirname = os.path.dirname(filename)
-        if not os.path.exists(dirname):
-            raise ValueError("Raw data directory for %s not found -- "
-                             "required to get acquisition monitor pulses" % run_id)
-        raise ValueError("Can't load acquisition monitor pulses, no file named %s in %s" % (basename, dirname))
 
     aqm_signals = {k: [] for k in aqm_channel.values()}
     with open(filename, 'rb') as infile:
