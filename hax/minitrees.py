@@ -9,9 +9,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import dask
-import dask.multiprocessing
-import dask.dataframe
 
 import hax
 from hax import runs, cuts
@@ -273,6 +270,12 @@ def load_single_minitree(run_id,
 
     :returns: pandas.DataFrame
     """
+    # Import dask only here, it causes problems on some systems (batch queues etc)
+    # Also dask is heavily under development...
+    import dask
+    import dask.multiprocessing
+    import dask.dataframe
+
     if save_file is None:
         save_file = hax.config['minitree_caching']
     if event_list is not None:
