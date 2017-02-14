@@ -270,12 +270,6 @@ def load_single_minitree(run_id,
 
     :returns: pandas.DataFrame
     """
-    # Import dask only here, it causes problems on some systems (batch queues etc)
-    # Also dask is heavily under development...
-    import dask
-    import dask.multiprocessing
-    import dask.dataframe
-
     if save_file is None:
         save_file = hax.config['minitree_caching']
     if event_list is not None:
@@ -403,6 +397,12 @@ def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselecti
     :param remake_cache: If True, and cache file given, reload (don't remake) minitrees and overwrite the cache file.
 
     """
+    # Import dask only here, it causes problems on some systems (batch queues etc)
+    # Also dask is heavily under development...
+    import dask
+    import dask.multiprocessing
+    import dask.dataframe
+    
     if cache_file and not remake_cache and os.path.exists(cache_file):
         # We don't have to do anything and can just load from the cache file
         return load_cache_file(cache_file)
