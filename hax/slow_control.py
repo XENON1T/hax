@@ -43,7 +43,7 @@ class AmbiguousSlowControlMonikerException(Exception):
     pass
 
 
-def get_sc_name(name):
+def get_sc_name(name, column='Historian_name'):
     """Return slow control historian name of name.  You can pass
     a historian name, sc name, pid identifier, or description. For a full table, see hax.
     """
@@ -57,14 +57,47 @@ def get_sc_name(name):
         else:
             q = sc_variables[sc_variables[key] == name]
         if len(q) == 1:
-            return q.iloc[0].Historian_name
+            return q.iloc[0][column]
         elif len(q) > 1:
             raise AmbiguousSlowControlMonikerException("'%s' has multiple mathching %ss: %s" %
                                                        (name, key, str(q[key].values)))
     raise UnknownSlowControlMonikerException("Don't known any slow control moniker matching %s" % name)
 
+def get_pmt_data_last_measured(run):
+    """
+    Retrieve PMT information for a run from the historian database
 
-def get_sc_data(names, run=None, start=None, end=None):
+    :param run: run number/name to return data for.
+
+    :return: pandas DataFrame of the values, with index the time in UTC.
+    """
+    # End time
+    end = hax.runs.datasets.query('number == %d' % hax.runs.get_run_number(run)).iloc[0].end
+
+    params = {
+        "EndDateUnix": int(utc_timestamp(end)),
+        "username": hax.config['sc_api_username'],
+        "api_key": get_sc_api_key(),
+    }
+
+    r = requests.get(hax.config['sc_api_url'].replace('GetSCData',
+                                                      'getLastMeasuredPMTValues'),
+                     params=params)
+    r.raise_for_status()  # If there is an error, raise here instead of giving weird error later
+
+    response = r.json()
+
+    answer = {}
+
+    for x in range(254):
+        tagname = get_sc_name('PMT %03d' % x)
+        for entry in response:
+            if tagname == entry['tagname']:
+                answer[x] = entry['value']
+
+    return answer
+
+def get_sc_data(names, run=None, start=None, end=None, url = None):
     """
     Retrieve the data from the historian database (hax.slow_control.get is just a synonym of this function)
 
@@ -110,11 +143,17 @@ def get_sc_data(names, run=None, start=None, end=None):
         "username": c['sc_api_username'],
         "api_key": get_sc_api_key(),
     }
-    r = requests.get(c['sc_api_url'], params=params)
-    r.raise_for_status()    # If there is an error, raise here instead of giving weird error later
 
     dates = []
     values = []
+
+    if url is None:
+        url = c['sc_api_url']
+
+    r = requests.get(url,
+                     params=params)
+    r.raise_for_status()    # If there is an error, raise here instead of giving weird error later
+
     for entry in r.json():
         dates.append(datetime.utcfromtimestamp(entry['timestampseconds']))
         values.append(entry['value'])
