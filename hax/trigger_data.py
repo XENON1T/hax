@@ -31,9 +31,13 @@ def get_trigger_data(run_id, select_data_types='all', format_version=2):
 
     data = defaultdict(list)
     run_name = hax.runs.get_run_name(run_id)
-    filename = os.path.join(hax.config['raw_data_local_path'], run_name, 'trigger_monitor_data.zip')
 
-    if not os.path.exists(filename):
+    for raw_data_path in hax.config['raw_data_local_path']:
+        filename = os.path.join(raw_data_path, run_name, 'trigger_monitor_data.zip')
+        if os.path.exists(filename):
+            break
+
+    else:
         special_path = hax.config['trigger_data_special_path']
         if special_path:
             # Get the file from the special path
@@ -99,11 +103,15 @@ def get_aqm_pulses(run_id):
     Under the keys 'busy' and 'hev', you'll get the sorted combination of all busy/hev _on and _off signals.
     """
     basename = 'acquisition_monitor_data.pickles'
-    filename = os.path.join(hax.config['raw_data_local_path'],
-                            hax.runs.get_run_name(run_id),
-                            basename)
+    for raw_data_path in hax.config['raw_data_local_path']:
+        filename = os.path.join(raw_data_path,
+                                hax.runs.get_run_name(run_id),
+                                basename)
+        dirname = os.path.dirname(filename)
+        if os.path.exists(dirname):
+            break
 
-    if not os.path.exists(filename):
+    else:
         special_path = hax.config['acquisition_monitor_special_path']
         if special_path:
             # Get the file from the special path
@@ -111,14 +119,12 @@ def get_aqm_pulses(run_id):
             if not os.path.exists(filename):
                 raise FileNotFoundError("Can't find acquisition monitor data for run %d, "
                                         "not even in special path..." % run_id)
-
         else:
-            dirname = os.path.dirname(filename)
-            if not os.path.exists(dirname):
-                raise FileNotFoundError("Raw data directory for %s not found -- "
-                                        "required to get acquisition monitor pulses" % run_id)
-            raise FileNotFoundError("Can't load acquisition monitor pulses, no file named %s in %s" % (basename,
-                                                                                                       dirname))
+            raise FileNotFoundError("Raw data directory for %s not found -- "
+                                    "required to get acquisition monitor pulses" % run_id)
+
+    if not os.path.exists(filename):
+        raise FileNotFoundError("Can't load acquisition monitor pulses, no file named %s in %s" % (basename, dirname))
 
     # Get the run start time in ns since the unix epoch. This isn't known with such accuracy,
     # but we use the exact same determination here as in the event builder.

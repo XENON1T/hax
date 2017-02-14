@@ -137,6 +137,8 @@ def update_datasets(query=None):
         datasets['raw_data_subfolder'] = [''] * len(datasets)
     if not 'raw_data_found' in datasets:
         datasets['raw_data_found'] = [False] * len(datasets)
+    if not 'raw_data_used_local_path' in datasets:
+        datasets['raw_data_used_local_path'] = [''] * len(datasets)
     dataset_names = datasets['name'].values
 
     if version_policy == 'loose':
@@ -155,15 +157,18 @@ def update_datasets(query=None):
     # For the raw data, we may need to look in subfolders ('run_10' etc)
     # don't do os.path.exist for each dataset, it will take minutes, at least over sshfs
     if hax.config['raw_data_access_mode'] == 'local':
-        for subfolder, dsets_in_subfolder in datasets.groupby('raw_data_subfolder'):
-            subfolder_path = os.path.join(hax.config['raw_data_local_path'], subfolder)
-            if not os.path.exists(subfolder_path):
-                log.debug("Folder %s not found when looking for raw data" % subfolder_path)
-                continue
-            for candidate in os.listdir(subfolder_path):
-                bla = np.where(dataset_names == candidate)[0]
-                if len(bla):
-                    datasets.loc[bla[0], 'raw_data_found'] = True
+        for raw_data_path in hax.config['raw_data_local_path']:
+            for subfolder, dsets_in_subfolder in datasets.groupby('raw_data_subfolder'):
+                subfolder_path = os.path.join(raw_data_path, subfolder)
+                if not os.path.exists(subfolder_path):
+                    log.debug("Folder %s not found when looking for raw data" % subfolder_path)
+                    continue
+                for candidate in os.listdir(subfolder_path):
+                    bla = np.where(dataset_names == candidate)[0]
+                    if len(bla):
+                        if not datasets.loc[bla[0], 'raw_data_found']:
+                            datasets.loc[bla[0], 'raw_data_used_local_path'] = raw_data_path
+                        datasets.loc[bla[0], 'raw_data_found'] = True
 
 
 def version_tuple(v):

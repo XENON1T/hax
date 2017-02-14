@@ -58,6 +58,10 @@ def init(filename=None, **kwargs):
     # Override with kwargs
     config.update(kwargs)
 
+    # Convert potential 'raw_data_local_path' entry for backwards compatibility
+    if "raw_data_local_path" in config and isinstance(config["raw_data_local_path"], str):
+        config["raw_data_local_path"] = [config["raw_data_local_path"]]
+
     # Call some inits of the submodules
     import hax
     hax.runs.update_datasets()

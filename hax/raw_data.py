@@ -118,7 +118,7 @@ def process_events(run_id, event_numbers=None, config_override=None):
         # We can let pax deal with jumping from file to file, selecting events, etc.
         if not dataset_info.raw_data_found:
             raise ValueError("Raw data for dataset %d (%s) not found." % (run_number, run_name))
-        dirname = os.path.join(config['raw_data_local_path'],
+        dirname = os.path.join(dataset_info.raw_data_used_local_path,
                                dataset_info.raw_data_subfolder,
                                run_name)
         mypax = raw_data_processor(dirname, config_override)
