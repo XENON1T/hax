@@ -1,12 +1,5 @@
 import numpy as np
 from hax.lichen import Lichen, RangeLichen, ManyLichen
-from hax import cuts
-
-import sys
-
-import inspect
-clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
-
 
 class AllCutsSR0(ManyLichen):
     def __init__(self):
@@ -66,15 +59,11 @@ class InteractionPeaksBiggest(ManyLichen):
 
     class S1(Lichen):
         def _process(self, df):
-            return cuts.selection(df,
-                                  df.s1 > df.largest_other_s1,
-                                  desc='Main S1 must be largest S1')
+            return df.s1 > df.largest_other_s1
 
     class S2(Lichen):
         def _process(self, df):
-            return cuts.selection(df,
-                                  df.s2 > df.largest_other_s2,
-                                  desc='Main S2 must be largest S2')
+            return df.s2 > df.largest_other_s2
 
 
 class DoubleScatterS2(Lichen):
@@ -85,10 +74,7 @@ class DoubleScatterS2(Lichen):
         return np.clip((2 * s2) ** 0.5, 70, float('inf'))
 
     def _process(self, df):
-        return cuts.selection(df,
-                              df.largest_other_s2 < self.other_s2_bound(df.s2),
-                              desc='No large other S2')
-
+        return df.largest_other_s2 < self.other_s2_bound(df.s2)
 
 class Width(ManyLichen):
     scale = 1.349

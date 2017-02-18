@@ -2,9 +2,6 @@
 
 Extend the Minitree produced DataFrames with derivative values.
 """
-from hax import cuts
-
-
 class Lichen(object):
     pass
 
@@ -36,9 +33,7 @@ class RangeLichen(Lichen):
         self.post(df)
 
     def _process(self, df):
-        df[self.__class__.__name__] = cuts.range_selection(df,
-                                                           self.variable,                                                  self.allowed_range)
-
+        df[self.__class__.__name__] = (df[self.variable] > self.allowed_range[0]) & (df[self.variable] < self.allowed_range[1])
         return df
 
     def post(self, df):
