@@ -33,6 +33,7 @@ class RangeLichen(Lichen):
         self.post(df)
 
     def _process(self, df):
+        print(self.__class__.__name__)
         df[self.__class__.__name__] = (df[self.variable] > self.allowed_range[0]) & (df[self.variable] < self.allowed_range[1])
         return df
 
