@@ -31,9 +31,13 @@ class RangeLichen(Lichen):
         return df
 
     def process(self, df):
+        self.pre(df)
+        df = self._process(df)
+        self.post(df)
+
+    def _process(self, df):
         df[self.__class__.__name__] = cuts.range_selection(df,
-                                                           self.variable,
-                                                           self.allowed_range)
+                                                           self.variable,                                                  self.allowed_range)
 
         return df
 
