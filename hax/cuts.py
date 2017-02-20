@@ -6,6 +6,7 @@ import numpy as np
 import dask
 import dask.dataframe
 
+# Unlike most hax modules, this doesn't require init()
 import hax
 
 import logging
@@ -34,8 +35,11 @@ def _get_history(d):
     return d.cut_history
 
 
-def record_combined_histories(d, partial_histories, quiet=False):
+def record_combined_histories(d, partial_histories, quiet=None):
     """Record history for dataframe d by combining list of dictionaries partial_histories"""
+    if quiet is None:
+        quiet = not hax.config.get('print_passthrough_info', False)
+
     new_history = []
     # Loop over cuts
     for cut_i, cut in enumerate(partial_histories[0]):
@@ -70,7 +74,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
      - force_repeat: do the selection even if a cut with an identical description has already been performed.
     """
     if quiet is None:
-        quiet = not hax.config['print_passthrough_info']
+        quiet = not hax.config.get('print_passthrough_info', False)
 
     # The last part of the function has two entry points, so we need to call this instead of return:
     def get_return_value():
