@@ -34,6 +34,7 @@ class PeakExtractor(MultipleRowExtractor):
             return 'True'
         # Check if user entered range_50p_area, since this won't work
         cut_list = [cut.replace('range_50p_area','range_area_decile[5]') for cut in cut_list]
+
         cut_string = '('
         for cut in cut_list[:-1]:
             cut_string += obj + '.' + cut + ') & ('
@@ -56,6 +57,8 @@ class PeakExtractor(MultipleRowExtractor):
                         # Deal with special cases
                         if field == 'range_50p_area':
                             _x = list(peak.range_area_decile)[5]
+                        elif field == 'rise_time':
+                            _x = -peak.area_decile_from_midpoint[1]
                         elif field in ('x', 'y'):
                             # In case of x and y need to get position from reconstructed_positions
                             for rp in peak.reconstructed_positions:
