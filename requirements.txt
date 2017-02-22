@@ -9,3 +9,4 @@ multihist>=0.5.0
 #ROOT
 pytz
 parsedatetime
+numba           # Need to import it to avoid ROOT import error :-(
