@@ -5,7 +5,7 @@ from configparser import ConfigParser
 import socket
 import numba
 
-__version__ = '1.4.0'
+__version__ = '1.4.1'
 
 # Stitch the package together
 # I am surprised this works (even if we do 'from hax' instead of 'from .')
