@@ -1,3 +1,8 @@
+1.4.1
+-----
+
+* Fix release tags.
+
 1.4.0
 -----
 * Update blinding (#74)
