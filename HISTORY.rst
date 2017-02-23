@@ -6,8 +6,11 @@
 1.4.0
 -----
 * Update blinding (#74)
-* Update SC interface (#64)
-* Bug fixes.
+* Update slow control HTTP API interface (#64)
+* Handle multiple raw data locations (#68)
+* Access metadata (trigger&aqm) from special folders
+* Small updates/fixes
+
 
 1.3.0
 -----
