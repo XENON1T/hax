@@ -9,7 +9,7 @@ requirements = open('requirements.txt').read().splitlines()
 test_requirements = requirements + ['flake8']
 
 setup(name='hax',
-      version='1.3.0',
+      version='1.4.0',
       description="Handy Analysis for XENON",
       long_description=readme + '\n\n' + history,
       url='https://github.com/XENON1T/hax',
