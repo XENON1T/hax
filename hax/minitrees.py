@@ -316,7 +316,7 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
 
     :param run_id: name or number of the run to load
 
-    :param treemakers: list of treemaker class / instances to load
+    :param treemakers: list of treemaker classes / names to load
 
     :param preselection: String or list of strings passed to pandas.eval. Should return bool array, to be used
                          for pre-selecting events to load for each dataset.

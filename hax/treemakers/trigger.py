@@ -53,7 +53,7 @@ class Proximity(hax.minitrees.TreeMaker):
 
         # Load the fundamentals and totalproperties minitree
         # Yes, minitrees loading other minitrees, the fun has begun :-)
-        event_data = hax.minitrees.load(dataset, ['Fundamentals', 'TotalProperties'])
+        event_data = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'TotalProperties'])
         # Note integer division here, not optional: float arithmetic is too inprecise
         # (fortuately our digitizer sampling resolution is an even number of nanoseconds...)
         event_data['center_time'] = event_data.event_time + event_data.event_duration // 2
