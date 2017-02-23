@@ -2,7 +2,7 @@
 -----
 * Update blinding (#74)
 * Update SC interface (#64)
-* Bug fixes
+* Bug fixes.
 
 1.3.0
 -----
