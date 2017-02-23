@@ -86,7 +86,7 @@ install: clean
 major: clean docs
 	emacs HISTORY.rst
 	git commit -m "Update HISTORY for the release" HISTORY.rst
-	bumpversion major
+	bumpversion major --allow-dirty
 	git push
 	git push --tags
 
@@ -94,7 +94,7 @@ major: clean docs
 minor: clean docs
 	emacs HISTORY.rst
 	git commit -m "Update HISTORY for the release" HISTORY.rst
-	bumpversion minor
+	bumpversion minor --allow-dirty
 	git push
 	git push --tags
 
