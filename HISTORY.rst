@@ -1,3 +1,9 @@
+1.4.0
+-----
+* Update blinding (#74)
+* Update SC interface (#64)
+* Bug fixes
+
 1.3.0
 -----
 * Blinding (#54, #61)
