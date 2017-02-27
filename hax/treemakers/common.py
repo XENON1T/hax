@@ -22,6 +22,125 @@ class Fundamentals(TreeMaker):
                     event_duration=event.stop_time - event.start_time)
 
 
+class Extended(TreeMaker):
+    """Extra information, mainly motivated by cuts used for the first science run.
+    If there are no interactions in the event, all these values will be NaN.
+
+    Provides:
+     - s1_range_80p_area: The width of the s1 (ns), duration of region that contains 80% of the area of the peak
+     - s2_range_80p_area: The width of the s2 (ns), duration of region that contains 80% of the area of the peak
+     - s1_n_contributing_channels: Number of PMTs contributing to the S1.
+     - s2_n_contributing_channels: Number of PMTs contributing to the S2.
+     - s1_largest_hit_area: Area of the largest hit in the S1
+     - s1_rise_time: The time between the 10% and 50% area points of the S1
+     - s2_rise_time: The time between the 10% and 50% area points of the S2
+     - s1_tight_coincidence: Number of PMTs with a hit close (window defined in pax) to the peak's sum waveform maximum
+     - s1_pattern_fit: Poisson likehood of main S1's hitpattern (according to MC S1(xyz) per-PMT maps)
+     - s2_pattern_fit: Poisson likehood of main S2's hitpattern (according to MC S2(xy) per-PMT maps)
+     - r_pos_correction: r-correction added to the interaction r position to account for field distortion.
+     - z_pos_correction: z-correction added to the interaction z position to account for field distortion.
+     - x_nn: x-position of the main interaction as reconstructed by neural net. NOT Field-distortion (r,z) corrected!!!
+     - y_nn: y-position of the main interaction as reconstructed by neural net. NOT Field-distortion (r,z) corrected!!!
+     - sum_s1s_before_main_s2: Sum of all S1 areas before the main S2
+     - alt_s1_interaction_z: Z position of interaction formed with largest other S1 + main S2
+     - alt_s2_interaction_x: X position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
+     - alt_s2_interaction_y: Y position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
+     - alt_s2_interaction_z: Z position of interaction formed with main S1 + largest other S2 (field-distortion rz corrected)
+     - alt_s2_interaction_s2_range_50p_area: S2 50% area width of interaction with main S1 + largest other S2
+     - alt_s2_interaction_s2_range_80p_area: S2 80% area width of interaction with main S1 + largest other S2
+
+    See also the DoubleScatter minitree for more properties of alternative interactions.
+    """
+    __version__ = '0.0.3'
+    extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
+                      'peaks.n_contributing_channels',
+                      'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
+                      'interactions.r_correction', 'interactions.z_correction',
+                      'interactions.xy_posrec_goodness_of_fit',
+                      'peaks.largest_hit_area', 'peaks.left'
+                     ]
+
+    def extract_data(self, event):
+        result = dict()
+
+        if not len(event.interactions):
+            return result
+
+        interaction = event.interactions[0]
+        s1 = event.peaks[interaction.s1]
+        s2 = event.peaks[interaction.s2]
+
+        result['s1_range_80p_area'] = s1.range_area_decile[8]
+        result['s2_range_80p_area'] = s2.range_area_decile[8]
+
+        result['s1_n_contributing_channels'] = s1.n_contributing_channels
+        result['s2_n_contributing_channels'] = s2.n_contributing_channels
+
+        result['s1_largest_hit_area'] = s1.largest_hit_area
+
+        result['s1_rise_time'] = -s1.area_decile_from_midpoint[1]
+        result['s2_rise_time'] = -s2.area_decile_from_midpoint[1]
+
+        result['s1_tight_coincidence'] = s1.tight_coincidence
+
+        result['s1_pattern_fit'] = interaction.s1_pattern_fit
+        result['s2_pattern_fit'] = interaction.xy_posrec_goodness_of_fit
+
+        result['r_pos_correction'] = interaction.r_correction
+        result['z_pos_correction'] = interaction.z_correction
+
+        for rp in s2.reconstructed_positions:
+            if rp.algorithm == 'PosRecNeuralNet':
+                result['x_nn'] = rp.x
+                result['y_nn'] = rp.y
+
+        result['sum_s1s_before_main_s2'] = sum(
+            [p.area for p in event.peaks
+             if p.type == 's1' and p.detector == 'tpc' and p.left < s2.left])
+
+        if len(event.interactions) == 1:
+            return result
+
+        largest_other_indices = get_largest_indices(event.peaks,
+                                                    exclude_indices=(interaction.s1, interaction.s2))
+
+        for it in event.interactions[1:]:
+            if it.s1 == interaction.s1 and it.s2 == largest_other_indices.get('s2', float('nan')):
+                # Alternative S2 interaction
+                for q in 'xyz':
+                    result['alt_s2_interaction_%s' % q] = getattr(it, q)
+                for q in [5, 8]:
+                    result['alt_s2_interaction_s2_range_%d0p_area' % q] = event.peaks[it.s2].range_area_decile[q]
+
+            elif it.s1 == largest_other_indices.get('s1', float('nan')) and it.s2 == interaction.s2:
+                # Alternative S1 interaction
+                result['alt_s1_interaction_z'] = it.z
+
+        return result
+
+
+def get_largest_indices(peaks, exclude_indices=tuple()):
+    """Return a dic with the indices in peaks of the largest peak of each type (s1, s2, etc)
+    excluding the inices in exclude_peak_indices from consideration
+    """
+    largest_area_of_type = defaultdict(float)
+    largest_indices = dict()
+    for i, p in enumerate(peaks):
+        if i in exclude_indices:
+            continue
+        if p.detector == 'tpc':
+            peak_type = p.type
+        else:
+            if p.type == 'lone_hit':
+                peak_type = 'lone_hit_%s' % p.detector    # Will not be saved
+            else:
+                peak_type = p.detector
+        if p.area > largest_area_of_type[peak_type]:
+            largest_area_of_type[peak_type] = p.area
+            largest_indices[peak_type] = i
+    return largest_indices
+
+
 class Basics(TreeMaker):
     """Basic information needed in most (standard) analyses, mostly on the main interaction.
 
@@ -30,7 +149,7 @@ class Basics(TreeMaker):
      - s2: The uncorrected area in pe of the main interaction's S2
      - cs1: The corrected area in pe of the main interaction's S1
      - cs2: The corrected area in pe of the main interaction's S2
-     - x: The x-position of the main interaction (primary algorithm chosen by pax, currently TopPatternFit)
+     - x: The x-position of the main interaction (by TopPatternFit, field-distortion corrected)
      - y: The y-position of the main interaction
      - z: The z-position of the main interaction (computed by pax using configured drift velocity)
      - drift_time: The drift time in ns (pax units) of the main interaction
@@ -42,14 +161,14 @@ class Basics(TreeMaker):
      - largest_other_s2: The uncorrected area in pe of the largest S2 in the TPC not in the main interaction
      - largest_veto: The uncorrected area in pe of the largest non-lone_hit peak in the veto
      - largest_unknown: The largest TPC peak of type 'unknown'
-     - largest_coincidence: The largest TPC peak of type 'coincidence'
+     - largest_coincidence: The largest TPC peak of type 'coincidence'. This peak type no longer exists
 
     Notes:
-     * 'largest' refers to uncorrected area.
-     * 'uncorrected' refers to the area in pe without applying any position- or saturation corrections.
-     * 'corrected' refers to applying all available position- and/or saturation corrections
+     - 'largest' refers to uncorrected area.
+     - 'uncorrected' refers to the area in pe without applying any position- or saturation corrections.
+     - 'corrected' refers to applying all available position- and/or saturation corrections
        (see https://github.com/XENON1T/pax/blob/master/pax/plugins/interaction_processing/BuildInteractions.py#L105)
-     * 'main interaction' is event.interactions[0], which is determined by pax
+     - 'main interaction' is event.interactions[0], which is determined by pax
                           (currently just the largest S1 + largest S2 after it)
 
     """
@@ -79,24 +198,13 @@ class Basics(TreeMaker):
                                    z=interaction.z,
                                    drift_time=interaction.drift_time))
 
-            exclude_peaks_from_double_sc = [interaction.s1, interaction.s2]
+            exclude_peak_indices = [interaction.s1, interaction.s2]
         else:
-            exclude_peaks_from_double_sc = []
+            exclude_peak_indices = []
 
-        # Add double scatter cut data: area of the second largest peak of each peak type.
-        # Note we explicitly differentiate non-tpc peaks here; in interaction objects this is already taken care of.
-        largest_area_of_type = defaultdict(float)
-        for i, p in enumerate(event.peaks):
-            if i in exclude_peaks_from_double_sc:
-                continue
-            if p.detector == 'tpc':
-                peak_type = p.type
-            else:
-                if p.type == 'lone_hit':
-                    peak_type = 'lone_hit_%s' % p.detector    # Will not be saved
-                else:
-                    peak_type = p.detector
-            largest_area_of_type[peak_type] = max(p.area, largest_area_of_type[peak_type])
+        largest_other_indices = get_largest_other_indices(event.peaks, exclude_indices=exclude_peak_indices)
+        largest_area_of_type = {ptype: event.peaks[i].area
+                                for ptype, i in largest_other_indices.items()}
 
         event_data.update(dict(largest_other_s1=largest_area_of_type['s1'],
                                largest_other_s2=largest_area_of_type['s2'],
