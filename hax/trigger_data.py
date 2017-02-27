@@ -21,6 +21,29 @@ data_types = {
 matrix_fields = ['trigger_signals_histogram', 'count_of_2pmt_coincidences']
 
 
+def get_special_file_filename(basename, run_id, special_path_key=None):
+    # First try the special path
+    special_path = hax.config.get(special_path_key, None)
+    filename = None
+    if special_path:
+        filename = special_path.format(run_number=hax.runs.get_run_number(run_id))
+        if not os.path.exists(filename):
+            filename = None
+
+    # If needed, look in the actual raw data folder(s)
+    if filename is None:
+        for raw_data_path in hax.config['raw_data_local_path']:
+            filename = os.path.join(raw_data_path,
+                                    hax.runs.get_run_name(run_id),
+                                    basename)
+            if os.path.exists(filename):
+                break
+        else:
+            raise FileNotFoundError("Can't find %s for run %d" % (basename, run_id))
+
+    return filename
+
+
 def get_trigger_data(run_id, select_data_types='all', format_version=2):
     """Return dictionary with the trigger data from run_id
     select_data_types can be 'all', a trigger data type name, or a list of trigger data type names.
@@ -30,23 +53,9 @@ def get_trigger_data(run_id, select_data_types='all', format_version=2):
         select_data_types = [select_data_types]
 
     data = defaultdict(list)
-    run_name = hax.runs.get_run_name(run_id)
-
-    for raw_data_path in hax.config['raw_data_local_path']:
-        filename = os.path.join(raw_data_path, run_name, 'trigger_monitor_data.zip')
-        if os.path.exists(filename):
-            break
-
-    else:
-        special_path = hax.config['trigger_data_special_path']
-        if special_path:
-            # Get the file from the special path
-            filename = special_path.format(run_number=hax.runs.get_run_number(run_id))
-            if not os.path.exists(filename):
-                raise FileNotFoundError("Can't find trigger data for run %d, not even in special path..." % run_id)
-
-        else:
-            raise FileNotFoundError("Can't find trigger data for run %d, and don't have a special path.")
+    filename = get_special_file_filename('trigger_monitor_data.zip',
+                                         run_id,
+                                         'trigger_data_special_path')
 
     f = zipfile.ZipFile(filename)
     for doc_name in f.namelist():
@@ -102,29 +111,9 @@ def get_aqm_pulses(run_id):
     keys are channel labels (e.g. muon_veto_trigger).
     Under the keys 'busy' and 'hev', you'll get the sorted combination of all busy/hev _on and _off signals.
     """
-    basename = 'acquisition_monitor_data.pickles'
-    for raw_data_path in hax.config['raw_data_local_path']:
-        filename = os.path.join(raw_data_path,
-                                hax.runs.get_run_name(run_id),
-                                basename)
-        dirname = os.path.dirname(filename)
-        if os.path.exists(dirname):
-            break
-
-    else:
-        special_path = hax.config['acquisition_monitor_special_path']
-        if special_path:
-            # Get the file from the special path
-            filename = special_path.format(run_number=hax.runs.get_run_number(run_id))
-            if not os.path.exists(filename):
-                raise FileNotFoundError("Can't find acquisition monitor data for run %d, "
-                                        "not even in special path..." % run_id)
-        else:
-            raise FileNotFoundError("Raw data directory for %s not found -- "
-                                    "required to get acquisition monitor pulses" % run_id)
-
-    if not os.path.exists(filename):
-        raise FileNotFoundError("Can't load acquisition monitor pulses, no file named %s in %s" % (basename, dirname))
+    filename = get_special_file_filename('acquisition_monitor_data.pickles',
+                                         run_id,
+                                         'acquisition_monitor_special_path')
 
     # Get the run start time in ns since the unix epoch. This isn't known with such accuracy,
     # but we use the exact same determination here as in the event builder.
