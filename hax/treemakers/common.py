@@ -199,11 +199,11 @@ class Basics(TreeMaker):
                                    z=interaction.z,
                                    drift_time=interaction.drift_time))
 
-            exclude_peak_indices = [interaction.s1, interaction.s2]
+            exclude_peak_indices = (interaction.s1, interaction.s2)
         else:
-            exclude_peak_indices = []
+            exclude_peak_indices = tuple()
 
-        largest_other_indices = get_largest_other_indices(event.peaks, exclude_indices=exclude_peak_indices)
+        largest_other_indices = get_largest_indices(event.peaks, exclude_indices=exclude_peak_indices)
         largest_area_of_type = {ptype: event.peaks[i].area
                                 for ptype, i in largest_other_indices.items()}
 
