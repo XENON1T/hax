@@ -15,6 +15,7 @@ class Fundamentals(TreeMaker):
      - event_duration: duration (in ns) of the event
     """
     __version__ = '0.1'
+    pax_version_independent = True
     branch_selection = ['event_number', 'start_time', 'stop_time']
 
     def extract_data(self, event):

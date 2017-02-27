@@ -13,6 +13,7 @@ class LargestTriggeringSignal(TreeMaker):
      - trigger_*, where * is any of the attributes of datastructure.TriggerSignal
     """
     branch_selection = ['trigger_signals*', 'event_number']
+    pax_version_independent = True
     __version__ = '0.0.3'
 
     def extract_data(self, event):
@@ -44,6 +45,8 @@ class Proximity(hax.minitrees.TreeMaker):
      - 1e6_pe_event: "" 1e6 pe "
     """
     __version__ = '0.0.11'
+    pax_version_independent = True          # Well, the total peak area could change with the gain... neglect this.
+
     branch_selection = ['event_number', 'start_time', 'stop_time']
 
     aqm_labels = ['muon_veto_trigger', 'busy', 'hev']
