@@ -207,11 +207,11 @@ class Basics(TreeMaker):
         largest_area_of_type = {ptype: event.peaks[i].area
                                 for ptype, i in largest_other_indices.items()}
 
-        event_data.update(dict(largest_other_s1=largest_area_of_type['s1'],
-                               largest_other_s2=largest_area_of_type['s2'],
-                               largest_veto=largest_area_of_type['veto'],
-                               largest_unknown=largest_area_of_type['unknown'],
-                               largest_coincidence=largest_area_of_type['coincidence']))
+        event_data.update(dict(largest_other_s1=largest_area_of_type.get('s1', 0),
+                               largest_other_s2=largest_area_of_type.get('s2', 0),
+                               largest_veto=largest_area_of_type.get('veto', 0),
+                               largest_unknown=largest_area_of_type.get('unknown', 0),
+                               largest_coincidence=largest_area_of_type.get('coincidence', 0)))
 
         return event_data
 
