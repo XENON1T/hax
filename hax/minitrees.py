@@ -41,6 +41,9 @@ class TreeMaker(object):
     uses_arrays = False         # Set to True if your treemaker returns array values. This will trigger a different
                                 # root file saving code.
 
+    # Set this to true if the treemaker results do not change with the pax version (e.g. for trigger information)
+    pax_version_independent = False
+
     def __init__(self):
         # Support for string arguments
         if isinstance(self.branch_selection, str):
@@ -215,7 +218,11 @@ def check(run_id, treemaker, force_reload=False):
 
     # Check if pax_version agrees with the version policy.
     version_policy = hax.config['pax_version_policy']
-    if version_policy == 'latest':
+
+    if treemaker.pax_version_independent:
+        return treemaker, True, minitree_path
+
+    elif version_policy == 'latest':
         # What the latest pax version is differs per dataset. We'll open the root file to find out
         # (you may think we can use the runs db info instead, but that won't work on e.g. MC root files)
         try:
