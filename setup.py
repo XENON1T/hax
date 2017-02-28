@@ -13,7 +13,7 @@ if os.environ.get('READTHEDOCS', None) == 'True':
     # Remove all C/complicated libraries from requirements when we're in readthedocs
     # See http://docs.readthedocs.io/en/latest/faq.html#i-get-import-errors-on-libraries-that-depend-on-c-modules
     requirements = [q for q in requirements
-                    if q not in 'numpy pandas numba dask']
+                    if q not in 'numpy pandas numba dask'.split()]
 
 setup(name='hax',
       version='1.4.2',
