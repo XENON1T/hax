@@ -67,6 +67,16 @@ hax.raw_data module
     :undoc-members:
     :show-inheritance:
 
+
+hax.recorrect module
+--------------------
+
+.. automodule:: hax.recorrect
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 hax.runs module
 ---------------
 
