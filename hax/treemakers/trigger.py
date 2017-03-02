@@ -95,7 +95,7 @@ class Proximity(hax.minitrees.TreeMaker):
                 result[prev] = t - x[i - 1]
                 if label == 'event':
                     result['previous_s2_area'] = self.s2s[i - 1]
-                
+
             # Check if the sought-after object is exactly at t
             # This is always true if label == 'event', only very rarely for aqm signals.
             # (but then we don't want to advance the 'next' index, it's important that the signal
