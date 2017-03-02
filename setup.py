@@ -1,3 +1,4 @@
+import os
 try:
     from setuptools import setup
 except ImportError:
@@ -7,6 +8,13 @@ readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 requirements = open('requirements.txt').read().splitlines()
 test_requirements = requirements + ['flake8']
+
+
+if os.environ.get('READTHEDOCS', None) == 'True':
+    # Remove all C/complicated libraries from requirements when we're in readthedocs
+    # See http://docs.readthedocs.io/en/latest/faq.html#i-get-import-errors-on-libraries-that-depend-on-c-modules
+    requirements = [q for q in requirements
+                    if q not in 'numpy pandas numba dask'.split()]
 
 setup(name='hax',
       version='1.4.2',

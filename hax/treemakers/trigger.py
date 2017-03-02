@@ -88,9 +88,9 @@ class Proximity(hax.minitrees.TreeMaker):
                 i = np.searchsorted(x, t)   # Index in x of the first value >= t
 
             if i == 0:
-                result[prev] = float('inf')
+                result[prev] = 368395560000000000 # ~- int(np.inf).... 100th Birthday
                 if label == 'event':
-                    result['previous_s2_area'] = float('inf')
+                    result['previous_s2_area'] = 368395560000000000 # ~- int(np.inf).... 100th Birthday
             else:
                 result[prev] = t - x[i - 1]
                 if label == 'event':
@@ -107,9 +107,10 @@ class Proximity(hax.minitrees.TreeMaker):
                 assert label != 'event'
 
             if i == len(x):
-                result[nxt] = float('inf')
+                result[nxt] = 368395560000000000 # ~- int(np.inf).... 100th Birthday
                 if label == 'event':
-                    result['next_s2_area'] = float('inf')
+                    result['next_s2_area'] = 368395560000000000 # ~- int(np.inf).... 100th Birthday
+
             else:
                 result[nxt] = x[i] - t
                 if label == 'event':
