@@ -37,26 +37,25 @@ class Proximity(hax.minitrees.TreeMaker):
 
     x denotes the object of interest, and could be either:
      - muon_veto_trigger.
-     - busy: a busy-on or busy-off signal
-     - hev: a high-energy veto on or -off signal
+     - busy_x: a busy-on or busy-off signal
+     - hev_x: a high-energy veto on or -off signal
      - event: any event (excluding itself :-)
      - 1e5_pe_event: any event with total peak area > 1e5 pe (excluding itself)
      - 3e5_pe_event: "" 3e5 pe "
      - 1e6_pe_event: "" 1e6 pe "
+     - s2_area: Area of main s2 in event
     """
-    __version__ = '0.0.11'
-    pax_version_independent = True          # Well, the total peak area could change with the gain... neglect this.
+    __version__ = '0.0.12'
+    pax_version_independent = False          # Now that we include S2 area it's not
 
-    branch_selection = ['event_number', 'start_time', 'stop_time']
-
-    aqm_labels = ['muon_veto_trigger', 'busy', 'hev']
+    aqm_labels = ['muon_veto_trigger', 'busy_on', 'hev_on', 'busy_off', 'hev_off', 'busy', 'hev']
 
     def get_data(self, dataset, event_list=None):
         aqm_pulses = get_aqm_pulses(dataset)
 
         # Load the fundamentals and totalproperties minitree
         # Yes, minitrees loading other minitrees, the fun has begun :-)
-        event_data = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'TotalProperties'])[0]
+        event_data = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'TotalProperties', 'Basics'])[0]
         # Note integer division here, not optional: float arithmetic is too inprecise
         # (fortuately our digitizer sampling resolution is an even number of nanoseconds...)
         event_data['center_time'] = event_data.event_time + event_data.event_duration // 2
@@ -66,7 +65,9 @@ class Proximity(hax.minitrees.TreeMaker):
                              [(boundary + 'pe_event', event_data[event_data.total_peak_area >
                                                                eval(boundary)].center_time.values)
                                   for boundary in ['1e5', '3e5', '1e6']] +
-                             [('event', event_data.center_time.values)])
+                             [('event', event_data.center_time.values)] 
+        )
+        self.s2s = event_data.s2.values
 
         # super() does not play nice with dask computations, for some reason
         return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
@@ -88,9 +89,13 @@ class Proximity(hax.minitrees.TreeMaker):
 
             if i == 0:
                 result[prev] = float('inf')
+                if label == 'event':
+                    result['previous_s2_area'] = float('inf')
             else:
                 result[prev] = t - x[i - 1]
-
+                if label == 'event':
+                    result['previous_s2_area'] = self.s2s[i - 1]
+                
             # Check if the sought-after object is exactly at t
             # This is always true if label == 'event', only very rarely for aqm signals.
             # (but then we don't want to advance the 'next' index, it's important that the signal
@@ -103,9 +108,13 @@ class Proximity(hax.minitrees.TreeMaker):
 
             if i == len(x):
                 result[nxt] = float('inf')
+                if label == 'event':
+                    result['next_s2_area'] = float('inf')
             else:
                 result[nxt] = x[i] - t
-
+                if label == 'event':
+                    result['next_s2_area'] = self.s2s[i]
+                    
             # Include the 'nearest' variable. This is negative if the nearest sought-after object
             # is in the past.
             tnr = 'nearest_' + label
@@ -114,4 +123,10 @@ class Proximity(hax.minitrees.TreeMaker):
             else:
                 result[tnr] = result[nxt]
 
+        # Need special logic for nearest s2 area
+        if result['nearest_event'] == result['previous_event']:
+            result['nearest_s2_area'] = result['previous_s2_area']
+        else:
+            result['nearest_s2_area'] = result['next_s2_area']
+            
         return result
