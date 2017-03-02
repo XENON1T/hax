@@ -65,7 +65,7 @@ class Proximity(hax.minitrees.TreeMaker):
                              [(boundary + 'pe_event', event_data[event_data.total_peak_area >
                                                                eval(boundary)].center_time.values)
                                   for boundary in ['1e5', '3e5', '1e6']] +
-                             [('event', event_data.center_time.values)] 
+                             [('event', event_data.center_time.values)]
         )
         self.s2s = event_data.s2.values
 
