@@ -114,7 +114,7 @@ class Proximity(hax.minitrees.TreeMaker):
                 result[nxt] = x[i] - t
                 if label == 'event':
                     result['next_s2_area'] = self.s2s[i]
-                    
+
             # Include the 'nearest' variable. This is negative if the nearest sought-after object
             # is in the past.
             tnr = 'nearest_' + label
