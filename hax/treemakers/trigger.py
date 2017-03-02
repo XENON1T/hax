@@ -128,5 +128,5 @@ class Proximity(hax.minitrees.TreeMaker):
             result['nearest_s2_area'] = result['previous_s2_area']
         else:
             result['nearest_s2_area'] = result['next_s2_area']
-            
+
         return result
