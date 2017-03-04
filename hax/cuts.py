@@ -187,6 +187,31 @@ def range_cuts(*args, **kwargs):
     range_selections(*args, **kwargs)
 
 
+def apply_lichen(data, lichen_names, lichen_file='sciencerun0'):
+    """Apply cuts defined by the lax lichen(s) lichen_names from the lichen_file to data.
+    """
+    # Support for single lichen
+    if isinstance(lichen_names, str):
+        lichen_names = [lichen_names]
+
+    try:
+        import lax
+    except ImportError:
+        print("You don't seem to have lax. A wise man once said software works better after you install it.")
+        raise
+
+    for l in lichen_names:
+        lichen = getattr(getattr(lax.lichens, lichen_file), lichen_name)
+
+        # .copy() to prevent pandas warning and pollution with new columns
+        d = lichen().process(data.copy())
+
+        data = cuts.selection(data,
+                              getattr(d, 'Cut' + q),
+                              desc='%s (lax %s)' % (q, lax.__version__))
+
+    return data
+
 ##
 # pandas.DataFrame.eval selections
 ##
