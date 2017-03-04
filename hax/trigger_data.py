@@ -39,7 +39,7 @@ def get_special_file_filename(basename, run_id, special_path_key=None):
             if os.path.exists(filename):
                 break
         else:
-            raise FileNotFoundError("Can't find %s for run %d" % (basename, run_id))
+            raise FileNotFoundError("Can't find %s for run %s" % (basename, run_id))
 
     return filename
 
