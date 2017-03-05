@@ -200,15 +200,15 @@ def apply_lichen(data, lichen_names, lichen_file='sciencerun0'):
         print("You don't seem to have lax. A wise man once said software works better after you install it.")
         raise
 
-    for l in lichen_names:
+    for lichen_name in lichen_names:
         lichen = getattr(getattr(lax.lichens, lichen_file), lichen_name)
 
         # .copy() to prevent pandas warning and pollution with new columns
         d = lichen().process(data.copy())
 
-        data = cuts.selection(data,
-                              getattr(d, 'Cut' + q),
-                              desc='%s (lax %s)' % (q, lax.__version__))
+        data = selection(data,
+                         getattr(d, 'Cut' + lichen_name),
+                         desc='%s (lax %s)' % (lichen_name, lax.__version__))
 
     return data
 
