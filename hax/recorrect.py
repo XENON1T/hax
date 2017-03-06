@@ -85,28 +85,25 @@ def recorrect_rz(data, new_map_file=pax_config['WaveformSimulator']['rz_position
 
 
 def recorrect_s1xyz(data,
-                     old_map_file='s1_xyz_XENON1T_kr83m_sep29_doublez.json',
                      new_map_file=pax_config['WaveformSimulator']['s1_light_yield_map']):
     """Recompute the S1(x,y,z) light yield correction.
     If you want to redo (r,z)(r,z), do it before doing this!
 
     :param data: Dataframe. Only Basics minitree required.
-    :param old_map_name: Filename of map used to process the data. Defaults to map used in pax v6.4.2
     :param new_map_name: Filename of map you want to use for the correction.
     :return: Dataframe with changed values in cs1 column
     """
 
-    old_map = InterpolatingMap(data_file_name(old_map_file))
     new_map = InterpolatingMap(data_file_name(new_map_file))
 
-    # Correction is a *division* factor (map contains light yield), so to un-correct we first multiply
+    # Correction is a *division* factor (map contains light yield)
     x = data.x.values
     y = data.y.values
     z = data.z.values
-    recorrection = np.zeros(len(data))
+    correction = np.zeros(len(data))
     for i in tqdm(range(len(data)), desc='Redoing S1(x,y,z) correction'):
-        recorrection[i] *= old_map.get_value(x[i], y[i], z[i]) / new_map.get_value(x[i], y[i], z[i])
+        correction[i] = 1 / new_map.get_value(x[i], y[i], z[i])
 
-    data['cs1'] *= recorrection
+    data['cs1'] = data['s1'] * correction
 
     return data
