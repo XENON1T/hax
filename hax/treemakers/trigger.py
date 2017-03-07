@@ -55,7 +55,7 @@ class Proximity(hax.minitrees.TreeMaker):
 
         # Load the fundamentals and totalproperties minitree
         # Yes, minitrees loading other minitrees, the fun has begun :-)
-        event_data = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'TotalProperties', 'Basics'])[0]
+        event_data = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
         # Note integer division here, not optional: float arithmetic is too inprecise
         # (fortuately our digitizer sampling resolution is an even number of nanoseconds...)
         event_data['center_time'] = event_data.event_time + event_data.event_duration // 2
@@ -67,7 +67,7 @@ class Proximity(hax.minitrees.TreeMaker):
                                   for boundary in ['1e5', '3e5', '1e6']] +
                              [('event', event_data.center_time.values)]
         )
-        self.s2s = event_data.s2.values
+        self.s2s = event_data.s2_area.values
 
         # super() does not play nice with dask computations, for some reason
         return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
@@ -104,8 +104,13 @@ class Proximity(hax.minitrees.TreeMaker):
                 # The real 'next' is one further:
                 i += 1
             else:
-                assert label != 'event'
-
+                try:
+                    assert label != 'event'
+                except:
+                    print(x[i])
+                    print(t)
+                    raise
+                    
             if i == len(x):
                 result[nxt] = 368395560000000000
                 if label == 'event':
