@@ -110,7 +110,7 @@ class Proximity(hax.minitrees.TreeMaker):
                     print(x[i])
                     print(t)
                     raise
-                    
+
             if i == len(x):
                 result[nxt] = 368395560000000000
                 if label == 'event':
@@ -159,6 +159,6 @@ class TailCut(hax.minitrees.TreeMaker):
         ls2 = self.s2_area[i-self.look_back:i]
         try:
             mp = max([ls2[i]/(tnow-ct[i]) for i in range(len(ct))])
-        except:
+        except Exception:
             mp = None
         return {"s2_over_tdiff": mp}
