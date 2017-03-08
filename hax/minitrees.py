@@ -519,13 +519,20 @@ def load_cache_file(cache_file):
     return result
 
 
-def save_cache_file(data, cache_file):
-    """Save minitree dataframe + cut history to a cache file"""
+def save_cache_file(data, cache_file, **kwargs):
+    """Save minitree dataframe + cut history to a cache file
+    Any kwargs will be passed to pandas HDFStore. Defaults are:
+        complib='blosc'
+        complevel=9
+    """
+    kwargs.setdefault('complib', 'blosc')
+    kwargs.setdefault('complevel', 9)
     dirname = os.path.dirname(cache_file)
     if dirname and not os.path.exists(dirname):
         os.makedirs(dirname)
-    store = pd.HDFStore(cache_file)
+    store = pd.HDFStore(cache_file, **kwargs)
     store.put('data', data)
+
     # Store the cuts history for the data
     store.get_storer('data').attrs.cut_history = cuts._get_history(data)
     store.close()
