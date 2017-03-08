@@ -104,12 +104,7 @@ class Proximity(hax.minitrees.TreeMaker):
                 # The real 'next' is one further:
                 i += 1
             else:
-                try:
-                    assert label != 'event'
-                except:
-                    print(x[i])
-                    print(t)
-                    raise
+                assert label != 'event'
 
             if i == len(x):
                 result[nxt] = 368395560000000000
@@ -142,8 +137,9 @@ class TailCut(hax.minitrees.TreeMaker):
 
     def get_data(self, dataset, event_list=None):
 
-        self.event_data = hax.minitrees.load_single_dataset(
-            dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
+        self.event_data = hax.minitrees.load_single_dataset(dataset, 
+                                                            ['Fundamentals', 'TotalProperties',
+                                                             'LargestPeakProperties'])[0]
         self.event_data['center_time'] = self.event_data.event_time + self.event_data.event_duration // 2
         self.center_time = self.event_data.center_time.values
         self.s2_area = self.event_data.s2_area.values
