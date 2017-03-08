@@ -135,3 +135,30 @@ class Proximity(hax.minitrees.TreeMaker):
             result['nearest_s2_area'] = result['next_s2_area']
 
         return result
+
+class TailCut(hax.minitrees.TreeMaker):
+
+    __version__ = '0.0.2'
+
+    def get_data(self, dataset, event_list=None):
+
+        self.event_data = hax.minitrees.load_single_dataset(
+            dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
+        self.event_data['center_time'] = self.event_data.event_time + self.event_data.event_duration // 2
+        self.center_time = self.event_data.center_time.values
+        self.s2_area = self.event_data.s2_area.values
+        self.look_back=50
+        return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
+
+    def extract_data(self, event):
+
+        i = event.event_number
+        tnow = (event.start_time + event.stop_time) // 2
+
+        ct = self.center_time[i-self.look_back:i]
+        ls2 = self.s2_area[i-self.look_back:i]
+        try:
+            mp = max([ls2[i]/(tnow-ct[i]) for i in range(len(ct))])
+        except:
+            mp = None
+        return {"s2_over_tdiff": mp}
