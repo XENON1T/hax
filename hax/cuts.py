@@ -60,6 +60,8 @@ def passthrough_message(passthrough_dict):
     desc = passthrough_dict['selection_desc']
     n_before = passthrough_dict['n_before']
     n_after = passthrough_dict['n_after']
+    if n_before == 0:
+        return "%s selection: nothing done since dataframe is already empty" % desc
     return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_after, n_after / n_before * 100)
 
 def selection(d, bools, desc=UNNAMED_DESCRIPTION,
