@@ -197,7 +197,7 @@ def get_run_info(run_id, projection_query=None):
     """Returns a dictionary with the runs database info for a given run_id.
     For XENON1T, this queries the runs db to get the complete run doc.
 
-    :param run_id: name or number, or list of such, of runs to query
+    :param run_id: name or number, or list of such, of runs to query. If giving a list, it must be sorted!
 
     :param projection_query: can be
       - None (default): the entire run doc will be returned
@@ -219,6 +219,10 @@ def get_run_info(run_id, projection_query=None):
     else:
         run_names = [get_run_name(run_id)]
 
+    if not run_names == sorted(run_names):
+        # We're going to ask mongo to return things in sorted order; user is not expecting this...
+        raise ValueError("When querying the values of multiple runs, you must supply a sorted list of run ids!")
+
     if hax.config['experiment'] == 'XENON100':
         if multi_run_mode or single_field_mode:
             raise NotImplementedError("For XENON100, only single-run, full run info queries are supported")
@@ -228,7 +232,7 @@ def get_run_info(run_id, projection_query=None):
         collection = get_rundb_collection()
         result = list(collection.find({'name': {'$in': run_names},
                                        'detector': hax.config['detector']},
-                                      pq))
+                                      pq).sort('name'))
         if len(result) == 0:
             raise ValueError("No runs matching %s found in run db!" % str(run_names))
         if len(result) > 1:
