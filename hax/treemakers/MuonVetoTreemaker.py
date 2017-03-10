@@ -1,3 +1,5 @@
+import hax
+
 class MuonVetoTreemaker(hax.minitrees.TreeMaker):
     """Computing properties of the Muon Veto Events
     
