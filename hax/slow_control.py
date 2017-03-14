@@ -155,6 +155,10 @@ def get_sc_data(names, run=None, start=None, end=None, url = None):
     r.raise_for_status()    # If there is an error, raise here instead of giving weird error later
 
     for entry in r.json():
+
+        if not isinstance(entry,dict):
+            continue
+
         dates.append(datetime.utcfromtimestamp(entry['timestampseconds']))
         values.append(entry['value'])
 
