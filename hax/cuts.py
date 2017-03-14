@@ -189,7 +189,7 @@ def range_cuts(*args, **kwargs):
     range_selections(*args, **kwargs)
 
 
-def apply_lichen(data, lichen_names, lichen_file='sciencerun0'):
+def apply_lichen(data, lichen_names, lichen_file='sciencerun0', **kwargs):
     """Apply cuts defined by the lax lichen(s) lichen_names from the lichen_file to data.
     """
     # Support for single lichen
@@ -210,7 +210,10 @@ def apply_lichen(data, lichen_names, lichen_file='sciencerun0'):
 
         data = selection(data,
                          getattr(d, 'Cut' + lichen_name),
-                         desc='%s (lax %s)' % (lichen_name, lax.__version__))
+                         desc=lichen_name + ((' v%d' % lichen.version)
+                                             if hasattr(lichen, 'version') and not np.isnan(lichen.version)
+                                             else (' (lax v%s)' % lax.__version__)),
+                         **kwargs)
 
     return data
 
