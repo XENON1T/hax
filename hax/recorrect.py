@@ -36,6 +36,8 @@ def recorrect_s2xy(data,
     :param old_map_file: Map filename that was used to process the dataframe. Defaults to the map used for 6.4.2
     :param new_map_file: Map filename that you want to use for the correction. Defaults to the pax config default.
     :return: dataframe with altered value in cS2 (and few added columns for uncorrected position)
+
+    TODO: This could be rewritten to use the extended minitrees, so the old map no longer needs to be specified.
     """
     data = data.copy()
     add_uncorrected_position(data)
@@ -55,7 +57,7 @@ def recorrect_s2xy(data,
     return data
 
 
-def recorrect_rz(data, new_map_file=pax_config['WaveformSimulator']['rz_position_distortion_map']):
+def recorrect_rz(data, new_map_file=None):
     """Recompute the (r,z)(r,z) field distortion correction
     Be sure to redo the S1(x,y,z) correction after this as well, whether or not the S1(x,y,z) map changed!
 
@@ -63,6 +65,10 @@ def recorrect_rz(data, new_map_file=pax_config['WaveformSimulator']['rz_position
     :param new_map_file: file with (r,z)(r,z) correction map to use. Defaults to map currently in pax config.
     :return: dataframe with altered values in x, y, z (and few added columns for uncorrected position)
     """
+    if new_map_file is None:
+        # Specified here, since older pax versions do not have this map defined
+        return pax_config['WaveformSimulator']['rz_position_distortion_map']
+
     data = data.copy()
     add_uncorrected_position(data)
 
