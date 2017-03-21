@@ -28,7 +28,8 @@ def get_filename(run_id):
     try:
         run_name = runs.get_run_name(run_id)
         filename = runs.datasets.loc[runs.datasets['name'] == run_name].iloc[0].location
-    except IndexError:
+    except (IndexError, AttributeError):
+        # Either we don't know this dataset, or runs.datasets is None (if runs db is not used)
         print("Don't know a run named %s, trying to find it anyway..." % run_id)
         filename = find_file_in_folders(run_id + '.root', hax.config['main_data_paths'])
     if not filename:
