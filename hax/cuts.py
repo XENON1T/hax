@@ -106,7 +106,11 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
                     print(passthrough_message(c))
                 return get_return_value()
 
-    # Actually do the cut
+    # Invert if needed
+    if _invert:
+        bools = True ^ bools
+
+    # Apply the selection
     d = d[bools]
 
     # Print and track the passthrough infos
