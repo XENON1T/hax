@@ -1,3 +1,8 @@
+1.4.4
+-----
+
+* unblind multiple scatter
+
 
 1.4.1
 -----
