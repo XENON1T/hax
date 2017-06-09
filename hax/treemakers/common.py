@@ -49,16 +49,18 @@ class Extended(TreeMaker):
      - alt_s2_interaction_z: Z position of interaction formed with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_s2_range_50p_area: S2 50% area width of interaction with main S1 + largest other S2
      - alt_s2_interaction_s2_range_80p_area: S2 80% area width of interaction with main S1 + largest other S2
+     - s1_area_fraction_top_probability: probability of s1 area fraction top given its reconstructed position
 
     See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.3'
+    __version__ = '0.0.4'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
                       'interactions.r_correction', 'interactions.z_correction',
                       'interactions.xy_posrec_goodness_of_fit',
-                      'peaks.largest_hit_area', 'peaks.left'
+                      'peaks.largest_hit_area', 'peaks.left',
+                      'interactions.s1_area_fraction_top_probability'
                      ]
 
     def extract_data(self, event):
@@ -89,6 +91,8 @@ class Extended(TreeMaker):
 
         result['r_pos_correction'] = interaction.r_correction
         result['z_pos_correction'] = interaction.z_correction
+
+        result['s1_area_fraction_top_probability'] = interaction.s1_area_fraction_top_probability
 
         for rp in s2.reconstructed_positions:
             if rp.algorithm == 'PosRecNeuralNet':
@@ -222,7 +226,7 @@ class LargestPeakProperties(TreeMaker):
     In other case you may want to combine this and Basics.
     """
     extra_branches = ['peaks.n_hits', 'peaks.hit_time_std', 'peaks.center_time',
-                      'peaks.n_saturated_channels', 'peaks.n_contributing_channels']
+                      'peaks.n_saturated_channels', 'peaks.n_contributing_channels', 'peaks.reconstructed_positions*']
     peak_types = ['s1', 's2', 'lone_hit', 'unknown']
     __version__ = '0.1'
 
