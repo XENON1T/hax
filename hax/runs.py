@@ -357,7 +357,7 @@ def _tag_match(tag, pattern, pattern_type, ignore_underscore):
 def is_blind(run_id):
     """Determine if a dataset should be blinded based on the runDB
 
-    :param run_id: name or number of the run to load
+    :param run_id: name or number of the run to check
 
     :returns : True if the blinding cut should be applied, False if not
     """
@@ -365,19 +365,27 @@ def is_blind(run_id):
         return False
 
     try:
-        tags = get_run_info(run_id, projection_query='tags')
-    except KeyError:
-        tags = []
+        run_data = get_run_info(run_id, projection_query={'tags': 1, 'number': 1, 'reader.ini.name': 1})
+
     except ValueError:
-        # Couldn't find in runDB so blind by default
+        # Couldn't find in runDB, so blind by default
         log.warning("Blinding by default since cannot find run.")
         return True
 
-    tag_names = [tag['name'] for tag in tags]
+    tag_names = [tag['name'] for tag in run_data.get('tags', [])]
+    number = run_data['number']
 
-    # underscore means that it is a protected tag
+    # Blind runs with explicit blinding tag, unblind runs with explicit unblinding tag.
+    # (underscore means that it is a protected tag)
     if 'blinded' in tag_names or '_blinded' in tag_names:
         return True
+    if 'unblinded' in tag_names or '_unblinded' in tag_names:
+        return False
 
+    # Blind runs past a configured run number
+    if number > hax.config.get('blind_from_run', float('inf')) and \
+            run_data['reader']['ini']['name'].starswith('background'):
+        return True
+
+    # Everything else is not blinded
     return False
-  
