@@ -3,16 +3,16 @@ import os
 import inspect
 from configparser import ConfigParser
 import socket
-import numba
-
+# from . import misc, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor, slow_control, \
+#    trigger_data, ipython, recorrect
+from . import runs, minitrees, slow_control
 __version__ = '1.4.4'
+
 
 # Stitch the package together
 # I am surprised this works (even if we do 'from hax' instead of 'from .')
 # as some of the modules do 'import hax' or 'from hax.foo import bar'.. shouldn't we get circular imports??
 # I need to read up on python packaging more...
-from . import misc, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor, \
-              slow_control, trigger_data, ipython, recorrect
 
 # Store the directory of hax (i.e. this file's directory) as HAX_DIR
 hax_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -52,7 +52,8 @@ def init(filename=None, **kwargs):
         config[key] = eval(value, {'hax_dir': hax_dir, 'os': os})
 
     # Set the logging level of the root logger (and therefore all loggers that don't have a special loglevel specified)
-    # This is better than basicConfig, which only works once in a python session (and pax already uses it :-()
+    # This is better than basicConfig, which only works once in a python
+    # session (and pax already uses it :-()
     logging.getLogger().setLevel(getattr(logging, config.get('log_level', 'INFO')))
     log.debug("Read in hax configuration file %s and set up logging" % filename)
 
@@ -64,13 +65,13 @@ def init(filename=None, **kwargs):
         config["raw_data_local_path"] = [config["raw_data_local_path"]]
 
     # Call some inits of the submodules
-    import hax
-    hax.runs.update_datasets()
-    hax.minitrees.update_treemakers()
-    hax.slow_control.init_sc_interface()
+    runs.update_datasets()
+    minitrees.update_treemakers()
+    slow_control.init_sc_interface()
 
     if not config['cax_key'] or config['cax_key'] == 'sorry_I_dont_have_one':
         log.warning("You're not at a XENON analysis facility, or hax can't detect at which analysis facility you are.")
         if config['pax_version_policy'] != 'loose':
-            raise ValueError("Outside an analysis facility you must explicitly set pax_version_policy = 'loose', "
-                             "to acknowledge you are not getting any version consistency checks.")
+            raise ValueError(
+                "Outside an analysis facility you must explicitly set pax_version_policy = 'loose', "
+                "to acknowledge you are not getting any version consistency checks.")

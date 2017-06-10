@@ -2,10 +2,11 @@ from hax.minitrees import MultipleRowExtractor
 import numpy as np
 import hax
 
+
 class PeakExtractor(MultipleRowExtractor):
     """Base class for reading peak data in minitrees. For more information, check out example 10 in hax/examples.
     """
-    
+
     # Default branch selection is EVERYTHING in peaks, overwrite for speed increase
     # Don't forget to include branches used in cuts
     extra_branches = ['peaks.*']
@@ -19,12 +20,14 @@ class PeakExtractor(MultipleRowExtractor):
     # Hacks for want of string support :'(
     peaktypes = dict(lone_hit=0, s1=1, s2=2, unknown=3)
     detectors = dict(tpc=0, veto=1, sum_wv=2, busy_on=3, busy_off=4)
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.event_cut_string = self.build_cut_string(self.event_cut_list, 'event')
-        self.peak_cut_string = self.build_cut_string(self.peak_cut_list, 'peak')          
-    
+        self.event_cut_string = self.build_cut_string(
+            self.event_cut_list, 'event')
+        self.peak_cut_string = self.build_cut_string(
+            self.peak_cut_list, 'peak')
+
     def build_cut_string(self, cut_list, obj):
         '''
         Build a string of cuts that can be applied using eval() function.
@@ -33,7 +36,10 @@ class PeakExtractor(MultipleRowExtractor):
         if len(cut_list) == 0:
             return 'True'
         # Check if user entered range_50p_area, since this won't work
-        cut_list = [cut.replace('range_50p_area','range_area_decile[5]') for cut in cut_list]
+        cut_list = [
+            cut.replace(
+                'range_50p_area',
+                'range_area_decile[5]') for cut in cut_list]
 
         cut_string = '('
         for cut in cut_list[:-1]:
@@ -44,7 +50,7 @@ class PeakExtractor(MultipleRowExtractor):
     def extract_data(self, event):
         if event.event_number == self.stop_after:
             raise hax.paxroot.StopEventLoop()
-        
+
         peak_data = []
         # Check if event passes cut
         if eval(self.build_cut_string(self.event_cut_list, 'event')):
@@ -74,9 +80,8 @@ class PeakExtractor(MultipleRowExtractor):
                         elif field == 'detector':
                             _x = self.detectors.get(peak.detector, -1)
                         else:
-                            _x = getattr(peak, field)  
-                            
-                        
+                            _x = getattr(peak, field)
+
                         _current_peak[field] = _x
                     # All properties added, now finish this peak
                     # The event number is necessary to join to event properties

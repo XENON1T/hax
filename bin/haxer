@@ -2,8 +2,8 @@
 import argparse
 import time
 import logging
-
 import hax
+from hax import minitrees, runs, slow_control
 
 parser = argparse.ArgumentParser(description="Make minitrees from pax root files.")
 

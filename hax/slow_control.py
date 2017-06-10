@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 import requests
 import logging
 
@@ -20,8 +20,9 @@ def get_sc_api_key():
     elif 'SC_API_KEY' in os.environ:
         return os.environ['SC_API_KEY']
     else:
-        raise ValueError('Please set the SC_API_KEY environment variable or the hax.sc_api_key option '
-                         'to access the slow control web API.')
+        raise ValueError(
+            'Please set the SC_API_KEY environment variable or the hax.sc_api_key option '
+            'to access the slow control web API.')
 
 
 def init_sc_interface():
@@ -30,9 +31,10 @@ def init_sc_interface():
 
     sc_variables = pd.read_csv(hax.config['sc_variable_list'])
 
-    # lowercase all the descriptions, so queries by description are case insensitive
-    sc_variables['Description'] = [x.lower() if not isinstance(x, float) else ''
-                                   for x in sc_variables['Description'].values]
+    # lowercase all the descriptions, so queries by description are case
+    # insensitive
+    sc_variables['Description'] = [x.lower() if not isinstance(
+        x, float) else '' for x in sc_variables['Description'].values]
 
 
 class UnknownSlowControlMonikerException(Exception):
@@ -47,7 +49,8 @@ def get_sc_name(name, column='Historian_name'):
     """Return slow control historian name of name.  You can pass
     a historian name, sc name, pid identifier, or description. For a full table, see hax.
     """
-    # Find out what variable we need to query. Try all possible slow control abbreviations/codes/etc
+    # Find out what variable we need to query. Try all possible slow control
+    # abbreviations/codes/etc
     for key in ['Historian_name', 'SC_Name', 'Pid_identifier', 'Description']:
         if key == 'Description':
             # For descriptions, we do an even fuzzier matching: look for descriptions which contain the passed string
@@ -61,7 +64,9 @@ def get_sc_name(name, column='Historian_name'):
         elif len(q) > 1:
             raise AmbiguousSlowControlMonikerException("'%s' has multiple mathching %ss: %s" %
                                                        (name, key, str(q[key].values)))
-    raise UnknownSlowControlMonikerException("Don't known any slow control moniker matching %s" % name)
+    raise UnknownSlowControlMonikerException(
+        "Don't known any slow control moniker matching %s" % name)
+
 
 def get_pmt_data_last_measured(run):
     """
@@ -80,10 +85,9 @@ def get_pmt_data_last_measured(run):
         "api_key": get_sc_api_key(),
     }
 
-    r = requests.get(hax.config['sc_api_url'].replace('GetSCData',
-                                                      'getLastMeasuredPMTValues'),
-                     params=params)
-    r.raise_for_status()  # If there is an error, raise here instead of giving weird error later
+    r = requests.get(hax.config['sc_api_url'].replace('GetSCData', 'getLastMeasuredPMTValues'), params=params)
+    # If there is an error, raise here instead of giving weird error later
+    r.raise_for_status()
 
     response = r.json()
 
@@ -97,7 +101,8 @@ def get_pmt_data_last_measured(run):
 
     return answer
 
-def get_sc_data(names, run=None, start=None, end=None, url = None):
+
+def get_sc_data(names, run=None, start=None, end=None, url=None):
     """
     Retrieve the data from the historian database (hax.slow_control.get is just a synonym of this function)
 
@@ -152,11 +157,12 @@ def get_sc_data(names, run=None, start=None, end=None, url = None):
 
     r = requests.get(url,
                      params=params)
-    r.raise_for_status()    # If there is an error, raise here instead of giving weird error later
+    # If there is an error, raise here instead of giving weird error later
+    r.raise_for_status()
 
     for entry in r.json():
 
-        if not isinstance(entry,dict):
+        if not isinstance(entry, dict):
             continue
 
         dates.append(datetime.utcfromtimestamp(entry['timestampseconds']))

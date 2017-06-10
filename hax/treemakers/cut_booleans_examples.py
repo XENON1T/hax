@@ -19,7 +19,6 @@ class EnergyCut(TreeMaker):
 
     def extract_data(self, event):
         # If there are no interactions at all, we can't extract anything...
-        event_data = dict()
 
         good_s1 = False
         good_s2 = False

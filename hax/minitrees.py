@@ -18,7 +18,8 @@ from .minitree_formats import get_format
 
 log = logging.getLogger('hax.minitrees')
 
-# update_treemakers() will update this to contain all treemakers included with hax
+# update_treemakers() will update this to contain all treemakers included
+# with hax
 TREEMAKERS = {}
 
 
@@ -37,11 +38,16 @@ class TreeMaker(object):
     """
     cache_size = 5000
     branch_selection = None     # List of branches to load during iteration over events
-    extra_branches = tuple()    # If the above is empty, load basic branches (set in hax.config) plus these.
-    uses_arrays = False         # Set to True if your treemaker returns array values. This will trigger a different
-                                # root file saving code.
+    # If the above is empty, load basic branches (set in hax.config) plus
+    # these.
+    extra_branches = tuple()
+    # Set to True if your treemaker returns array values. This will trigger a
+    # different
+    uses_arrays = False
+    # root file saving code.
 
-    # Set this to true if the treemaker results do not change with the pax version (e.g. for trigger information)
+    # Set this to true if the treemaker results do not change with the pax
+    # version (e.g. for trigger information)
     pax_version_independent = False
 
     def __init__(self):
@@ -95,7 +101,6 @@ class TreeMaker(object):
         self.cache = []
 
 
-
 class MultipleRowExtractor(TreeMaker):
     """Base class for treemakers that return a list of dictionaries in extract_data.
     These treemakers can produce anywhere from zeroto  or many rows for a single event.
@@ -131,10 +136,14 @@ def update_treemakers():
         __import__('hax.treemakers.%s' % module_name, globals=globals())
 
         # Now get all the treemakers defined in the module
-        for tm_name, tm in inspect.getmembers(getattr(hax.treemakers, module_name),
-                                                      lambda x: type(x) == type and issubclass(x, TreeMaker)):
+        for tm_name, tm in inspect.getmembers(
+            getattr(
+                hax.treemakers, module_name), lambda x: isinstance(
+                x, type) and issubclass(
+                x, TreeMaker)):
             if tm_name == 'TreeMaker':
-                # This one is the base class; we get it because we did from ... import TreeMaker at the top of the file
+                # This one is the base class; we get it because we did from ...
+                # import TreeMaker at the top of the file
                 continue
             if tm_name in TREEMAKERS:
                 raise ValueError("Two treemakers named %s!" % tm_name)
@@ -165,7 +174,8 @@ def check(run_id, treemaker, force_reload=False):
     preferred_format = hax.config['preferred_minitree_format']
 
     # If we need to remake the minitree, where would we place it?
-    minitree_filename = _minitree_filename(run_name, treemaker_name, preferred_format)
+    minitree_filename = _minitree_filename(
+        run_name, treemaker_name, preferred_format)
     creation_dir = hax.config['minitree_paths'][0]
     if not os.path.exists(creation_dir):
         os.makedirs(creation_dir)
@@ -179,7 +189,8 @@ def check(run_id, treemaker, force_reload=False):
 
     # Find the file
     try:
-        minitree_path = find_file_in_folders(minitree_filename, hax.config['minitree_paths'])
+        minitree_path = find_file_in_folders(
+            minitree_filename, hax.config['minitree_paths'])
     except FileNotFoundError:
         # Maybe it exists, but was made in a non-preferred file format
         log.debug("Minitree %s not found" % minitree_filename)
@@ -207,12 +218,15 @@ def check(run_id, treemaker, force_reload=False):
 
     # Check if the minitree has an outdated treemaker version
     if LooseVersion(minitree_metadata['version']) < treemaker.__version__:
-        log.debug("Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" % (
-            minitree_path, minitree_metadata['version'], treemaker.__version__))
+        log.debug(
+            "Minitreefile %s is outdated (version %s, treemaker is version %s), will be recreated" %
+            (minitree_path, minitree_metadata['version'], treemaker.__version__))
         return sorry_not_available
 
-    # Check for incompatible hax version (e.g. event_number and run_number columns not yet included in each minitree)
-    if (LooseVersion(minitree_metadata.get('hax_version', '0.0')) < hax.config['minimum_minitree_hax_version']):
+    # Check for incompatible hax version (e.g. event_number and run_number
+    # columns not yet included in each minitree)
+    if (LooseVersion(minitree_metadata.get('hax_version', '0.0'))
+            < hax.config['minimum_minitree_hax_version']):
         log.debug("Minitreefile %s is from an incompatible hax version and must be recreated" % minitree_path)
         return sorry_not_available
 
@@ -228,17 +242,22 @@ def check(run_id, treemaker, force_reload=False):
         try:
             pax_metadata = hax.paxroot.get_metadata(run_name)
         except FileNotFoundError:
-            log.warning("Minitree %s was found, but the main data root file was not. "
-                        "Your version policy is 'latest', but I can't check whether you really have the latest... "
-                        "I'll load the cached minitree and assume you know what you are doing." % minitree_path)
+            log.warning(
+                "Minitree %s was found, but the main data root file was not. "
+                "Your version policy is 'latest', but I can't check whether you really have the latest... "
+                "I'll load the cached minitree and assume you know what you are doing." % minitree_path)
         else:
             if ('pax_version' not in minitree_metadata or
                     LooseVersion(minitree_metadata['pax_version']) <
-                        LooseVersion(pax_metadata['file_builder_version'])):
-                log.debug("Minitreefile %s is from an outdated pax version (pax %s, %s available), "
-                          "will be recreated." % (minitree_path,
-                                                  minitree_metadata.get('pax_version', 'not known'),
-                                                  pax_metadata['file_builder_version']))
+                    LooseVersion(pax_metadata['file_builder_version'])):
+                log.debug(
+                    "Minitreefile %s is from an outdated pax version (pax %s, %s available), "
+                    "will be recreated." %
+                    (minitree_path,
+                     minitree_metadata.get(
+                         'pax_version',
+                         'not known'),
+                        pax_metadata['file_builder_version']))
                 return sorry_not_available
 
     elif version_policy == 'loose':
@@ -246,10 +265,12 @@ def check(run_id, treemaker, force_reload=False):
         pass
 
     else:
-        if not hax.runs.version_is_consistent_with_policy(minitree_metadata.get('pax_version', 'unknown')):
-            log.debug("Minitree found from pax version %s, but you required pax version %s. "
-                      "Will attempt to create it from the main root file." % (minitree_metadata['pax_version'],
-                                                                              version_policy))
+        if not hax.runs.version_is_consistent_with_policy(
+                minitree_metadata.get('pax_version', 'unknown')):
+            log.debug(
+                "Minitree found from pax version %s, but you required pax version %s. "
+                "Will attempt to create it from the main root file." %
+                (minitree_metadata['pax_version'], version_policy))
             return sorry_not_available
 
     return treemaker, True, minitree_path
@@ -283,32 +304,42 @@ def load_single_minitree(run_id,
         save_file = False
         force_reload = True
 
-    treemaker, already_made, minitree_path = check(run_id, treemaker, force_reload=force_reload)
+    treemaker, already_made, minitree_path = check(
+        run_id, treemaker, force_reload=force_reload)
 
     if already_made:
         return get_format(minitree_path).load_data()
 
     if not hax.config['make_minitrees']:
         # The user didn't want me to make a new minitree :-(
-        raise NoMinitreeAvailable("Minitree %s:%s not created since make_minitrees is False." % (
-                run_id, treemaker.__name__))
+        raise NoMinitreeAvailable(
+            "Minitree %s:%s not created since make_minitrees is False." %
+            (run_id, treemaker.__name__))
 
     # We have to make the minitree file
     # This will raise FileNotFoundError if the root file is not found
     skimmed_data = treemaker().get_data(run_id, event_list=event_list)
 
-    log.debug("Retrieved %s minitree data for dataset %s" % (treemaker.__name__, run_id))
+    log.debug(
+        "Retrieved %s minitree data for dataset %s" %
+        (treemaker.__name__, run_id))
 
-    metadata_dict = dict(version=treemaker.__version__,
-                         pax_version=hax.paxroot.get_metadata(run_id)['file_builder_version'],
-                         hax_version=hax.__version__,
-                         created_by=get_user_id(),
-                         event_list=event_list,
-                         documentation=treemaker.__doc__,
-                         timestamp=str(datetime.now()))
+    metadata_dict = dict(
+        version=treemaker.__version__,
+        pax_version=hax.paxroot.get_metadata(run_id)['file_builder_version'],
+        hax_version=hax.__version__,
+        created_by=get_user_id(),
+        event_list=event_list,
+        documentation=treemaker.__doc__,
+        timestamp=str(
+            datetime.now()))
 
     if save_file:
-        get_format(minitree_path, treemaker).save_data(metadata_dict, skimmed_data)
+        get_format(
+            minitree_path,
+            treemaker).save_data(
+            metadata_dict,
+            skimmed_data)
 
     if return_metadata:
         return metadata_dict, skimmed_data
@@ -343,7 +374,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
 
     for treemaker in treemakers:
         try:
-            dataset_frame = load_single_minitree(run_id, treemaker, force_reload=force_reload, event_list=event_list)
+            dataset_frame = load_single_minitree(
+                run_id, treemaker, force_reload=force_reload, event_list=event_list)
         except NoMinitreeAvailable as e:
             log.debug(str(e))
             return pd.DataFrame([], columns=['event_number', 'run_number']), []
@@ -360,8 +392,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     # Apply the blinding cut if required. Normally this is already done by minitrees.load, but perhaps someone calls
     # load_single_dataset_directly.
     if (hax.config['blinding_cut'] not in preselection and
-          ('Basics' in treemakers or hax.treemakers.common.Basics in treemakers) and
-          hax.runs.is_blind(run_id)):
+        ('Basics' in treemakers or hax.treemakers.common.Basics in treemakers) and
+            hax.runs.is_blind(run_id)):
         preselection = [hax.config['blinding_cut']] + preselection
 
     # Apply pre-selection cuts before moving on to the next dataset
@@ -374,13 +406,24 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
 def _merge_minitrees(mt1, mt2):
     """Returns merger of minitree dataframes mt1 and mt2, which have the same """
     # To avoid creation of duplicate columns (which will get _x and _y suffixes),
-    # look which column names already exist and do not include them in the merge
-    cols_to_use = ['run_number', 'event_number'] + mt2.columns.difference(mt1.columns).tolist()
-    return pd.merge(mt2[cols_to_use], mt1, on=['run_number', 'event_number'], how='inner')
+    # look which column names already exist and do not include them in the
+    # merge
+    cols_to_use = ['run_number', 'event_number'] + \
+        mt2.columns.difference(mt1.columns).tolist()
+    return pd.merge(
+        mt2[cols_to_use], mt1, on=[
+            'run_number', 'event_number'], how='inner')
 
 
-def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselection=None, force_reload=False,
-         delayed=False, num_workers=1, compute_options=None, cache_file=None, remake_cache=False):
+def load(datasets=None,
+         treemakers=tuple(['Fundamentals', 'Basics']),
+         preselection=None,
+         force_reload=False,
+         delayed=False,
+         num_workers=1,
+         compute_options=None,
+         cache_file=None,
+         remake_cache=False):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
 
     :param datasets: names or numbers of datasets (without .root) to load
@@ -409,13 +452,14 @@ def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselecti
     import dask
     import dask.multiprocessing
     import dask.dataframe
-    
+
     if cache_file and not remake_cache and os.path.exists(cache_file):
         # We don't have to do anything and can just load from the cache file
         return load_cache_file(cache_file)
 
     if datasets is None:
-        raise ValueError("If you're not loading from a cache file, specify at least some datasets to load")
+        raise ValueError(
+            "If you're not loading from a cache file, specify at least some datasets to load")
     if isinstance(preselection, str):
         preselection = [preselection]
     if preselection is None:
@@ -431,41 +475,47 @@ def load(datasets=None, treemakers=tuple(['Fundamentals', 'Basics']), preselecti
 
     # If the blinding cut is required for any of the datasets, apply it to all of them.
     # This avoids crashing or paradoxical cut histories.
-    if (hax.config['blinding_cut'] not in preselection and
-          ('Basics' in treemakers or hax.treemakers.common.Basics in treemakers)):
+    if (hax.config['blinding_cut'] not in preselection and (
+            'Basics' in treemakers or hax.treemakers.common.Basics in treemakers)):
         is_blind = [hax.runs.is_blind(run_id) for run_id in datasets]
         if any(is_blind):
             if not all(is_blind):
-                log.warning("You're mixing blind and unblind datasets. "
-                            "The blinding cut will be applied to all data you're loading.")
+                log.warning(
+                    "You're mixing blind and unblind datasets. "
+                    "The blinding cut will be applied to all data you're loading.")
             preselection = [hax.config['blinding_cut']] + preselection
 
     partial_results = []
     partial_histories = []
     for dataset in datasets:
-        mashup = dask.delayed(load_single_dataset)(dataset, treemakers, preselection, force_reload=force_reload)
+        mashup = dask.delayed(load_single_dataset)(
+            dataset, treemakers, preselection, force_reload=force_reload)
         partial_results.append(dask.delayed(lambda x: x[0])(mashup))
         partial_histories.append(dask.delayed(lambda x: x[1])(mashup))
 
-    result = dask.dataframe.from_delayed(partial_results, meta=partial_results[0].compute())
+    result = dask.dataframe.from_delayed(
+        partial_results, meta=partial_results[0].compute())
 
     if not delayed:
         # Dask doesn't seem to want to descend into the lists beyond the first.
-        # So we mash things into one list before calling compute, then split it again
+        # So we mash things into one list before calling compute, then split it
+        # again
         mashedup_result = dask.compute(*([result] + partial_histories),
                                        num_workers=num_workers, **compute_options)
         result = mashedup_result[0]
 
         if 'index' in result.columns:
             # Clean up index, remove 'index' column
-            # Probably we're doing something weird with pandas, this doesn't seem like the well-trodden path...
+            # Probably we're doing something weird with pandas, this doesn't
+            # seem like the well-trodden path...
             log.debug("Removing weird index column")
             result.drop('index', axis=1, inplace=True)
             result = result.reset_index()
             result.drop('index', axis=1, inplace=True)
 
         # Combine the histories of partial results.
-        # For unavailable minitrees, the histories will be empty: filter these empty histories out
+        # For unavailable minitrees, the histories will be empty: filter these
+        # empty histories out
         partial_histories = mashedup_result[1:]
         partial_histories = [x for x in partial_histories if len(x)]
         if len(partial_histories):
@@ -502,9 +552,7 @@ def extend(data, treemakers):
     """
     new_minitrees = []
     for run_number, events in pd.groupby(data, 'run_number'):
-        new_minitrees.append(load_single_dataset(run_number,
-                                                 treemakers,
-                                                 event_list=events.event_number.values)[0])
+        new_minitrees.append(load_single_dataset(run_number, treemakers, event_list=events.event_number.values)[0])
     result = _merge_minitrees(data, pd.concat(new_minitrees))
     result.cut_history = data.cut_history
     return result
@@ -541,7 +589,7 @@ def save_cache_file(data, cache_file, **kwargs):
 def get_treemaker_name_and_class(tm):
     """Return (name, class) of treemaker name or class tm"""
     if isinstance(tm, str):
-        if not tm in TREEMAKERS:
+        if tm not in TREEMAKERS:
             raise ValueError("No TreeMaker named %s known to hax!" % tm)
         tm_name, tm_class = tm, TREEMAKERS[tm]
     elif isinstance(tm, type) and issubclass(tm, TreeMaker):

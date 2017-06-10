@@ -90,8 +90,7 @@ def recorrect_rz(data, new_map_file=None):
     return data
 
 
-def recorrect_s1xyz(data,
-                     new_map_file=pax_config['WaveformSimulator']['s1_light_yield_map']):
+def recorrect_s1xyz(data, new_map_file=pax_config['WaveformSimulator']['s1_light_yield_map']):
     """Recompute the S1(x,y,z) light yield correction.
     If you want to redo (r,z)(r,z), do it before doing this!
 

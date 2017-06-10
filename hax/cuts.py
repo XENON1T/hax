@@ -18,6 +18,7 @@ UNNAMED_DESCRIPTION = 'Unnamed'
 # Cut history tracking
 ##
 
+
 def history(d):
     """Return pandas dataframe describing cuts history on dataframe."""
     if not hasattr(d, 'cut_history'):
@@ -55,6 +56,7 @@ def record_combined_histories(d, partial_histories, quiet=None):
 # Cut helper functions
 ##
 
+
 def passthrough_message(passthrough_dict):
     """Prints passthrough info given dictionary with selection_desc, n_before, n_after"""
     desc = passthrough_dict['selection_desc']
@@ -62,10 +64,12 @@ def passthrough_message(passthrough_dict):
     n_after = passthrough_dict['n_after']
     if n_before == 0:
         return "%s selection: nothing done since dataframe is already empty" % desc
-    return "%s selection: %d rows removed (%0.2f%% passed)" % (desc, n_before - n_after, n_after / n_before * 100)
+    return "%s selection: %d rows removed (%0.2f%% passed)" % (
+        desc, n_before - n_after, n_after / n_before * 100)
 
-def selection(d, bools, desc=UNNAMED_DESCRIPTION,
-              return_passthrough_info=False, quiet=None, _invert=False, force_repeat=False):
+
+def selection(d, bools, desc=UNNAMED_DESCRIPTION, return_passthrough_info=False, quiet=None, _invert=False,
+              force_repeat=False):
     """Returns d[bools], print out passthrough info.
      - data on which to perform the selection (pandas dataframe)
      - bools: boolean array of same length as d. If True, row will be in selection returned.
@@ -100,7 +104,7 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
         # Check if this cut has already been done
         for c in prev_cuts:
             if c['selection_desc'] == desc:
-                log.debug("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat. "
+                log.debug("%s selection already performed on this data; cut skipped. Use force_repeat=True to repeat."
                           "Showing historical passthrough info." % desc)
                 if not quiet:
                     print(passthrough_message(c))
@@ -122,27 +126,33 @@ def selection(d, bools, desc=UNNAMED_DESCRIPTION,
 
     return get_return_value()
 
+
 def cut(d, bools, **kwargs):
     """Same as do_selection, with bools inverted. That is, specify which rows you do NOT want to select."""
     return selection(d, True ^ bools, **kwargs)
+
 
 def notnan(d, axis, **kwargs):
     """Require that d[axis] is not NaN. See selection for options and return value."""
     kwargs.setdefault('desc', '%s not NaN' % axis)
     return selection(d, d[axis].notnull(), **kwargs)
 
+
 def isfinite(d, axis, **kwargs):
     """Require d[axis] finite. See selection for options and return value."""
     kwargs.setdefault('desc', 'Finite %s' % axis)
     if isinstance(d, dask.dataframe.DataFrame):
-        raise NotImplementedError("isfinite not yet implemented for delayed computations. "
-                                  "Maybe cuts.notnan suffices?")
+        raise NotImplementedError(
+            "isfinite not yet implemented for delayed computations. "
+            "Maybe cuts.notnan suffices?")
     return selection(d, np.isfinite(d[axis]), **kwargs)
+
 
 def above(d, axis, threshold, **kwargs):
     """Require d[axis] > threshold. See selection for options and return value."""
     kwargs.setdefault('desc', '%s above %s' % (axis, threshold))
     return selection(d, d[axis] > threshold, **kwargs)
+
 
 def below(d, axis, threshold, **kwargs):
     """Require d[axis] < threshold. See selection for options and return value."""
@@ -212,18 +222,17 @@ def apply_lichen(data, lichen_names, lichen_file='sciencerun0', **kwargs):
         # .copy() to prevent pandas warning and pollution with new columns
         d = lichen().process(data.copy())
 
-        data = selection(data,
-                         getattr(d, 'Cut' + lichen_name),
+        data = selection(data, getattr(d, 'Cut' + lichen_name),
                          desc=lichen_name + ((' v%d' % lichen.version)
                                              if hasattr(lichen, 'version') and not np.isnan(lichen.version)
-                                             else (' (lax v%s)' % lax.__version__)),
-                         **kwargs)
+                                             else (' (lax v%s)' % lax.__version__)), **kwargs)
 
     return data
 
 ##
 # pandas.DataFrame.eval selections
 ##
+
 
 def eval_selection(d, eval_string, **kwargs):
     """Apply a selection specified by a pandas.DataFrame.eval string that returns the boolean array.

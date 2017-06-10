@@ -112,7 +112,7 @@ def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'
             # This is an array field. Find or create its 'length branch',
             # needed for saving the array to root (why exactly? Wouldn't a vector work?)
             length_branch_name = branch_name + '_length'
-            if not length_branch_name in dataframe.columns:
+            if length_branch_name not in dataframe.columns:
                 dataframe[length_branch_name] = np.array([len(x) for x in dataframe[branch_name]], dtype=np.int64)
                 single_value_keys.append(length_branch_name)
                 branches[length_branch_name] = np.array([0])
@@ -135,7 +135,7 @@ def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'
             branch_type = 'D'
             branches[branch_name] = np.zeros(max_length, dtype=np.float64)
         else:
-            raise TypeError('Branches must contain ints, floats, or arrays of ints or floats' )
+            raise TypeError('Branches must contain ints, floats, or arrays of ints or floats')
         branch_types[branch_name] = branch_type
 
     # creating branches

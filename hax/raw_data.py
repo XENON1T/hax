@@ -81,8 +81,7 @@ def raw_events(run_id, event_numbers=None, config_override=None):
     # Combine the users config_override with the options necessary to get pax to spit out raw events
     config_override.setdefault('pax', {})
     pax_config_dict = {'plugin_group_names': ['input', 'preprocessing', 'output'],
-                       'preprocessing':      ['CheckPulses.SortPulses',
-                                              'CheckPulses.ConcatenateAdjacentPulses',],
+                       'preprocessing':      ['CheckPulses.SortPulses', 'CheckPulses.ConcatenateAdjacentPulses', ],
                        'output':             'Dummy.DummyOutput',
                        'encoder_plugin':     None}
     for k, v in pax_config_dict.items():
@@ -202,6 +201,7 @@ def cleanup_temporary_data_files():
     """
     for tempfile_path in temporary_data_files.values():
         os.remove(tempfile_path)
+
 
 atexit.register(cleanup_temporary_data_files)
 

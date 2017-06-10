@@ -7,8 +7,6 @@ from glob import glob
 import os
 import fnmatch
 import re
-
-from tqdm import tqdm
 import pandas as pd
 import pymongo
 import numpy as np
@@ -19,7 +17,8 @@ from hax.utils import flatten_dict
 log = logging.getLogger('hax.runs')
 
 # This will hold the dataframe containing dataset info
-# DO NOT import this directly (from hax.runs import datasets), you will just get None!
+# DO NOT import this directly (from hax.runs import datasets), you will
+# just get None!
 datasets = None
 
 rundb_client = None
@@ -65,8 +64,7 @@ def update_datasets(query=None):
         for rundbfile in glob(os.path.join(hax.config['runs_info_dir'], '*.csv')):
             tpc, run = os.path.splitext(os.path.basename(rundbfile))[0].split('_')
             dsets = pd.read_csv(rundbfile)
-            dsets = pd.concat((dsets, pd.DataFrame([{'tpc': tpc, 'run': run}] * len(dsets))),
-                              axis=1)
+            dsets = pd.concat((dsets, pd.DataFrame([{'tpc': tpc, 'run': run}] * len(dsets))), axis=1)
             if datasets is not None and len(datasets):
                 datasets = pd.concat((datasets, dsets), ignore_index=True)
             else:
@@ -82,14 +80,15 @@ def update_datasets(query=None):
 
         log.debug("Updating datasets from runs database... ")
         cursor = collection.find(query,
-                                ['name', 'number', 'start', 'end', 'source',
-                                 'reader.self_trigger', 'reader.ini.name',
-                                 'trigger.events_built', 'trigger.status',
-                                 'tags.name',
-                                 'data'])
+                                 ['name', 'number', 'start', 'end', 'source',
+                                  'reader.self_trigger', 'reader.ini.name',
+                                  'trigger.events_built', 'trigger.status',
+                                  'tags.name',
+                                  'data'])
         for doc in cursor:
             # Process and flatten the doc
-            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])  # Convert tags to single string
+            # Convert tags to single string
+            doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])
             doc = flatten_dict(doc, separator='__')
             del doc['_id']  # Remove the Mongo document ID
             if 'data' in doc:
@@ -109,17 +108,18 @@ def update_datasets(query=None):
 
                 if version_policy != 'latest':
                     # Filter out versions not consistent with the version policy.
-                    # We will take the latest of the remaining ones later later.
-                    processed_data_docs = [d for d in processed_data_docs
-                                           if version_is_consistent_with_policy(d['pax_version'])]
+                    # We will take the latest of the remaining ones later
+                    processed_data_docs = [
+                        d for d in processed_data_docs if version_is_consistent_with_policy(d['pax_version'])]
 
-                # If there is a processed data consistent with the version policy, set its location
+                # If there is a processed data consistent with the version
+                # policy, set its location
                 doc['location'] = ''
                 doc['pax_version'] = ''
                 if len(processed_data_docs):
-                    # Take the data doc with the most recent policy-consistent pax version
-                    data_we_take = max(processed_data_docs,
-                                       key=lambda x: LooseVersion(x['pax_version']))
+                    # Take the data doc with the most recent policy-consistent
+                    # pax version
+                    data_we_take = max(processed_data_docs, key=lambda x: LooseVersion(x['pax_version']))
                     doc['location'] = data_we_take['location']
                     doc['pax_version'] = data_we_take['pax_version'][1:]
 
@@ -129,21 +129,21 @@ def update_datasets(query=None):
         log.debug("... done.")
 
     # These may or may not have been set already:
-    if not 'pax_version' in datasets:
+    if 'pax_version' not in datasets:
         datasets['pax_version'] = [''] * len(datasets)
-    if not 'location' in datasets:
+    if 'location' not in datasets:
         datasets['location'] = [''] * len(datasets)
-    if not 'raw_data_subfolder' in datasets:
+    if 'raw_data_subfolder' not in datasets:
         datasets['raw_data_subfolder'] = [''] * len(datasets)
-    if not 'raw_data_found' in datasets:
+    if 'raw_data_found' not in datasets:
         datasets['raw_data_found'] = [False] * len(datasets)
-    if not 'raw_data_used_local_path' in datasets:
+    if 'raw_data_used_local_path' not in datasets:
         datasets['raw_data_used_local_path'] = [''] * len(datasets)
     dataset_names = datasets['name'].values
 
     if version_policy == 'loose':
         # Walk through main_data_paths, looking for root files
-        # Reversed, since if we find a dataset again, we overwrite, and 
+        # Reversed, since if we find a dataset again, we overwrite, and
         # usually people put first priority stuff at the front.
         for data_dir in reversed(hax.config.get('main_data_paths', [])):
             for candidate in glob(os.path.join(data_dir, '*.root')):
@@ -155,19 +155,24 @@ def update_datasets(query=None):
                     datasets.loc[bla[0], 'location'] = candidate
 
     # For the raw data, we may need to look in subfolders ('run_10' etc)
-    # don't do os.path.exist for each dataset, it will take minutes, at least over sshfs
+    # don't do os.path.exist for each dataset, it will take minutes, at least
+    # over sshfs
     if hax.config['raw_data_access_mode'] == 'local':
         for raw_data_path in hax.config['raw_data_local_path']:
-            for subfolder, dsets_in_subfolder in datasets.groupby('raw_data_subfolder'):
+            for subfolder, dsets_in_subfolder in datasets.groupby(
+                    'raw_data_subfolder'):
                 subfolder_path = os.path.join(raw_data_path, subfolder)
                 if not os.path.exists(subfolder_path):
-                    log.debug("Folder %s not found when looking for raw data" % subfolder_path)
+                    log.debug(
+                        "Folder %s not found when looking for raw data" %
+                        subfolder_path)
                     continue
                 for candidate in os.listdir(subfolder_path):
                     bla = np.where(dataset_names == candidate)[0]
                     if len(bla):
                         if not datasets.loc[bla[0], 'raw_data_found']:
-                            datasets.loc[bla[0], 'raw_data_used_local_path'] = raw_data_path
+                            datasets.loc[bla[0],
+                                         'raw_data_used_local_path'] = raw_data_path
                         datasets.loc[bla[0], 'raw_data_found'] = True
 
 
@@ -192,6 +197,7 @@ def version_is_consistent_with_policy(version):
         if version[i] != vp[i]:
             return False
     return True
+
 
 def get_run_info(run_id, projection_query=None):
     """Returns a dictionary with the runs database info for a given run_id.
@@ -220,12 +226,15 @@ def get_run_info(run_id, projection_query=None):
         run_names = [get_run_name(run_id)]
 
     if not run_names == sorted(run_names):
-        # We're going to ask mongo to return things in sorted order; user is not expecting this...
-        raise ValueError("When querying the values of multiple runs, you must supply a sorted list of run ids!")
+        # We're going to ask mongo to return things in sorted order; user is
+        # not expecting this...
+        raise ValueError(
+            "When querying the values of multiple runs, you must supply a sorted list of run ids!")
 
     if hax.config['experiment'] == 'XENON100':
         if multi_run_mode or single_field_mode:
-            raise NotImplementedError("For XENON100, only single-run, full run info queries are supported")
+            raise NotImplementedError(
+                "For XENON100, only single-run, full run info queries are supported")
         return datasets[np.in1d(datasets['name'], run_names)].iloc[0].to_dict()
 
     elif hax.config['experiment'] == 'XENON1T':
@@ -250,6 +259,7 @@ def get_run_info(run_id, projection_query=None):
             return result
         return result[0]
 
+
 get_dataset_info = get_run_info    # Synonym
 
 
@@ -269,8 +279,9 @@ def get_run_name(run_id):
     try:
         return datasets_query('number == %d' % run_id)[0]
     except Exception as e:
-        print("Could not find run name for %s, got exception %s: %s. Setting run name to 'unknown'" % (
-            run_id, type(e), str(e)))
+        print(
+            "Could not find run name for %s, got exception %s: %s. Setting run name to 'unknown'" %
+            (run_id, type(e), str(e)))
         return "unknown"
 
 
@@ -280,7 +291,8 @@ def get_run_number(run_id):
         return int(run_id)
     try:
         if hax.config['experiment'] == 'XENON100':
-            # Convert from XENON100 dataset name (like xe100_120402_2000) to number
+            # Convert from XENON100 dataset name (like xe100_120402_2000) to
+            # number
             if run_id.startswith('xe100_'):
                 run_id = run_id[6:]
             run_id = run_id.replace('_', '')
@@ -289,8 +301,9 @@ def get_run_number(run_id):
 
         return datasets.query('name == "%s"' % run_id)['number'].values[0]
     except Exception as e:
-        print("Could not find run number for %s, got exception %s: %s. Setting run number to 0." % (
-            run_id, type(e), str(e)))
+        print(
+            "Could not find run number for %s, got exception %s: %s. Setting run number to 0." %
+            (run_id, type(e), str(e)))
         return 0
 
 
@@ -327,12 +340,12 @@ def tags_selection(dsets=None, include=None, exclude=None, pattern_type='fnmatch
     if exclude is not None:
         dsets = dsets[True ^ _tags_match(dsets, exclude, pattern_type, ignore_underscore)]
     # Get version
-    for itag in include:
-        tags = collection.find_one({"tags": {"$elemMatch": {"name": itag, "version": {"$exists": True}}}})['tags']
-        if tags is None:
-            continue
-        tag = [i for i in tags if i['name'] == itag][0]
-        print("Tag '"+ str(itag) + "' version: " + str(tag['version'] + " compiled on UTC " + str(tag['date'])))
+    # for itag in include:
+    #    tags = collection.find_one({"tags": {"$elemMatch": {"name": itag, "version": {"$exists": True}}}})['tags']
+    #    if tags is None:
+    #        continue
+    #    tag = [i for i in tags if i['name'] == itag][0]
+    #    print("Tag '"+ str(itag) + "' version: " + str(tag['version'] + " compiled on UTC " + str(tag['date'])))
 
     return dsets
 
@@ -360,7 +373,7 @@ def _tag_match(tag, pattern, pattern_type, ignore_underscore):
         return bool(re.match(pattern, tag))
     raise NotImplementedError
 
-    
+
 def is_blind(run_id):
     """Determine if a dataset should be blinded based on the runDB
 

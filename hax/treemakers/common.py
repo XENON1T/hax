@@ -46,7 +46,7 @@ class Extended(TreeMaker):
      - alt_s1_interaction_z: Z position of interaction formed with largest other S1 + main S2
      - alt_s2_interaction_x: X position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_y: Y position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
-     - alt_s2_interaction_z: Z position of interaction formed with main S1 + largest other S2 (field-distortion rz corrected)
+     - alt_s2_interaction_z: Z position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_s2_range_50p_area: S2 50% area width of interaction with main S1 + largest other S2
      - alt_s2_interaction_s2_range_80p_area: S2 80% area width of interaction with main S1 + largest other S2
      - s1_area_fraction_top_probability: probability of s1 area fraction top given its reconstructed position
@@ -60,8 +60,7 @@ class Extended(TreeMaker):
                       'interactions.r_correction', 'interactions.z_correction',
                       'interactions.xy_posrec_goodness_of_fit',
                       'peaks.largest_hit_area', 'peaks.left',
-                      'interactions.s1_area_fraction_top_probability'
-                     ]
+                      'interactions.s1_area_fraction_top_probability']
 
     def extract_data(self, event):
         result = dict()
@@ -106,8 +105,7 @@ class Extended(TreeMaker):
         if len(event.interactions) == 1:
             return result
 
-        largest_other_indices = get_largest_indices(event.peaks,
-                                                    exclude_indices=(interaction.s1, interaction.s2))
+        largest_other_indices = get_largest_indices(event.peaks, exclude_indices=(interaction.s1, interaction.s2))
 
         for it in event.interactions[1:]:
             if it.s1 == interaction.s1 and it.s2 == largest_other_indices.get('s2', float('nan')):
@@ -190,32 +188,39 @@ class Basics(TreeMaker):
             interaction = event.interactions[0]
             s1 = event.peaks[interaction.s1]
             s2 = event.peaks[interaction.s2]
-            event_data.update(dict(s1=s1.area,
-                                   s2=s2.area,
-                                   s1_area_fraction_top=s1.area_fraction_top,
-                                   s2_area_fraction_top=s2.area_fraction_top,
-                                   s1_range_50p_area=s1.range_area_decile[5],
-                                   s2_range_50p_area=s2.range_area_decile[5],
-                                   cs1=s1.area * interaction.s1_area_correction,
-                                   cs2=s2.area * interaction.s2_area_correction,
-                                   x=interaction.x,
-                                   y=interaction.y,
-                                   z=interaction.z,
-                                   drift_time=interaction.drift_time))
+            event_data.update(
+                dict(
+                    s1=s1.area,
+                    s2=s2.area,
+                    s1_area_fraction_top=s1.area_fraction_top,
+                    s2_area_fraction_top=s2.area_fraction_top,
+                    s1_range_50p_area=s1.range_area_decile[5],
+                    s2_range_50p_area=s2.range_area_decile[5],
+                    cs1=s1.area *
+                    interaction.s1_area_correction,
+                    cs2=s2.area *
+                    interaction.s2_area_correction,
+                    x=interaction.x,
+                    y=interaction.y,
+                    z=interaction.z,
+                    drift_time=interaction.drift_time))
 
             exclude_peak_indices = (interaction.s1, interaction.s2)
         else:
             exclude_peak_indices = tuple()
 
-        largest_other_indices = get_largest_indices(event.peaks, exclude_indices=exclude_peak_indices)
+        largest_other_indices = get_largest_indices(
+            event.peaks, exclude_indices=exclude_peak_indices)
         largest_area_of_type = {ptype: event.peaks[i].area
                                 for ptype, i in largest_other_indices.items()}
 
-        event_data.update(dict(largest_other_s1=largest_area_of_type.get('s1', 0),
-                               largest_other_s2=largest_area_of_type.get('s2', 0),
-                               largest_veto=largest_area_of_type.get('veto', 0),
-                               largest_unknown=largest_area_of_type.get('unknown', 0),
-                               largest_coincidence=largest_area_of_type.get('coincidence', 0)))
+        event_data.update(
+            dict(
+                largest_other_s1=largest_area_of_type.get('s1', 0),
+                largest_other_s2=largest_area_of_type.get('s2', 0),
+                largest_veto=largest_area_of_type.get('veto', 0),
+                largest_unknown=largest_area_of_type.get('unknown', 0),
+                largest_coincidence=largest_area_of_type.get('coincidence', 0)))
 
         return event_data
 
@@ -230,19 +235,27 @@ class LargestPeakProperties(TreeMaker):
     peak_types = ['s1', 's2', 'lone_hit', 'unknown']
     __version__ = '0.1'
 
-    # Simple peak properties to get. Logic for range_x0p_area and xy is separate.
-    peak_properties_to_get = ['area', 'area_fraction_top',
-                              'n_hits', 'hit_time_std', 'center_time',
-                              'n_saturated_channels', 'n_contributing_channels']
+    # Simple peak properties to get. Logic for range_x0p_area and xy is
+    # separate.
+    peak_properties_to_get = [
+        'area',
+        'area_fraction_top',
+        'n_hits',
+        'hit_time_std',
+        'center_time',
+        'n_saturated_channels',
+        'n_contributing_channels']
 
     def get_properties(self, peak=None, prefix=''):
         """Return dictionary with peak properties, keys prefixed with prefix
         if peak is None, will return nans for all values
         """
         if peak is None:
-            return {prefix + k: float('nan') for k in
-                    self.peak_properties_to_get + ['range_50p_area', 'range_90p_area', 'x', 'y']}
-        result = {field: getattr(peak, field) for field in self.peak_properties_to_get}
+            return {prefix +
+                    k: float('nan') for k in self.peak_properties_to_get +
+                    ['range_50p_area', 'range_90p_area', 'x', 'y']}
+        result = {field: getattr(peak, field)
+                  for field in self.peak_properties_to_get}
         result['range_50p_area'] = peak.range_area_decile[5]
         result['range_90p_area'] = peak.range_area_decile[9]
         for rp in peak.reconstructed_positions:
@@ -255,7 +268,8 @@ class LargestPeakProperties(TreeMaker):
         peaks = event.peaks
 
         # Get the largest peak of each type, and the largest peak overall
-        largest_peak_per_type = {}              # peak type: (index, area) of largest peak seen so far
+        # peak type: (index, area) of largest peak seen so far
+        largest_peak_per_type = {}
         for p_i, p in enumerate(peaks):
             if p.detector != 'tpc':
                 continue
@@ -267,7 +281,7 @@ class LargestPeakProperties(TreeMaker):
         result = {}
         for p_type in self.peak_types:
             upd = self.get_properties(peak=peaks[largest_peak_per_type[p_type][0]]
-                                           if p_type in largest_peak_per_type else None,
+                                      if p_type in largest_peak_per_type else None,
                                       prefix=p_type + '_')
             result.update(upd)
 
@@ -285,21 +299,27 @@ class TotalProperties(TreeMaker):
      - area_before_main_s2, same, but including only peaks that occur before the main s2 (if there is one, else 0)
     """
     __version__ = '0.2.0'
-    branch_selection = ['peaks.area', 'n_pulses', 'peaks.detector', 'interactions.s2', 'peaks.left', 'peaks.type']
+    branch_selection = [
+        'peaks.area',
+        'n_pulses',
+        'peaks.detector',
+        'interactions.s2',
+        'peaks.left',
+        'peaks.type']
 
     def extract_data(self, event):
         peaks = event.peaks
         result = dict(n_pulses=event.n_pulses,
                       n_peaks=len(peaks))
-        result['n_true_peaks'] = len([True for p in peaks if p.type != 'lone_hit'])
+        result['n_true_peaks'] = len(
+            [True for p in peaks if p.type != 'lone_hit'])
         result['total_peak_area'] = sum([p.area
                                          for p in peaks
                                          if p.detector == 'tpc'])
         if len(event.interactions):
             main_s2_left = peaks[event.interactions[0].s2].left
-            result['area_before_main_s2'] = sum([p.area
-                                                 for p in peaks
-                                                 if p.detector == 'tpc' and p.left < main_s2_left])
+            result['area_before_main_s2'] = sum(
+                [p.area for p in peaks if p.detector == 'tpc' and p.left < main_s2_left])
         else:
             result['area_before_main_s2'] = 0
 

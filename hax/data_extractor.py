@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import hax
 
+
 def root_to_numpy(base_object, field_name, attributes):
     """Convert objects stored in base_object.field_name to numpy array
     Will query attributes for each of the objects in base_object.field_name
@@ -39,7 +40,7 @@ def make_branch_selection(level, event_fields, peak_fields, added_branches):
     """
     branch_selection_events = event_fields
     branch_selection_peaks = ['peaks.' + field for field in peak_fields]
-    
+
     # For hits, just select the whole hit branch.
     # Unfortunately, specifically setting one variable does not seem to work.
     branch_selection_hits = ['peaks.hits*']
@@ -59,7 +60,7 @@ def make_named_array(array, field_names):
     df = pd.DataFrame(array, columns=field_names)
     array = df.to_records()
     return array
-    
+
 
 class DataExtractor():
     """This class is meant for extracting properties that are *not* on the event level, such as peak or hit properties.
@@ -68,7 +69,9 @@ class DataExtractor():
 
     def __init__(self):
         # Initialize empty data list
-        warnings.warn("DataExtractor is deprecated, please switch to multi-row minitrees instead.", DeprecationWarning)
+        warnings.warn(
+            "DataExtractor is deprecated, please switch to multi-row minitrees instead.",
+            DeprecationWarning)
         self.data = []
 
     def loop_body(self, event):
@@ -95,7 +98,8 @@ class DataExtractor():
                             else:
                                 _x = float('nan')
                         elif field[-1] == ']':
-                            # This means that the parameter is a list element. We need a slightly different approach
+                            # This means that the parameter is a list element.
+                            # We need a slightly different approach
                             parsed_field = field.split(sep='[')
                             field_list_name = parsed_field[0]
                             field_number = int(parsed_field[1][:-1])
@@ -108,22 +112,26 @@ class DataExtractor():
                     peak_entry = np.array(_temp_data)
                     if self.level == 'hit':
                         # Extract hit info. Numpy array with n_hit_channel entries x number of hit properties
-                        hit_entry = root_to_numpy(peak, 'hits', self.hit_fields)
+                        hit_entry = root_to_numpy(
+                            peak, 'hits', self.hit_fields)
                         if hit_entry is None:
                             # If there is no hit data: crash loudly
                             raise ValueError("Unable to read hit info. "
                                              "Is it in the root file? (Try: peak_cuts = ['type == 's1''])")
 
-                        # Append all properties. First event properties, then peak, then hits
-                        entry = np.c_[np.zeros((len(hit_entry), len(event_entry)+len(peak_entry))), hit_entry]
+                        # Append all properties. First event properties, then
+                        # peak, then hits
+                        entry = np.c_[np.zeros((len(hit_entry), len(event_entry) + len(peak_entry))), hit_entry]
                         entry[:, 0:len(event_entry)] = event_entry
-                        entry[:, len(event_entry):(len(peak_entry)+len(event_entry))] = peak_entry
+                        entry[:, len(event_entry):(
+                            len(peak_entry) + len(event_entry))] = peak_entry
                     elif self.level == 'peak':
                         # Extra brackets needed for concatenation in the end, else we'll get flat array
                         entry = np.c_[[event_entry], [peak_entry]]
                     else:
                         # We should actually never reach this since the checking has been done before
-                        raise ValueError("Enter either 'peak' of 'hit' for level!")
+                        raise ValueError(
+                            "Enter either 'peak' of 'hit' for level!")
                     self.data.append(entry)
         # Check if user-defined event number limit is reached
         if event.event_number >= self.stop_after:
@@ -131,8 +139,9 @@ class DataExtractor():
             raise hax.paxroot.StopEventLoop
         return None
 
-    def get_data(self, dataset, level='peak', event_fields=['event_number'], peak_fields=['area','hit_time_std'], hit_fields=[],
-                 event_cuts=[], peak_cuts=[], stop_after=np.inf, added_branches=[]):
+    def get_data(self, dataset, level='peak', event_fields=['event_number'],
+                 peak_fields=['area', 'hit_time_std'], hit_fields=[], event_cuts=[],
+                 peak_cuts=[], stop_after=np.inf, added_branches=[]):
         """Extract peak or hit data from a dataset.
         Peak or hit can be toggled by specifying level = 'peak' or level = 'hit'.
         Example useage:
@@ -164,7 +173,7 @@ class DataExtractor():
         if level == 'hit':
             # For the hit level, we have to be careful. For example, 'area' can be peak or hit area.
             # How to solve this? Well, just add hit_ or peak_ before the property
-            field_names = (event_fields + ['peak_' + field for field in peak_fields] + 
+            field_names = (event_fields + ['peak_' + field for field in peak_fields] +
                            ['hit_' + field for field in hit_fields])
         if level == 'peak':
             # For peak level no such problem exists (yet) so just keep normal names

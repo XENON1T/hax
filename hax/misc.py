@@ -13,6 +13,7 @@ def dataframe_to_wiki(df, float_digits=5, title='Awesome table'):
     """
     table = '^ %s ' % title + '^' * (len(df.columns) - 1) + '^\n'
     table += '^ ' + ' ^ '.join(df.columns) + ' ^\n'
+
     def do_round(x):
         if isinstance(x, float):
             return round(x, float_digits)

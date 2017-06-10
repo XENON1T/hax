@@ -23,8 +23,7 @@ class LargestTriggeringSignal(TreeMaker):
             # See https://github.com/XENON1T/pax/issues/344
             return dict()
         ts = tss[int(np.argmax([t.n_pulses for t in tss]))]
-        return {"trigger_" + k: getattr(ts, k)
-                for k in [a[0] for a in TriggerSignal.get_fields_data(TriggerSignal())]}
+        return {"trigger_" + k: getattr(ts, k) for k in [a[0] for a in TriggerSignal.get_fields_data(TriggerSignal())]}
 
 
 class Proximity(hax.minitrees.TreeMaker):
@@ -48,14 +47,22 @@ class Proximity(hax.minitrees.TreeMaker):
     __version__ = '0.0.12'
     pax_version_independent = False          # Now that we include S2 area it's not
 
-    aqm_labels = ['muon_veto_trigger', 'busy_on', 'hev_on', 'busy_off', 'hev_off', 'busy', 'hev']
+    aqm_labels = [
+        'muon_veto_trigger',
+        'busy_on',
+        'hev_on',
+        'busy_off',
+        'hev_off',
+        'busy',
+        'hev']
 
     def get_data(self, dataset, event_list=None):
         aqm_pulses = get_aqm_pulses(dataset)
 
         # Load the fundamentals and totalproperties minitree
         # Yes, minitrees loading other minitrees, the fun has begun :-)
-        event_data = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
+        event_data = hax.minitrees.load_single_dataset(
+            dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
         # Note integer division here, not optional: float arithmetic is too inprecise
         # (fortuately our digitizer sampling resolution is an even number of nanoseconds...)
         event_data['center_time'] = event_data.event_time + event_data.event_duration // 2
@@ -63,10 +70,10 @@ class Proximity(hax.minitrees.TreeMaker):
         # Build the various lists of 2-tuples (label, times) to search through
         self.search_these = ([(x, aqm_pulses[x]) for x in self.aqm_labels] +
                              [(boundary + 'pe_event', event_data[event_data.total_peak_area >
-                                                               eval(boundary)].center_time.values)
-                                  for boundary in ['1e5', '3e5', '1e6']] +
+                                                                 eval(boundary)].center_time.values)
+                              for boundary in ['1e5', '3e5', '1e6']] +
                              [('event', event_data.center_time.values)]
-        )
+                             )
         self.s2s = event_data.s2_area.values
 
         # super() does not play nice with dask computations, for some reason
@@ -85,10 +92,12 @@ class Proximity(hax.minitrees.TreeMaker):
             if label == 'event':
                 i = event.event_number
             else:
-                i = np.searchsorted(x, t)   # Index in x of the first value >= t
+                # Index in x of the first value >= t
+                i = np.searchsorted(x, t)
 
             if i == 0:
-                result[prev] = 368395560000000000 # ~- int(np.inf).... 100th Birthday
+                # ~- int(np.inf).... 100th Birthday
+                result[prev] = 368395560000000000
                 if label == 'event':
                     result['previous_s2_area'] = 368395560000000000
             else:
@@ -131,19 +140,20 @@ class Proximity(hax.minitrees.TreeMaker):
 
         return result
 
+
 class TailCut(hax.minitrees.TreeMaker):
 
     __version__ = '0.0.2'
 
     def get_data(self, dataset, event_list=None):
 
-        self.event_data = hax.minitrees.load_single_dataset(dataset, 
-                                                            ['Fundamentals', 'TotalProperties',
-                                                             'LargestPeakProperties'])[0]
-        self.event_data['center_time'] = self.event_data.event_time + self.event_data.event_duration // 2
+        self.event_data = hax.minitrees.load_single_dataset(
+            dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
+        self.event_data['center_time'] = self.event_data.event_time + \
+            self.event_data.event_duration // 2
         self.center_time = self.event_data.center_time.values
         self.s2_area = self.event_data.s2_area.values
-        self.look_back=50
+        self.look_back = 50
         return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
 
     def extract_data(self, event):
@@ -151,10 +161,10 @@ class TailCut(hax.minitrees.TreeMaker):
         i = event.event_number
         tnow = (event.start_time + event.stop_time) // 2
 
-        ct = self.center_time[i-self.look_back:i]
-        ls2 = self.s2_area[i-self.look_back:i]
+        ct = self.center_time[i - self.look_back:i]
+        ls2 = self.s2_area[i - self.look_back:i]
         try:
-            mp = max([ls2[i]/(tnow-ct[i]) for i in range(len(ct))])
+            mp = max([ls2[i] / (tnow - ct[i]) for i in range(len(ct))])
         except Exception:
             mp = None
         return {"s2_over_tdiff": mp}
