@@ -404,7 +404,7 @@ def is_blind(run_id):
 
     # Blind runs past a configured run number
     if number > hax.config.get('blind_from_run', float('inf')) and \
-            run_data['reader']['ini']['name'].starswith('background'):
+            run_data['reader']['ini']['name'].startswith('background'):
         return True
 
     # Everything else is not blinded
