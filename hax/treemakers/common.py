@@ -49,9 +49,9 @@ class Extended(TreeMaker):
      - alt_s2_interaction_z: Z position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_s2_range_50p_area: S2 50% area width of interaction with main S1 + largest other S2
      - alt_s2_interaction_s2_range_80p_area: S2 80% area width of interaction with main S1 + largest other S2
-     - s1_area_fraction_top_probability: probability of s1 area fraction top given its reconstructed position (for pax < v6.6.0, field is not stored)
-
-    See also the DoubleScatter minitree for more properties of alternative interactions.
+     - s1_area_fraction_top_probability: probability of s1 area fraction top given its reconstructed position
+     (for pax < v6.6.0, field is not stored)
+     See also the DoubleScatter minitree for more properties of alternative interactions.
     """
     __version__ = '0.0.3'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
