@@ -342,11 +342,14 @@ def tags_selection(dsets=None, include=None, exclude=None, pattern_type='fnmatch
     # Get version
     collection = get_rundb_collection()
     for itag in include:
-        tags = collection.find_one({"tags": {"$elemMatch": {"name": itag, "version": {"$exists": True}}}})['tags']
-        if tags is None:
+        try:
+            tags = collection.find_one({"tags": {"$elemMatch": {"name": itag, "version": {"$exists": True}}}})['tags']
+            if tags is None:
+                continue
+            tag = [i for i in tags if i['name'] == itag][0]
+            print("Tag '" + str(itag) + "' version: " + str(tag['version'] + " compiled on UTC " + str(tag['date'])))
+        except TypeError:
             continue
-        tag = [i for i in tags if i['name'] == itag][0]
-        print("Tag '"+ str(itag) + "' version: " + str(tag['version'] + " compiled on UTC " + str(tag['date'])))
 
     return dsets
 
