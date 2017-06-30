@@ -1,3 +1,14 @@
+1.5.1
+-----
+* Correction treemaker (#109)
+* Automatic blinding instead of blinding taggs. (#100, #111)
+* Style issues fixed, cleaner coding, add missing branches for full chain simulation (#107, #113)
+* run Tags print out messages (#108, #110)
+* S1 AFT cut (#102, #112)
+* Add LNGS server (#105)
+
+
+
 1.4.4
 -----
 
