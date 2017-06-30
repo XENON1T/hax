@@ -84,7 +84,7 @@ install: clean
 	python setup.py install
 
 major: clean docs
-	emacs HISTORY.rst
+	vim HISTORY.rst
 	git commit -m "Update HISTORY for the release" HISTORY.rst
 	bumpversion major --allow-dirty
 	git push
@@ -92,14 +92,14 @@ major: clean docs
 
 
 minor: clean docs
-	emacs HISTORY.rst
+	vim HISTORY.rst
 	git commit -m "Update HISTORY for the release" HISTORY.rst
 	bumpversion minor --allow-dirty
 	git push
 	git push --tags
 
 patch: clean docs
-	emacs HISTORY.rst
+	vim HISTORY.rst
 	git commit -m "Update HISTORY for the release" HISTORY.rst
 	bumpversion patch --allow-dirty
 	git push
