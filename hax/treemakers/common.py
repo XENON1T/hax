@@ -94,6 +94,7 @@ class Extended(TreeMaker):
         try:
             result['s1_area_fraction_top_probability'] = interaction.s1_area_fraction_top_probability
         except AttributeError:
+            result['s1_area_fraction_top_probability'] = float('nan')
             pass
 
         for rp in s2.reconstructed_positions:
@@ -105,10 +106,13 @@ class Extended(TreeMaker):
             [p.area for p in event.peaks
              if p.type == 's1' and p.detector == 'tpc' and p.left < s2.left])
 
-        if len(event.interactions) == 1:
-            return result
-
         largest_other_indices = get_largest_indices(event.peaks, exclude_indices=(interaction.s1, interaction.s2))
+
+        result['alt_s1_interaction_z'] = float('nan')
+        for q in 'xyz':
+            result['alt_s2_interaction_%s' % q] = float('nan')
+        for q in [5, 8]:
+            result['alt_s2_interaction_s2_range_%d0p_area' % q] = float('nan')
 
         for it in event.interactions[1:]:
             if it.s1 == interaction.s1 and it.s2 == largest_other_indices.get('s2', float('nan')):
