@@ -52,6 +52,9 @@ class Extended(TreeMaker):
      - alt_s2_interaction_s2_range_50p_area: S2 50% area width of interaction with main S1 + largest other S2
      - alt_s2_interaction_s2_range_80p_area: S2 80% area width of interaction with main S1 + largest other S2
      - s1_area_fraction_top_probability: probability of s1 area fraction top given its reconstructed position
+     - largest_other_s2_delay_s1: The hit time mean minus main s1 hit time mean
+     - largest_other_s2_delay_s2: The hit time mean minus main s2 hit time mean
+     - largest_other_s2_pattern_fit: Goodness-of-fit of hitpattern to position provided by PosRecTopPatternFit
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
@@ -62,7 +65,8 @@ class Extended(TreeMaker):
                       'interactions.r_correction', 'interactions.z_correction',
                       'interactions.xy_posrec_goodness_of_fit',
                       'peaks.largest_hit_area', 'peaks.left',
-                      'interactions.s1_area_fraction_top_probability']
+                      'interactions.s1_area_fraction_top_probability',
+                      'peaks.hit_time_mean']
 
     def extract_data(self, event):
         result = dict()
@@ -130,6 +134,22 @@ class Extended(TreeMaker):
             elif it.s1 == largest_other_indices.get('s1', float('nan')) and it.s2 == interaction.s2:
                 # Alternative S1 interaction
                 result['alt_s1_interaction_z'] = it.z
+
+        result['largest_other_s2_delay_s1'] = float('nan')
+        result['largest_other_s2_delay_s2'] = float('nan')
+        result['largest_other_s2_pattern_fit'] = float('nan')
+
+        for ix in event.s2s:
+            if (ix != interaction.s2) and (event.peaks[ix].hit_time_mean - s1.hit_time_mean > 0):
+                # largest other s2 after main s1
+                pk = event.peaks[ix]
+                result['largest_other_s2_delay_s1'] = pk.hit_time_mean - s1.hit_time_mean
+                result['largest_other_s2_delay_s2'] = pk.hit_time_mean - s2.hit_time_mean
+                for rp in pk.reconstructed_positions:
+                    if rp.algorithm == 'PosRecTopPatternFit':
+                        result['largest_other_s2_pattern_fit'] = getattr(rp, 'goodness_of_fit')
+                        break
+                break
 
         return result
 
