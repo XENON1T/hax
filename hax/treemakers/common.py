@@ -59,7 +59,7 @@ class Extended(TreeMaker):
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.3'
+    __version__ = '0.0.4'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
