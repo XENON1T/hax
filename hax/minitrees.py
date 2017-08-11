@@ -38,17 +38,20 @@ class TreeMaker(object):
     """
     cache_size = 5000
     branch_selection = None     # List of branches to load during iteration over events
-    # If the above is empty, load basic branches (set in hax.config) plus
-    # these.
+    # If the above is empty, load basic branches (set in hax.config) plus these.
     extra_branches = tuple()
+
     # Set to True if your treemaker returns array values. This will trigger a
-    # different
+    # different root file saving code.
     uses_arrays = False
-    # root file saving code.
 
     # Set this to true if the treemaker results do not change with the pax
     # version (e.g. for trigger information)
     pax_version_independent = False
+
+    # Set this to True to prevent this minitree from being saved to file. Use e.g. if it computes its values quickly
+    # computed from other minitrees' info.
+    never_store = False
 
     def __init__(self):
         # Support for string arguments
@@ -335,12 +338,8 @@ def load_single_minitree(run_id,
         timestamp=str(
             datetime.now()))
 
-    if save_file:
-        get_format(
-            minitree_path,
-            treemaker).save_data(
-            metadata_dict,
-            skimmed_data)
+    if save_file and not treemaker.never_store:
+        get_format(minitree_path, treemaker).save_data(metadata_dict, skimmed_data)
 
     if return_metadata:
         return metadata_dict, skimmed_data
