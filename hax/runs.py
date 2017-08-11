@@ -23,6 +23,7 @@ datasets = None
 
 rundb_client = None
 
+corrections_docs = {}
 
 def get_rundb_password():
     """Return the password to the runs db, if we know it"""
@@ -35,14 +36,18 @@ def get_rundb_password():
                          'to access the runs database.')
 
 
-def get_rundb_collection():
-    """Return the pymongo handle to the runs db collection. You can use this to do queries like .find etc."""
+def get_rundb_database():
+    """Return the pymongo handle to the runs db database. You can use this to access other collections."""
     global rundb_client
     if rundb_client is None:
         # Connect to the runs database
         rundb_client = pymongo.MongoClient(hax.config['runs_url'].format(password=get_rundb_password()))
-    db = rundb_client[hax.config['runs_database']]
-    return db[hax.config['runs_collection']]
+    return(rundb_client[hax.config['runs_database']])
+
+
+def get_rundb_collection():
+    """Return the pymongo handle to the runs db collection. You can use this to do queries like .find etc."""
+    return get_rundb_database()[hax.config['runs_collection']]
 
 
 def update_datasets(query=None):
@@ -224,7 +229,6 @@ def get_run_info(run_id, projection_query=None):
         run_names = [get_run_name(x) for x in run_id]
     else:
         run_names = [get_run_name(run_id)]
-
     if not run_names == sorted(run_names):
         # We're going to ask mongo to return things in sorted order; user is
         # not expecting this...
@@ -284,6 +288,19 @@ def get_run_name(run_id):
             (run_id, type(e), str(e)))
         return "unknown"
 
+def get_run_start(run_id):
+    """Return the start time of the run as a datetime"""
+    field = 'number'
+    qid = run_id
+    if isinstance(run_id, str):
+        field = 'name'
+        qid = '"%s"'%run_id
+
+    try:
+        return datasets.query('%s == %s' % (field,qid))['start'].values[0]
+    except exception as e:
+        print("Didn't find a start time for run %i: %s" %(run_id, str(e)))
+        return None
 
 def get_run_number(run_id):
     """Return run number matching run_id. Returns run_id if run_id is int (presumably already run int)"""
@@ -413,3 +430,24 @@ def is_blind(run_id):
 
     # Everything else is not blinded
     return False
+
+def load_corrections():
+    """Load all corrections that are stored on MongoDB as defined by the
+    corrections field in the hax config. Corrections must be named the
+    same as their collection name in the database 'run'.
+    """
+
+    global corrections_docs
+
+    for correction in hax.config['corrections']:
+        db = get_rundb_database()
+        if correction not in db.collection_names():
+            log.warning("Config asked for %s correction but didn't find in DB" % correction)
+            continue
+
+        try:
+            corrections_docs[correction] = db[correction].find().sort("creation_time", -1)[0]
+        except Exception as e:
+            log.warning("Didn't find any docs in DB for %s correction: %s" %
+                        (correction, str(e)))
+            continue

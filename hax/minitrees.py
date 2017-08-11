@@ -82,6 +82,7 @@ class TreeMaker(object):
         """Return data extracted from running over dataset"""
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
+        self.run_start = runs.get_run_start(dataset)
         loop_over_dataset(dataset, self.process_event,
                           event_lists=event_list,
                           branch_selection=self.branch_selection,
@@ -392,7 +393,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     # Apply the blinding cut if required. Normally this is already done by minitrees.load, but perhaps someone calls
     # load_single_dataset_directly.
     if (hax.config['blinding_cut'] not in preselection and
-        ('Basics' in treemakers or hax.treemakers.common.Basics in treemakers) and
+        ('Corrections' in treemakers or
+         hax.treemakers.corrections.Corrections in treemakers) and
             hax.runs.is_blind(run_id)):
         preselection = [hax.config['blinding_cut']] + preselection
 

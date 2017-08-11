@@ -65,6 +65,7 @@ def init(filename=None, **kwargs):
         config["raw_data_local_path"] = [config["raw_data_local_path"]]
 
     # Call some inits of the submodules
+    runs.load_corrections()
     runs.update_datasets()
     minitrees.update_treemakers()
     slow_control.init_sc_interface()
