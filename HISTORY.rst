@@ -7,6 +7,7 @@
 * Previous event Basics Info (#114)
 * Proximity minitree for MV analysis (#125)
 
+
 1.5.0
 -----
 * Correction treemaker (#109)
@@ -17,10 +18,8 @@
 * Add LNGS server (#105)
 
 
-
 1.4.4
 -----
-
 * unblind multiple scatter
 
 
