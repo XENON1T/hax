@@ -1,4 +1,13 @@
-1.5.1
+1.6.0
+-----
+* Extended Minitrees (#118, #121, #122, #123, #126)
+* Correction Minitree (#119)
+* Blinding SR0 again (#130)
+* TailCut Treemaker updated (#127)
+* Previous event Basics Info (#114)
+* Proximity minitree for MV analysis (#125)
+
+1.5.0
 -----
 * Correction treemaker (#109)
 * Automatic blinding instead of blinding taggs. (#100, #111)
