@@ -185,8 +185,8 @@ class Basics(TreeMaker):
     Provides:
      - s1: The uncorrected area in pe of the main interaction's S1
      - s2: The uncorrected area in pe of the main interaction's S2
-     - x: The x-position of the main interaction (by TopPatternFit, field-distortion corrected)
-     - y: The y-position of the main interaction
+     - x_pax: The x-position of the main interaction from pax (by TopPatternFit, field-distortion corrected)
+     - y_pax: The y-position of the main interaction from pax
      - z: The z-position of the main interaction (computed by pax using configured drift velocity)
      - drift_time: The drift time in ns (pax units) of the main interaction
      - s1_area_fraction_top: The fraction of uncorrected area in the main interaction's S1 seen by the top array
@@ -208,7 +208,7 @@ class Basics(TreeMaker):
                           (currently just the largest S1 + largest S2 after it)
 
     """
-    __version__ = '0.2'
+    __version__ = '0.3'
 
     def extract_data(self, event):
         event_data = dict()
@@ -224,13 +224,13 @@ class Basics(TreeMaker):
             event_data.update(
                 dict(
                     s1=s1.area,
-                    s2=s2.area,
+                    s2=s2.area,                    
                     s1_area_fraction_top=s1.area_fraction_top,
                     s2_area_fraction_top=s2.area_fraction_top,
                     s1_range_50p_area=s1.range_area_decile[5],
                     s2_range_50p_area=s2.range_area_decile[5],
-                    x=interaction.x,
-                    y=interaction.y,
+                    x_pax=interaction.x,
+                    y_pax=interaction.y,
                     z=interaction.z,
                     drift_time=interaction.drift_time))
 
