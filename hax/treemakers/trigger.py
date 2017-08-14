@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from pax.datastructure import TriggerSignal
 
 import hax
@@ -181,29 +182,41 @@ class Proximity(hax.minitrees.TreeMaker):
         return result
 
 class TailCut(hax.minitrees.TreeMaker):
-
-    __version__ = '0.0.2'
+    __version__ = '0.0.3'
+    never_store = True
 
     def get_data(self, dataset, event_list=None):
+        look_back = 100
+        # Load Fundamentals and LargestPeakProperties
+        # Using load_single_dataset instead of load will ensure no blindding cut is applies
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'LargestPeakProperties'])
 
-        self.event_data = hax.minitrees.load_single_dataset(
-            dataset, ['Fundamentals', 'TotalProperties', 'LargestPeakProperties'])[0]
-        self.event_data['center_time'] = self.event_data.event_time + \
-            self.event_data.event_duration // 2
-        self.center_time = self.event_data.center_time.values
-        self.s2_area = self.event_data.s2_area.values
-        self.look_back = 50
-        return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
+        # Get largest S2 in the event (or 0, if no S2 was found)
+        s2 = data['s2_area'].values
+        s2[np.isnan(s2)] = 0
 
-    def extract_data(self, event):
+        # Get the center time of the event
+        t = data['event_time'].values + data['event_duration'].values/2
 
-        i = event.event_number
-        tnow = (event.start_time + event.stop_time) // 2
+        # Compute S2/tdif for each value of lookback (from 1 to look_back, inclusive)
+        # Allocates n_events * look_back floats; should not be a problem unless look_back is insane number.
+        s2_over_tdiff_lookback = np.zeros((len(t), look_back + 1))
+        s2_area_lookback = np.zeros((len(t), look_back + 1))
+        for i in range(1, look_back + 1):
+            s2_over_tdiff_lookback[i:, i] = s2[:-i]/(t[i:] - t[:-i])
+            s2_area_lookback[i:, i] = s2[:-i]
 
-        ct = self.center_time[i - self.look_back:i]
-        ls2 = self.s2_area[i - self.look_back:i]
-        try:
-            mp = max([ls2[i] / (tnow - ct[i]) for i in range(len(ct))])
-        except Exception:
-            mp = None
-        return {"s2_over_tdiff": mp}
+        # Which event
+        tailcut_set_by = np.argmax(s2_over_tdiff_lookback, axis=1)
+        result = s2_over_tdiff_lookback.max(axis=1)
+
+	# Area of the peak corresponding to the 'tailcut_set_by' event
+        s2_area_tailcut_set_by = np.zeros(len(s2_area_lookback))
+        for i, s2back in enumerate(s2_area_lookback):
+            s2_area_tailcut_set_by[i] = np.take(s2back, tailcut_set_by[i])
+
+        return pd.DataFrame(dict(event_number=data['event_number'],
+                                 run_number=data['run_number'],
+                                 s2_over_tdiff=result,
+                                 tailcut_set_by=tailcut_set_by,
+                                 s2_area_tailcut_set_by=s2_area_tailcut_set_by))
