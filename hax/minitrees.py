@@ -477,7 +477,7 @@ def load(datasets=None,
     # If the blinding cut is required for any of the datasets, apply it to all of them.
     # This avoids crashing or paradoxical cut histories.
     if (hax.config['blinding_cut'] not in preselection and (
-            'Basics' in treemakers or hax.treemakers.common.Basics in treemakers)):
+            'Corrections' in treemakers or hax.treemakers.common.Corrections in treemakers)):
         is_blind = [hax.runs.is_blind(run_id) for run_id in datasets]
         if any(is_blind):
             if not all(is_blind):
