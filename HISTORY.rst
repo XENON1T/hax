@@ -1,3 +1,7 @@
+1.6.1
+-----
+* double blinding not needed (#131)
+
 1.6.0
 -----
 * Extended Minitrees (#118, #121, #122, #123, #126)
