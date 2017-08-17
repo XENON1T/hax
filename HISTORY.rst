@@ -1,6 +1,10 @@
+1.6.2
+-----
+* Fix MC minitree generation bug related to rundb (#136)
+
 1.6.1
 -----
-* double blinding not needed (#131)
+* Fix second place blinding logic applied (#131)
 
 1.6.0
 -----
