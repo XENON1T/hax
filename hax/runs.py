@@ -298,8 +298,8 @@ def get_run_start(run_id):
 
     try:
         return datasets.query('%s == %s' % (field,qid))['start'].values[0]
-    except exception as e:
-        print("Didn't find a start time for run %i: %s" %(run_id, str(e)))
+    except Exception as e:
+        print("Didn't find a start time for run %s: %s" %(str(run_id), str(e)))
         return None
 
 def get_run_number(run_id):
