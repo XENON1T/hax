@@ -17,7 +17,7 @@ if os.environ.get('READTHEDOCS', None) == 'True':
                     if q not in 'numpy pandas numba dask'.split()]
 
 setup(name='hax',
-      version='1.6.1',
+      version='1.6.2',
       description="Handy Analysis for XENON",
       long_description=readme + '\n\n' + history,
       url='https://github.com/XENON1T/hax',
