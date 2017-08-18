@@ -42,8 +42,8 @@ class Extended(TreeMaker):
      - z_pos_correction: z-correction added to the interaction z position to account for field distortion.
      - x_nn: x-position of the main interaction as reconstructed by neural net. NOT Field-distortion (r,z) corrected!!!
      - y_nn: y-position of the main interaction as reconstructed by neural net. NOT Field-distortion (r,z) corrected!!!
-     - x_tpff: x-position of the main interaction as reconstructed by Top Pattern Function Fit algorithm. NOT Field-distortion (r,z) corrected!!!
-     - y_tpff: y-position of the main interaction as reconstructed by Top Pattern Function Fit algorithm. NOT Field-distortion (r,z) corrected!!!
+     - x_tpff: x-position of the main interaction as reconstructed by Top Pattern Function Fit algorithm. no FDC
+     - y_tpff: y-position of the main interaction as reconstructed by Top Pattern Function Fit algorithm. no FDC
      - sum_s1s_before_main_s2: Sum of all S1 areas before the main S2
      - alt_s1_interaction_z: Z position of interaction formed with largest other S1 + main S2
      - alt_s2_interaction_x: X position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
@@ -224,7 +224,7 @@ class Basics(TreeMaker):
             event_data.update(
                 dict(
                     s1=s1.area,
-                    s2=s2.area,                    
+                    s2=s2.area,
                     s1_area_fraction_top=s1.area_fraction_top,
                     s2_area_fraction_top=s2.area_fraction_top,
                     s1_range_50p_area=s1.range_area_decile[5],

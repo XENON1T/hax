@@ -6,6 +6,7 @@ import hax
 from hax.minitrees import TreeMaker
 from hax.trigger_data import get_aqm_pulses
 
+
 class LargestTriggeringSignal(TreeMaker):
     """Information on the largest trigger signal with the trigger flag set in the event
 
@@ -25,6 +26,7 @@ class LargestTriggeringSignal(TreeMaker):
         ts = tss[int(np.argmax([t.n_pulses for t in tss]))]
         return {"trigger_" + k: getattr(ts, k) for k in [a[0] for a in TriggerSignal.get_fields_data(TriggerSignal())]}
 
+
 class Proximity(hax.minitrees.TreeMaker):
     """Information on the proximity of other events and acquisition monitor signals (e.g. busy and muon veto trigger)
         Provides:
@@ -41,7 +43,8 @@ class Proximity(hax.minitrees.TreeMaker):
          - 3e5_pe_event: "" 3e5 pe "
          - 1e6_pe_event: "" 1e6 pe "
          - s2_area: Area of main s2 in event
-         - All the information about the muon_veto_trigger are calculated with respect to the TPC trigger and not to the middle of the event.
+         - All the information about the muon_veto_trigger are calculated with respect to the TPC trigger and
+         - not to the middle of the event.
     """
     __version__ = '0.1.0'
     pax_version_independent = False          # Now that we include S2 area it's not
@@ -54,24 +57,24 @@ class Proximity(hax.minitrees.TreeMaker):
         'hev_off',
         'busy',
         'hev']
-    def bad_mv_triggers(self, aqm_pulses, min_time =500):
+
+    def bad_mv_triggers(self, aqm_pulses, min_time=500):
         """
         get me the indices of the sync signal in the MV_trigger sent to the TPC
         """
         indices_mv = list()
 
         for tsync in aqm_pulses['mv_sync']:
-            #This dict will have the info of the unwanted MV_triggers sent to TPC
-            #maybe there is a better way to save those!!!
+            # This dict will have the info of the unwanted MV_triggers sent to TPC
+            # maybe there is a better way to save those!!!
             list_times = dict()
-            for j,tmvt in enumerate(aqm_pulses['muon_veto_trigger']):
+            for j, tmvt in enumerate(aqm_pulses['muon_veto_trigger']):
                 list_times[j] = np.abs(tsync - tmvt)
-            #these are the indices of the MV_trigger that needs to be taken away
+            # these are the indices of the MV_trigger that needs to be taken away
             indices_mv.extend([key for key, value in list_times.items() if value < min_time])
         return indices_mv
 
-    
-    def select_physical_pulses(self, aqm_pulses,ap_time = 20000):
+    def select_physical_pulses(self, aqm_pulses, ap_time=20000):
         """
         get rid of afterpulses from the MV data of course!!!!!
         """
@@ -79,20 +82,17 @@ class Proximity(hax.minitrees.TreeMaker):
         mask = np.ones(aqm_pulses["muon_veto_trigger"].shape, dtype=bool)
         mask[self.bad_mv_triggers(aqm_pulses)] = False
         list_indicies = list()
-        for l, times  in enumerate(np.diff(aqm_pulses["muon_veto_trigger"][mask])):
-            if times < ap_time: # get rid of pulses that comes within 20mu sec.
+        for l, times in enumerate(np.diff(aqm_pulses["muon_veto_trigger"][mask])):
+            if times < ap_time:  # get rid of pulses that comes within 20mu sec.
                 list_indicies.append(l+1)
-        
+
         aqm_pulses["muon_veto_trigger"] = np.delete(aqm_pulses["muon_veto_trigger"][mask], list_indicies)
-              
+
         return aqm_pulses
-                               
-                               
-                               
+
     def get_data(self, dataset, event_list=None):
-        
         aqm_pulses = self.select_physical_pulses(get_aqm_pulses(dataset))
-        
+
         # Load the fundamentals and totalproperties minitree
         # Yes, minitrees loading other minitrees, the fun has begun :-)
         event_data = hax.minitrees.load_single_dataset(
@@ -117,16 +117,16 @@ class Proximity(hax.minitrees.TreeMaker):
         # Again, integer division is not optional here!
         t = (event.start_time + event.stop_time) // 2
         result = dict()
-        
+
         for label, x in self.search_these:
             # we want to use for the MV the time with respect to the trigger in the TPC
             if label == "muon_veto_trigger":
                 t_corr = np.int64(event.stop_time - event.start_time) // 2 - np.int64(10**6)
             else:
                 t_corr = np.int64(0)
-                
+
             prev = 'previous_%s' % label
-            nxt  = 'next_%s' % label
+            nxt = 'next_%s' % label
 
             # Find the first object (at or) after t
             if label == 'event':
@@ -171,8 +171,7 @@ class Proximity(hax.minitrees.TreeMaker):
                 result[tnr] = - result[prev] + t_corr
             else:
                 result[tnr] = result[nxt] + t_corr
-                
-                        
+
         # Need special logic for nearest s2 area
         if result['nearest_event'] == result['previous_event']:
             result['nearest_s2_area'] = result['previous_s2_area']
@@ -180,6 +179,7 @@ class Proximity(hax.minitrees.TreeMaker):
             result['nearest_s2_area'] = result['next_s2_area']
 
         return result
+
 
 class TailCut(hax.minitrees.TreeMaker):
     __version__ = '0.0.3'
@@ -210,7 +210,7 @@ class TailCut(hax.minitrees.TreeMaker):
         tailcut_set_by = np.argmax(s2_over_tdiff_lookback, axis=1)
         result = s2_over_tdiff_lookback.max(axis=1)
 
-	# Area of the peak corresponding to the 'tailcut_set_by' event
+        # Area of the peak corresponding to the 'tailcut_set_by' event
         s2_area_tailcut_set_by = np.zeros(len(s2_area_lookback))
         for i, s2back in enumerate(s2_area_lookback):
             s2_area_tailcut_set_by[i] = np.take(s2back, tailcut_set_by[i])

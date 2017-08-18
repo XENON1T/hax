@@ -6,6 +6,7 @@ import pax.utils
 import numpy as np
 from scipy.interpolate import interp1d
 
+
 class Corrections(TreeMaker):
     """Applies high level corrections which are used in standard analyses.
 
@@ -103,7 +104,7 @@ class Corrections(TreeMaker):
             event.peaks, exclude_indices=(interaction.s1, interaction.s2))
         largest_area_of_type = {ptype: event.peaks[i].area
                                 for ptype, i in largest_other_indices.items()}
-        result['largest_other_s2']=largest_area_of_type.get('s2', 0)
+        result['largest_other_s2'] = largest_area_of_type.get('s2', 0)
         result['s2'] = s2.area
 
         # Check that the correct S2 map is loaded and change if not
@@ -127,7 +128,6 @@ class Corrections(TreeMaker):
             self.lce_map = InterpolatingMap(lce_map_path)
             self.loaded_lce_map_name = wanted_lce_map_name
 
-
         # Need the observed ('uncorrected') position; pax gives
         # corrected positions (where the interaction happens)
         interaction_r = np.sqrt(interaction.x ** 2 + interaction.y ** 2)
@@ -141,7 +141,7 @@ class Corrections(TreeMaker):
                                           self.xy_map.get_value(x_observed, y_observed))
         result['s2_xy_correction_top'] = (1.0 /
                                           self.xy_map.get_value(
-                                              x_observed,y_observed, map_name='map_top'))
+                                              x_observed, y_observed, map_name='map_top'))
         result['s2_xy_correction_bottom'] = (1.0 /
                                              self.xy_map.get_value(
                                                  x_observed, y_observed, map_name='map_bottom'))
@@ -174,7 +174,6 @@ class Corrections(TreeMaker):
         result['cs2'] = s2.area * s2_correction
         result['cs2_top'] = s2.area * s2.area_fraction_top * s2_top_correction
         result['cs2_bottom'] = s2.area * (1.0 - s2.area_fraction_top) * s2_bottom_correction
-
 
         # Apply FDC (field distortion correction to position)
         result['r_correction'] = self.fdc_map.get_value(r_observed, z_observed, map_name='to_true_r')

@@ -25,6 +25,7 @@ rundb_client = None
 
 corrections_docs = {}
 
+
 def get_rundb_password():
     """Return the password to the runs db, if we know it"""
     if 'mongo_password' in hax.config:
@@ -288,19 +289,23 @@ def get_run_name(run_id):
             (run_id, type(e), str(e)))
         return "unknown"
 
+
 def get_run_start(run_id):
     """Return the start time of the run as a datetime"""
     field = 'number'
     qid = run_id
     if isinstance(run_id, str):
         field = 'name'
-        qid = '"%s"'%run_id
+        qid = '"%s"' % run_id
 
     try:
-        return datasets.query('%s == %s' % (field,qid))['start'].values[0]
+        return datasets.query('%s == %s' % (field, qid))['start'].values[0]
+
     except Exception as e:
-        print("Didn't find a start time for run %s: %s" %(str(run_id), str(e)))
+        print("Didn't find a start time for run %s: %s" % (str(run_id), str(e)))
         return None
+        # return np.datetime64('2017-06-13T18:17:43.000000000')
+
 
 def get_run_number(run_id):
     """Return run number matching run_id. Returns run_id if run_id is int (presumably already run int)"""
@@ -430,6 +435,7 @@ def is_blind(run_id):
 
     # Everything else is not blinded
     return False
+
 
 def load_corrections():
     """Load all corrections that are stored on MongoDB as defined by the
