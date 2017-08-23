@@ -48,7 +48,7 @@ class Corrections(TreeMaker):
                       'interactions.r_correction',
                       'interactions.z_correction',
                       'interactions.drift_time',
-                      'events.start_time']
+                      'start_time']
 
     # Electron Lifetime: hopefully doc was pulled in hax.init.
     # Otherwise get it here at significantly higher DB cost
