@@ -191,6 +191,9 @@ class TailCut(hax.minitrees.TreeMaker):
         # Using load_single_dataset instead of load will ensure no blindding cut is applies
         data, _ = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'LargestPeakProperties'])
 
+        if data.empty:
+            return pd.DataFrame({})
+        
         # Get largest S2 in the event (or 0, if no S2 was found)
         s2 = data['s2_area'].values
         s2[np.isnan(s2)] = 0

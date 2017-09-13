@@ -314,7 +314,7 @@ def load_single_minitree(run_id,
     if already_made:
         return get_format(minitree_path).load_data()
 
-    if not hax.config['make_minitrees']:
+    if not hax.config['make_minitrees'] and not treemaker.never_store:
         # The user didn't want me to make a new minitree :-(
         raise NoMinitreeAvailable(
             "Minitree %s:%s not created since make_minitrees is False." %
