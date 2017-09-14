@@ -37,7 +37,7 @@ class Corrections(TreeMaker):
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '1.2'
+    __version__ = '1.3'
     extra_branches = ['peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
@@ -73,7 +73,7 @@ class Corrections(TreeMaker):
         if self.run_number < 6386:
             return 's2_xy_XENON1T_24Feb2017.json'
         else:
-            return 's2_xy_map_v2.0.json'
+            return 's2_xy_map_v2.1.json'
 
     def get_fdc_map_name(self):
         """Return the name of the FDC map file to use for this run."""
