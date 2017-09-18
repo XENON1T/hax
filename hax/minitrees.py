@@ -53,6 +53,9 @@ class TreeMaker(object):
     # computed from other minitrees' info.
     never_store = False
 
+    # Want to store something more in the metadata for this tree? Put here
+    extra_metadata = {}
+
     def __init__(self):
         # Support for string arguments
         if isinstance(self.branch_selection, str):
@@ -330,6 +333,7 @@ def load_single_minitree(run_id,
 
     metadata_dict = dict(
         version=treemaker.__version__,
+        extra=treemaker.extra_metadata,
         pax_version=hax.paxroot.get_metadata(run_id)['file_builder_version'],
         hax_version=hax.__version__,
         created_by=get_user_id(),

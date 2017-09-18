@@ -1,3 +1,4 @@
+import hax
 from hax.minitrees import TreeMaker
 from hax.treemakers.common import get_largest_indices
 from hax import runs
@@ -50,10 +51,13 @@ class Corrections(TreeMaker):
                       'interactions.drift_time',
                       'start_time']
 
+    extra_metadata = hax.config['corrections_definitions']
+
     # Electron Lifetime: hopefully doc was pulled in hax.init.
     # Otherwise get it here at significantly higher DB cost
     try:
         elife_correction_doc = runs.corrections_docs['hax_electron_lifetime']
+        extra_metadata['electron_lifetime_version'] = elife_correction_doc['version']
         elife_interpolation = interp1d(elife_correction_doc['times'],
                                        elife_correction_doc['electron_lifetimes'])
     except Exception as e:
@@ -68,26 +72,19 @@ class Corrections(TreeMaker):
     fdc_map = None
     lce_map = None
 
-    def get_s2_map_name(self):
-        """Return the name of the S2 map file to use for this run."""
-        if self.run_number < 6386:
-            return 's2_xy_XENON1T_24Feb2017.json'
-        else:
-            return 's2_xy_map_v2.1.json'
+    def get_correction_filename(self, correction_name):
+        """Return the file to use for a correction"""
+        if ('corrections_definitions' not in hax.config or
+            correction_name not in hax.config['corrections_definitions']):
+            return None
 
-    def get_fdc_map_name(self):
-        """Return the name of the FDC map file to use for this run."""
-        if self.run_number < 6386:
-            return 'fdc-AdCorrTPF.json.gz'
-        else:
-            return 'FDC-SR1_AdCorrTPF.json.gz'
-
-    def get_lce_map_name(self):
-        """Return the name of the LCE map file to use for this run."""
-        if self.run_number < 6386:
-            return 's1_xyz_XENON1T_kr83m-nov_pax-642_fdc-AdCorrTPF.json'
-        else:
-            return 's1_xyz_XENON1T_kr83m-sr1_pax-664_fdc-adcorrtpf.json'
+        for entry in hax.config['corrections_definitions'][correction_name]:
+            if 'run_min' not in entry or self.run_number < entry['run_min']:
+                continue
+            if 'run_max' not in entry or self.run_number <= entry['run_max']:
+                if 'file_name' in entry:
+                    return entry['file_name']
+        return None
 
     def extract_data(self, event):
         result = dict()
@@ -108,21 +105,21 @@ class Corrections(TreeMaker):
         result['s2'] = s2.area
 
         # Check that the correct S2 map is loaded and change if not
-        wanted_map_name = self.get_s2_map_name()
+        wanted_map_name = self.get_correction_filename("s2_xy_map")
         if self.loaded_xy_map_name != wanted_map_name:
             map_path = pax.utils.data_file_name(wanted_map_name)
             self.xy_map = InterpolatingMap(map_path)
             self.loaded_xy_map_name = wanted_map_name
 
         # Load the FDC map
-        wanted_fdc_map_name = self.get_fdc_map_name()
+        wanted_fdc_map_name = self.get_correction_filename("fdc")
         if wanted_fdc_map_name != self.loaded_fdc_map_name:
             fdc_map_path = pax.utils.data_file_name(wanted_fdc_map_name)
             self.fdc_map = InterpolatingMap(fdc_map_path)
             self.loaded_fdc_map_name = wanted_fdc_map_name
 
         # Load the LCE map
-        wanted_lce_map_name = self.get_lce_map_name()
+        wanted_lce_map_name = self.get_correction_filename("s1_lce_map")
         if wanted_lce_map_name != self.loaded_lce_map_name:
             lce_map_path = pax.utils.data_file_name(wanted_lce_map_name)
             self.lce_map = InterpolatingMap(lce_map_path)
