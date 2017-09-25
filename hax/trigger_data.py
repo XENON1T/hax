@@ -139,6 +139,9 @@ def get_aqm_pulses(run_id):
         while True:
             try:
                 doc = pickle.load(infile)
+                if not isinstance(doc, dict):
+                    # There's some random string at the start of the file for newer runs, skip it.
+                    continue
                 aqm_signals[aqm_channel[doc['module'], doc['channel']]].append(doc['time'] * dt + time_of_run_start)
             except EOFError:
                 break
