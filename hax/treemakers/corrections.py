@@ -179,9 +179,6 @@ class Corrections(TreeMaker):
             wanted_electron_lifetime = self.get_correction("mc_electron_lifetime_liquid")
             result['s2_lifetime_correction'] = np.exp((interaction.drift_time/1e3) /
                                                       wanted_electron_lifetime)
-            print(
-                "This run is tagged as being MC data. Using MC electron lifetime value of %i us."
-                % wanted_electron_lifetime)
 
         elif self.elife_interpolation is not None:
             # Ugh, numpy time types...
