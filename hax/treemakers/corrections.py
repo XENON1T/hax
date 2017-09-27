@@ -12,7 +12,7 @@ class Corrections(TreeMaker):
     """Applies high level corrections which are used in standard analyses.
 
     Provides:
-    - Position correction (please note this will change soon!):
+    - Position correction (based on TPF, please note this will change soon!):
       - r_observed: the observed interaction r coordinate (before the r, z correction).
       - x_observed: the observed interaction x coordinate (before the r, z correction).
       - y_observed: the observed interaction y coordinate (before the r, z correction).
@@ -21,13 +21,26 @@ class Corrections(TreeMaker):
       - x: the corrected interaction x coordinate
       - y: the corrected interaction y coordinate
       - z: the corrected interaction z coordinate
-
+      
+    - Data-driven 3D position correction (based on NN):
+      - r_observed_new: the observed interaction r coordinate (before the r, z correction).
+      - x_observed_new: the observed interaction x coordinate (before the r, z correction).
+      - y_observed_new: the observed interaction y coordinate (before the r, z correction).
+      - z_observed_new: the observed interaction z coordinate (before the r, z correction).
+      - r_new: the corrected interaction r coordinate
+      - x_new: the corrected interaction x coordinate
+      - y_new: the corrected interaction y coordinate
+      - z_new: the corrected interaction z coordinate
+      
     - Correction values for 'un-doing' single corrections:
       - s2_xy_correction_tot
       - s2_xy_correction_top
       - s2_xy_correction_bottom
       - s2_lifetime_correction
       - r_correction (r_observed + r_correction = r)
+      - r_correction_new (r_observed_new + r_correction_new = r_new)
+      - z_correction_new (z_observed_new + z_correction_new = z_new)
+      
     - Corrected S2 contains xy-correction and electron lifetime:
       - cs2: The corrected area in pe of the main interaction's S2
       - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
@@ -38,11 +51,12 @@ class Corrections(TreeMaker):
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '1.3'
+    __version__ = '1.4'
     extra_branches = ['peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
                       'peaks.area',
+                      'peaks.reconstructed_positions*',
                       'interactions.x',
                       'interactions.y',
                       'interactions.z',
@@ -76,6 +90,7 @@ class Corrections(TreeMaker):
     loaded_xy_map_name = None
     loaded_fdc_map_name = None
     loaded_lce_map_name = None
+    loaded_new_fdc_map_name = None
     xy_map = None
     fdc_map = None
     lce_map = None
@@ -94,6 +109,13 @@ class Corrections(TreeMaker):
                     return entry['correction']
         return None
 
+    # Load the new FDC map
+    wanted_new_fdc_map_name = 'FDC_SR1_data_driven_3d_correction_v0.json.gz'
+    if wanted_new_fdc_map_name != loaded_new_fdc_map_name:
+        new_fdc_map_path = pax.utils.data_file_name(wanted_new_fdc_map_name)
+        new_fdc_map = InterpolatingMap(new_fdc_map_path)
+        loaded_new_fdc_map_name = wanted_new_fdc_map_name
+    
     def extract_data(self, event):
         result = dict()
 
@@ -197,6 +219,30 @@ class Corrections(TreeMaker):
         result['x'] = (result['r']/result['r_observed']) * x_observed
         result['y'] = (result['r']/result['r_observed']) * y_observed
         result['z'] = z_observed + result['z_correction']
+        
+        # new observed positions(uncorrected NN positon)
+        for rp in s2.reconstructed_positions:
+            if rp.algorithm == 'PosRecNeuralNet':
+                result['x_observed_new'] = rp.x
+                result['y_observed_new'] = rp.y
+        
+        result['r_observed_new'] = np.sqrt(result['x_observed_new']**2 + result['y_observed_new']**2)
+        result['z_observed_new'] = z_observed
+        
+        # Apply new FDC
+        result['r_correction_new'] = self.new_fdc_map.get_value(result['x_observed_new'], 
+                                                                result['y_observed_new'], 
+                                                                result['z_observed_new'])
+        result['r_new'] = result['r_observed_new'] + result['r_correction_new']
+        result['x_new'] = result['x_observed_new'] * (result['r_new'] / result['r_observed_new'])
+        result['y_new'] = result['y_observed_new'] * (result['r_new'] / result['r_observed_new'])
+        
+        if -result['z_observed_new'] > result['r_correction_new']:
+            result['z_new'] = -np.sqrt(result['z_observed_new']**2 - result['r_correction_new']**2)
+        else:
+            result['z_new'] = result['z_observed_new']
+           
+        result['z_correction_new'] = result['z_new'] - result['z_observed_new']
 
         # Apply LCE (light collection efficiency correction to s1)
         result['s1_xyz_correction'] = 1 / self.lce_map.get_value(result['x'], result['y'], result['z'])
