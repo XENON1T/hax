@@ -1,3 +1,13 @@
+1.7.0
+-----
+* Add new, alternative 3D data driven FDC correction (#143)
+* Updated Correction treemaker for MC compatibility (#144)
+* Added corrections definitions to minitree metadata (#141)
+* Fix S2 map version to 2.1 (#140)
+* Skip strings in acquisition monitor files (#142)
+* Various bug fixes (#134, #138, #137)
+
+
 1.6.2
 -----
 * Fix MC minitree generation bug related to rundb (#136)
