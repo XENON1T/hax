@@ -53,6 +53,14 @@ class Corrections(TreeMaker):
 
     extra_metadata = hax.config['corrections_definitions']
 
+    # Check if data was generated with MC.
+    # If it was, pull the electron lifetime values from the associated metadata
+    def check_for_mc(self):
+        mc_data = False
+        if 'MC' in hax.paxroot.get_metadata(self.run_name)['configuration']:
+            mc_data = hax.paxroot.get_metadata(self.run_name)['configuration']['MC']['mc_generated_data']
+        return mc_data
+
     # Electron Lifetime: hopefully doc was pulled in hax.init.
     # Otherwise get it here at significantly higher DB cost
     try:
@@ -72,7 +80,7 @@ class Corrections(TreeMaker):
     fdc_map = None
     lce_map = None
 
-    def get_correction_filename(self, correction_name):
+    def get_correction(self, correction_name):
         """Return the file to use for a correction"""
         if ('corrections_definitions' not in hax.config or
             correction_name not in hax.config['corrections_definitions']):
@@ -82,8 +90,8 @@ class Corrections(TreeMaker):
             if 'run_min' not in entry or self.run_number < entry['run_min']:
                 continue
             if 'run_max' not in entry or self.run_number <= entry['run_max']:
-                if 'file_name' in entry:
-                    return entry['file_name']
+                if 'correction' in entry:
+                    return entry['correction']
         return None
 
     def extract_data(self, event):
@@ -105,21 +113,21 @@ class Corrections(TreeMaker):
         result['s2'] = s2.area
 
         # Check that the correct S2 map is loaded and change if not
-        wanted_map_name = self.get_correction_filename("s2_xy_map")
+        wanted_map_name = self.get_correction("s2_xy_map")
         if self.loaded_xy_map_name != wanted_map_name:
             map_path = pax.utils.data_file_name(wanted_map_name)
             self.xy_map = InterpolatingMap(map_path)
             self.loaded_xy_map_name = wanted_map_name
 
         # Load the FDC map
-        wanted_fdc_map_name = self.get_correction_filename("fdc")
+        wanted_fdc_map_name = self.get_correction("fdc")
         if wanted_fdc_map_name != self.loaded_fdc_map_name:
             fdc_map_path = pax.utils.data_file_name(wanted_fdc_map_name)
             self.fdc_map = InterpolatingMap(fdc_map_path)
             self.loaded_fdc_map_name = wanted_fdc_map_name
 
         # Load the LCE map
-        wanted_lce_map_name = self.get_correction_filename("s1_lce_map")
+        wanted_lce_map_name = self.get_correction("s1_lce_map")
         if wanted_lce_map_name != self.loaded_lce_map_name:
             lce_map_path = pax.utils.data_file_name(wanted_lce_map_name)
             self.lce_map = InterpolatingMap(lce_map_path)
@@ -144,7 +152,16 @@ class Corrections(TreeMaker):
                                                  x_observed, y_observed, map_name='map_bottom'))
 
         # include electron lifetime correction
-        if self.elife_interpolation is not None:
+        pax_mc_data = self.check_for_mc()
+        if pax_mc_data:
+            wanted_electron_lifetime = self.get_correction("mc_electron_lifetime_liquid")
+            result['s2_lifetime_correction'] = np.exp((interaction.drift_time/1e3) /
+                                                      wanted_electron_lifetime)
+            print(
+                "This run is tagged as being MC data. Using MC electron lifetime value of %i us."
+                % wanted_electron_lifetime)
+
+        elif self.elife_interpolation is not None:
             # Ugh, numpy time types...
             ts = ((self.run_start - np.datetime64('1970-01-01T00:00:00Z')) /
                   np.timedelta64(1, 's'))
