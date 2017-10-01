@@ -51,7 +51,7 @@ class Corrections(TreeMaker):
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '1.4'
+    __version__ = '1.5'
     extra_branches = ['peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
@@ -234,7 +234,7 @@ class Corrections(TreeMaker):
         result['x_new'] = result['x_observed_new'] * (result['r_new'] / result['r_observed_new'])
         result['y_new'] = result['y_observed_new'] * (result['r_new'] / result['r_observed_new'])
         
-        if -result['z_observed_new'] > result['r_correction_new']:
+        if abs(result['z_observed_new']) > abs(result['r_correction_new']):
             result['z_new'] = -np.sqrt(result['z_observed_new']**2 - result['r_correction_new']**2)
         else:
             result['z_new'] = result['z_observed_new']
