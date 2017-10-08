@@ -321,9 +321,9 @@ def get_run_number(run_id):
             run_id = run_id[:10]
             return int(run_id)
 
-        if ('MC' in hax.paxroot.get_metadata(run_id)['configuration'] and
-            hax.paxroot.get_metadata(run_id)['configuration']['MC']['mc_generated_data']):
-            mc_run_number = hax.paxroot.get_metadata(run_id)['configuration']['MC']['mc_run_number']
+        pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
+        if ('MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']):
+            mc_run_number = pax_metadata['MC']['mc_run_number']
             print(
                 "Run is tagged as MC data. Setting run number to MC assigned value of %i" % mc_run_number)
             return int(mc_run_number)

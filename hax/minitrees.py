@@ -56,6 +56,9 @@ class TreeMaker(object):
     # Want to store something more in the metadata for this tree? Put here
     extra_metadata = {}
 
+    # Flag if loading MC
+    mc_data = False
+
     def __init__(self):
         # Support for string arguments
         if isinstance(self.branch_selection, str):
@@ -330,6 +333,10 @@ def load_single_minitree(run_id,
     log.debug(
         "Retrieved %s minitree data for dataset %s" %
         (treemaker.__name__, run_id))
+
+    pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
+    if 'MC' in pax_metadata:
+        treemaker.mc_data = pax_metadata['MC']['mc_generated_data']
 
     metadata_dict = dict(
         version=treemaker.__version__,

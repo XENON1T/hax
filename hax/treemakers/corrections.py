@@ -67,14 +67,6 @@ class Corrections(TreeMaker):
 
     extra_metadata = hax.config['corrections_definitions']
 
-    # Check if data was generated with MC.
-    # If it was, pull the electron lifetime values from the associated metadata
-    def check_for_mc(self):
-        mc_data = False
-        if 'MC' in hax.paxroot.get_metadata(self.run_name)['configuration']:
-            mc_data = hax.paxroot.get_metadata(self.run_name)['configuration']['MC']['mc_generated_data']
-        return mc_data
-
     # Electron Lifetime: hopefully doc was pulled in hax.init.
     # Otherwise get it here at significantly higher DB cost
     try:
@@ -174,8 +166,7 @@ class Corrections(TreeMaker):
                                                  x_observed, y_observed, map_name='map_bottom'))
 
         # include electron lifetime correction
-        pax_mc_data = self.check_for_mc()
-        if pax_mc_data:
+        if self.mc_data:
             wanted_electron_lifetime = self.get_correction("mc_electron_lifetime_liquid")
             result['s2_lifetime_correction'] = np.exp((interaction.drift_time/1e3) /
                                                       wanted_electron_lifetime)
