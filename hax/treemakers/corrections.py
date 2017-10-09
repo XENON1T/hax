@@ -21,7 +21,7 @@ class Corrections(TreeMaker):
       - x: the corrected interaction x coordinate
       - y: the corrected interaction y coordinate
       - z: the corrected interaction z coordinate
-      
+
     - Data-driven 3D position correction (based on NN):
       - r_observed_new: the observed interaction r coordinate (before the r, z correction).
       - x_observed_new: the observed interaction x coordinate (before the r, z correction).
@@ -31,7 +31,7 @@ class Corrections(TreeMaker):
       - x_new: the corrected interaction x coordinate
       - y_new: the corrected interaction y coordinate
       - z_new: the corrected interaction z coordinate
-      
+
     - Correction values for 'un-doing' single corrections:
       - s2_xy_correction_tot
       - s2_xy_correction_top
@@ -40,7 +40,7 @@ class Corrections(TreeMaker):
       - r_correction (r_observed + r_correction = r)
       - r_correction_new (r_observed_new + r_correction_new = r_new)
       - z_correction_new (z_observed_new + z_correction_new = z_new)
-      
+
     - Corrected S2 contains xy-correction and electron lifetime:
       - cs2: The corrected area in pe of the main interaction's S2
       - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
@@ -89,8 +89,8 @@ class Corrections(TreeMaker):
 
     def get_correction(self, correction_name):
         """Return the file to use for a correction"""
-        if ('corrections_definitions' not in hax.config or
-            correction_name not in hax.config['corrections_definitions']):
+        if ('corrections_definitions' not in hax.config) \
+                or (correction_name not in hax.config['corrections_definitions']):
             return None
 
         for entry in hax.config['corrections_definitions'][correction_name]:
@@ -107,7 +107,7 @@ class Corrections(TreeMaker):
         new_fdc_map_path = pax.utils.data_file_name(wanted_new_fdc_map_name)
         new_fdc_map = InterpolatingMap(new_fdc_map_path)
         loaded_new_fdc_map_name = wanted_new_fdc_map_name
-    
+
     def extract_data(self, event):
         result = dict()
 
@@ -207,29 +207,29 @@ class Corrections(TreeMaker):
         result['x'] = (result['r']/result['r_observed']) * x_observed
         result['y'] = (result['r']/result['r_observed']) * y_observed
         result['z'] = z_observed + result['z_correction']
-        
+
         # new observed positions(uncorrected NN positon)
         for rp in s2.reconstructed_positions:
             if rp.algorithm == 'PosRecNeuralNet':
                 result['x_observed_new'] = rp.x
                 result['y_observed_new'] = rp.y
-        
+
         result['r_observed_new'] = np.sqrt(result['x_observed_new']**2 + result['y_observed_new']**2)
         result['z_observed_new'] = z_observed
-        
+
         # Apply new FDC
-        result['r_correction_new'] = self.new_fdc_map.get_value(result['x_observed_new'], 
-                                                                result['y_observed_new'], 
+        result['r_correction_new'] = self.new_fdc_map.get_value(result['x_observed_new'],
+                                                                result['y_observed_new'],
                                                                 result['z_observed_new'])
         result['r_new'] = result['r_observed_new'] + result['r_correction_new']
         result['x_new'] = result['x_observed_new'] * (result['r_new'] / result['r_observed_new'])
         result['y_new'] = result['y_observed_new'] * (result['r_new'] / result['r_observed_new'])
-        
+
         if abs(result['z_observed_new']) > abs(result['r_correction_new']):
             result['z_new'] = -np.sqrt(result['z_observed_new']**2 - result['r_correction_new']**2)
         else:
             result['z_new'] = result['z_observed_new']
-           
+
         result['z_correction_new'] = result['z_new'] - result['z_observed_new']
 
         # Apply LCE (light collection efficiency correction to s1)

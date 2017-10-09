@@ -193,7 +193,7 @@ class TailCut(hax.minitrees.TreeMaker):
 
         if data.empty:
             return pd.DataFrame({})
-        
+
         # Get largest S2 in the event (or 0, if no S2 was found)
         s2 = data['s2_area'].values
         s2[np.isnan(s2)] = 0
