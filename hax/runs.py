@@ -369,17 +369,22 @@ def tags_selection(dsets=None, include=None, exclude=None, pattern_type='fnmatch
         dsets = dsets[_tags_match(dsets, include, pattern_type, ignore_underscore)]
     if exclude is not None:
         dsets = dsets[True ^ _tags_match(dsets, exclude, pattern_type, ignore_underscore)]
-    # Get version
-    collection = get_rundb_collection()
-    for itag in include:
-        try:
-            tags = collection.find_one({"tags": {"$elemMatch": {"name": itag, "version": {"$exists": True}}}})['tags']
-            if tags is None:
+
+    if include is not None and len(include):
+        # For each include tag, get and print the "tag version" (if it exists).
+        # This is mostly used for the sciencerunX tags.
+        collection = get_rundb_collection()
+        for itag in include:
+            try:
+                tags = collection.find_one(
+                    {"tags": {"$elemMatch": {"name": itag, "version": {"$exists": True}}}})['tags']
+                if tags is None:
+                    continue
+                tag = [i for i in tags if i['name'] == itag][0]
+                print("Tag '" + str(itag) + "' version: " +
+                      str(tag['version'] + " compiled on UTC " + str(tag['date'])))
+            except TypeError:
                 continue
-            tag = [i for i in tags if i['name'] == itag][0]
-            print("Tag '" + str(itag) + "' version: " + str(tag['version'] + " compiled on UTC " + str(tag['date'])))
-        except TypeError:
-            continue
 
     return dsets
 
