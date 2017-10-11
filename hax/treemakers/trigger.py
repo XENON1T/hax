@@ -223,3 +223,61 @@ class TailCut(hax.minitrees.TreeMaker):
                                  s2_over_tdiff=result,
                                  tailcut_set_by=tailcut_set_by,
                                  s2_area_tailcut_set_by=s2_area_tailcut_set_by))
+
+class Trigger(hax.minitrees.TreeMaker):
+    """
+    Extracted values from trigger data. There is a bug where the trigger will
+    not pick up collections for O(1 minute) or so. We want to cut these ranges with
+    some buffer around them where events could be partial. The range will be set in
+    lax (should be +/- 1 second) but this treemaker will provide the livetime loss.
+    
+    Also: PMT flashes should be tagged within this treemaker
+    
+    Provides:
+    - nearest_trigger_zero: time (ns) to next trigger zero bin
+    - dead_time_trigger:    for each dead range we count the number of zero bins  
+                            plus two (one before, one after)                                         
+    """
+
+    __version__ = '0.1'
+    pax_version_independent = True
+
+    def get_data(self, dataset, event_list=None):
+
+        # We use 'all' pulses
+        trigger_data = hax.trigger_data.get_trigger_data(
+            dataset, select_data_types='count_of_all_pulses')
+        self.trigger_data_summed = np.array([sum(d) for d in trigger_data])
+
+        # General way to calculate number of drops with 1 second padding around each
+        zero_bins = [i for i, a in enumerate(self.trigger_data_summed) if a == 0]
+        last = 0
+        self.dead_seconds_trigger = 0
+        for a in zero_bins:
+            self.dead_seconds_trigger+=1
+            if a-last!=1:
+                self.dead_seconds_trigger+=1
+            last = a
+        if len(zero_bins)!=0:
+            self.dead_seconds_trigger+=1
+
+        # We need the run start time to find the time in run later
+        self.run_start = hax.runs.get_run_info(
+            dataset, 'start').replace(tzinfo=pytz.utc).timestamp()
+
+        return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
+
+    def extract_data(self, event):
+
+        ret = {"nearest_trigger_drop": -1}
+        
+        # Brain teaser. Two list iterations is the best I could do
+        time_in_run_ns = int(event.start_time) - int(self.run_start)
+        nearest_search_arr = [(np.abs(time_in_run_ns-i*1e9))
+                              for i, n in enumerate(self.trigger_data_summed)
+                              if n==0]
+        if len(nearest_search_arr) != 0:
+            ret['nearest_trigger_drop'] = int(min(nearest_search_arr))
+        ret['dead_seconds_trigger'] = self.dead_seconds_trigger
+
+        return ret
