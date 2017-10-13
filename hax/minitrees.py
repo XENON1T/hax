@@ -89,6 +89,9 @@ class TreeMaker(object):
 
     def get_data(self, dataset, event_list=None):
         """Return data extracted from running over dataset"""
+        pax_metadata = hax.paxroot.get_metadata(dataset)['configuration']
+        if 'MC' in pax_metadata:
+            self.mc_data = pax_metadata['MC']['mc_generated_data']
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         self.run_start = runs.get_run_start(dataset)
@@ -333,10 +336,6 @@ def load_single_minitree(run_id,
     log.debug(
         "Retrieved %s minitree data for dataset %s" %
         (treemaker.__name__, run_id))
-
-    pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
-    if 'MC' in pax_metadata:
-        treemaker.mc_data = pax_metadata['MC']['mc_generated_data']
 
     metadata_dict = dict(
         version=treemaker.__version__,
