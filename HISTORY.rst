@@ -1,3 +1,11 @@
+1.8.0
+-----
+* Update Correction treemaker (#151)
+* 3D data driven FDC (#147)
+* Treemaker for AC analysis (#149)
+* A few bug fix (#152, #145, #148)
+
+
 1.7.0
 -----
 * Add new, alternative 3D data driven FDC correction (#143)
