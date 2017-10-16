@@ -12,46 +12,54 @@ class Corrections(TreeMaker):
     """Applies high level corrections which are used in standard analyses.
 
     Provides:
-    - Position correction (based on TPF, please note this will change soon!):
-      - r_observed: the observed interaction r coordinate (before the r, z correction).
-      - x_observed: the observed interaction x coordinate (before the r, z correction).
-      - y_observed: the observed interaction y coordinate (before the r, z correction).
+    - Corrected S2 contains xy-correction and electron lifetime:
+      - cs2: The corrected area in pe of the main interaction's S2
+      - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
+      - cs2_bottom: The corrected area in pe of the main interaction's S2 from the bottom array.
+
+    - Observed positions, not corrected with FDC maps, for both NN and TPF:
+      - r_observed_tpf: the observed interaction r coordinate (using TPF).
+      - x_observed_tpf: the observed interaction x coordinate (using TPF).
+      - y_observed_tpf: the observed interaction y coordinate (using TPF).
+      - r_observed_nn: the observed interaction r coordinate (using NN).
+      - x_observed_nn: the observed interaction x coordinate (using NN).
+      - y_observed_nn: the observed interaction y coordinate (using NN).
       - z_observed: the observed interaction z coordinate (before the r, z correction).
+
+    - Position correction (based on TPF, (old) 2D FDC map):
       - r: the corrected interaction r coordinate
       - x: the corrected interaction x coordinate
       - y: the corrected interaction y coordinate
       - z: the corrected interaction z coordinate
 
-    - Data-driven 3D position correction (based on NN):
-      - r_observed_new: the observed interaction r coordinate (before the r, z correction).
-      - x_observed_new: the observed interaction x coordinate (before the r, z correction).
-      - y_observed_new: the observed interaction y coordinate (before the r, z correction).
-      - z_observed_new: the observed interaction z coordinate (before the r, z correction).
-      - r_new: the corrected interaction r coordinate
-      - x_new: the corrected interaction x coordinate
-      - y_new: the corrected interaction y coordinate
-      - z_new: the corrected interaction z coordinate
+    - Data-driven 3D position correction (applied to both NN and TPF observed positions):
+      - r_3d_nn: the corrected interaction r coordinate (using NN).
+      - x_3d_nn: the corrected interaction x coordinate (using NN).
+      - y_3d_nn: the corrected interaction y coordinate (using NN).
+      - z_3d_nn: the corrected interaction z coordinate (using NN).
+      - r_3d_tpf: the corrected interaction r coordinate (using TPF).
+      - x_3d_tpf: the corrected interaction x coordinate (using TPF).
+      - y_3d_tpf: the corrected interaction y coordinate (using TPF).
+      - z_3d_tpf: the corrected interaction z coordinate (using TPF).
 
     - Correction values for 'un-doing' single corrections:
       - s2_xy_correction_tot
       - s2_xy_correction_top
       - s2_xy_correction_bottom
       - s2_lifetime_correction
-      - r_correction (r_observed + r_correction = r)
-      - r_correction_new (r_observed_new + r_correction_new = r_new)
-      - z_correction_new (z_observed_new + z_correction_new = z_new)
-
-    - Corrected S2 contains xy-correction and electron lifetime:
-      - cs2: The corrected area in pe of the main interaction's S2
-      - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
-      - cs2_bottom: The corrected area in pe of the main interaction's S2 from the bottom array.
+      - r_correction_3d_nn
+      - r_correction_3d_tpf
+      - r_correction_2d
+      - z_correction_3d_nn
+      - z_correction_3d_tpf
+      - z_correction_2d
 
     Notes:
     - The cs2, cs2_top and cs2_bottom variables are corrected
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '1.5'
+    __version__ = '1.6'
     extra_branches = ['peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
@@ -80,11 +88,12 @@ class Corrections(TreeMaker):
         print(e)
 
     loaded_xy_map_name = None
-    loaded_fdc_map_name = None
+    loaded_2d_fdc_map_name = None
+    loaded_3d_fdc_map_name = None
     loaded_lce_map_name = None
-    loaded_new_fdc_map_name = None
     xy_map = None
-    fdc_map = None
+    fdc_2d_map = None
+    fdc_3d_map = None
     lce_map = None
 
     def get_correction(self, correction_name):
@@ -101,12 +110,13 @@ class Corrections(TreeMaker):
                     return entry['correction']
         return None
 
-    # Load the new FDC map
-    wanted_new_fdc_map_name = 'FDC_SR1_data_driven_3d_correction_v0.json.gz'
-    if wanted_new_fdc_map_name != loaded_new_fdc_map_name:
-        new_fdc_map_path = pax.utils.data_file_name(wanted_new_fdc_map_name)
-        new_fdc_map = InterpolatingMap(new_fdc_map_path)
-        loaded_new_fdc_map_name = wanted_new_fdc_map_name
+    def load_map(self, name, loaded_map, loaded_name):
+        wanted_map_name = self.get_correction(name)
+        if loaded_name != wanted_map_name:
+            map_path = pax.utils.data_file_name(wanted_map_name)
+            return InterpolatingMap(map_path), wanted_map_name
+        else:
+            return loaded_map, loaded_name
 
     def extract_data(self, event):
         result = dict()
@@ -127,35 +137,46 @@ class Corrections(TreeMaker):
         result['s2'] = s2.area
 
         # Check that the correct S2 map is loaded and change if not
-        wanted_map_name = self.get_correction("s2_xy_map")
-        if self.loaded_xy_map_name != wanted_map_name:
-            map_path = pax.utils.data_file_name(wanted_map_name)
-            self.xy_map = InterpolatingMap(map_path)
-            self.loaded_xy_map_name = wanted_map_name
+        self.xy_map, self.loaded_xy_map_name = self.load_map("s2_xy_map",
+                                                             self.xy_map,
+                                                             self.loaded_xy_map_name)
 
-        # Load the FDC map
-        wanted_fdc_map_name = self.get_correction("fdc")
-        if wanted_fdc_map_name != self.loaded_fdc_map_name:
-            fdc_map_path = pax.utils.data_file_name(wanted_fdc_map_name)
-            self.fdc_map = InterpolatingMap(fdc_map_path)
-            self.loaded_fdc_map_name = wanted_fdc_map_name
+        # Load the 2D FDC map
+        self.fdc_2d_map, self.loaded_2d_fdc_map_name = self.load_map("fdc_2d",
+                                                                     self.fdc_2d_map,
+                                                                     self.loaded_2d_fdc_map_name)
+
+        # Load the 3D data driven FDC map
+        self.fdc_3d_map, self.loaded_3d_fdc_map_name = self.load_map("fdc_3d",
+                                                                     self.fdc_3d_map,
+                                                                     self.loaded_3d_fdc_map_name)
 
         # Load the LCE map
-        wanted_lce_map_name = self.get_correction("s1_lce_map")
-        if wanted_lce_map_name != self.loaded_lce_map_name:
-            lce_map_path = pax.utils.data_file_name(wanted_lce_map_name)
-            self.lce_map = InterpolatingMap(lce_map_path)
-            self.loaded_lce_map_name = wanted_lce_map_name
+        self.lce_map, self.loaded_lce_map_name = self.load_map("s1_lce_map",
+                                                               self.lce_map,
+                                                               self.loaded_lce_map_name)
 
-        # Need the observed ('uncorrected') position; pax gives
-        # corrected positions (where the interaction happens)
-        interaction_r = np.sqrt(interaction.x ** 2 + interaction.y ** 2)
-        r_observed = interaction_r - interaction.r_correction
+        # Need the observed ('uncorrected') position.
+        # pax Interaction positions are corrected so lookup the
+        # uncorrected positions in the ReconstructedPosition objects
+        for rp in s2.reconstructed_positions:
+            if rp.algorithm == 'PosRecNeuralNet':
+                result['x_observed_nn'] = rp.x
+                result['y_observed_nn'] = rp.y
+                result['r_observed_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
+            if rp.algorithm == 'PosRecTopPatternFit':
+                result['x_observed_tpf'] = rp.x
+                result['y_observed_tpf'] = rp.y
+                result['r_observed_tpf'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
+                r_observed = np.sqrt(rp.x ** 2 + rp.y ** 2)
+                result['r_observed'] = r_observed
+                x_observed = rp.x
+                y_observed = rp.y
+
         z_observed = interaction.z - interaction.z_correction
-        x_observed = (r_observed / interaction_r) * interaction.x
-        y_observed = (r_observed / interaction_r) * interaction.y
-        # phi = np.arctan2(y_observed, x_observed)
+        result['z_observed'] = z_observed
 
+        # Correct S2
         result['s2_xy_correction_tot'] = (1.0 /
                                           self.xy_map.get_value(x_observed, y_observed))
         result['s2_xy_correction_top'] = (1.0 /
@@ -190,47 +211,42 @@ class Corrections(TreeMaker):
         s2_bottom_correction = (result['s2_lifetime_correction'] *
                                 result['s2_xy_correction_bottom'])
 
-        result['r_observed'] = r_observed
-        result['z_observed'] = z_observed
-        result['x_observed'] = x_observed
-        result['y_observed'] = y_observed
-
         result['cs2'] = s2.area * s2_correction
         result['cs2_top'] = s2.area * s2.area_fraction_top * s2_top_correction
         result['cs2_bottom'] = s2.area * (1.0 - s2.area_fraction_top) * s2_bottom_correction
 
-        # Apply FDC (field distortion correction to position)
-        result['r_correction'] = self.fdc_map.get_value(r_observed, z_observed, map_name='to_true_r')
-        result['z_correction'] = self.fdc_map.get_value(r_observed, z_observed, map_name='to_true_z')
+        # FDC
+        # Apply the (old) 2D FDC (field distortion correction to position)
+        # Because we have different 2D correction maps for different runs we need
+        # to reapply the 2D FDC here (if not we could simply take the Interaction positions
+        # which have already the 2D FDC applied).
+        result['r_correction_2d'] = self.fdc_2d_map.get_value(r_observed, z_observed, map_name='to_true_r')
+        result['z_correction_2d'] = self.fdc_2d_map.get_value(r_observed, z_observed, map_name='to_true_z')
 
-        result['r'] = r_observed + result['r_correction']
+        result['r'] = r_observed + result['r_correction_2d']
         result['x'] = (result['r']/result['r_observed']) * x_observed
         result['y'] = (result['r']/result['r_observed']) * y_observed
-        result['z'] = z_observed + result['z_correction']
+        result['z'] = z_observed + result['z_correction_2d']
 
-        # new observed positions(uncorrected NN positon)
-        for rp in s2.reconstructed_positions:
-            if rp.algorithm == 'PosRecNeuralNet':
-                result['x_observed_new'] = rp.x
-                result['y_observed_new'] = rp.y
+        # FDC
+        # Apply the (new) 3D data driven FDC, once using NN positions and once using TPF positions for testing
+        for algo in ['nn', 'tpf']:
+            result['r_correction_3d_' + algo] = self.fdc_3d_map.get_value(result['x_observed_' + algo],
+                                                                          result['y_observed_' + algo],
+                                                                          z_observed)
 
-        result['r_observed_new'] = np.sqrt(result['x_observed_new']**2 + result['y_observed_new']**2)
-        result['z_observed_new'] = z_observed
+            result['r_3d_' + algo] = result['r_observed_' + algo] + result['r_correction_3d_' + algo]
+            result['x_3d_' + algo] =\
+                result['x_observed_' + algo] * (result['r_3d_' + algo] / result['r_observed_' + algo])
+            result['y_3d_' + algo] =\
+                result['y_observed_' + algo] * (result['r_3d_' + algo] / result['r_observed_' + algo])
 
-        # Apply new FDC
-        result['r_correction_new'] = self.new_fdc_map.get_value(result['x_observed_new'],
-                                                                result['y_observed_new'],
-                                                                result['z_observed_new'])
-        result['r_new'] = result['r_observed_new'] + result['r_correction_new']
-        result['x_new'] = result['x_observed_new'] * (result['r_new'] / result['r_observed_new'])
-        result['y_new'] = result['y_observed_new'] * (result['r_new'] / result['r_observed_new'])
+            if abs(z_observed) > abs(result['r_correction_3d_' + algo]):
+                result['z_3d_' + algo] = -np.sqrt(z_observed ** 2 - result['r_correction_3d_' + algo] ** 2)
+            else:
+                result['z_3d_' + algo] = z_observed
 
-        if abs(result['z_observed_new']) > abs(result['r_correction_new']):
-            result['z_new'] = -np.sqrt(result['z_observed_new']**2 - result['r_correction_new']**2)
-        else:
-            result['z_new'] = result['z_observed_new']
-
-        result['z_correction_new'] = result['z_new'] - result['z_observed_new']
+            result['z_correction_3d_' + algo] = result['z_3d_' + algo] - z_observed
 
         # Apply LCE (light collection efficiency correction to s1)
         result['s1_xyz_correction'] = 1 / self.lce_map.get_value(result['x'], result['y'], result['z'])

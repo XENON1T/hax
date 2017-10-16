@@ -74,7 +74,6 @@ class LoneSignalsPreS1(TreeMaker):
                     result['s2_0_x'] = s2_0_recpos_pf.x
                     result['s2_0_y'] = s2_0_recpos_pf.y
                     result['s2_0_posrec_goodness_of_fit'] = s2_0_recpos_pf.goodness_of_fit
-                    #result['s2_0_posrec_ndf'] = s2_0_recpos_pf.ndf
 
                 if (rp.algorithm == 'PosRecNeuralNet'):
                     s2_0_recpos_pf = rp
