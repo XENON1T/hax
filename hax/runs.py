@@ -438,7 +438,7 @@ def is_blind(run_id):
     # (underscore means that it is a protected tag)
     if 'blinded' in tag_names or '_blinded' in tag_names:
         return True
-    if 'unblinded' in tag_names or '_unblinded' in tag_names:
+    if '_unblinded' in tag_names:
         return False
 
     # Blind runs past a configured run number
