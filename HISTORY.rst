@@ -1,3 +1,11 @@
+1.9.0
+-----
+* Time Dependent 3D FDC for SR1 (#158)
+* Default Correction of S1 based on NN with 3D FDC (#156)
+* New S2 correction map for SR1 (#154)
+* Extra information added in Extended minitree for Kr83 idetification (#157)
+* Safer unblind (#153)  
+
 1.8.0
 -----
 * Update Correction treemaker (#151)
