@@ -12,6 +12,10 @@ class Corrections(TreeMaker):
     """Applies high level corrections which are used in standard analyses.
 
     Provides:
+    - Corrected S1 contains xyz-correction:
+      - cs1: The corrected area in pe of the main interaction's S1 using NN 3D FDC
+      - cs1_tpf_2dfdc: Same but for TPF 2D FDC
+
     - Corrected S2 contains xy-correction and electron lifetime:
       - cs2: The corrected area in pe of the main interaction's S2
       - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
@@ -43,6 +47,8 @@ class Corrections(TreeMaker):
       - z_3d_tpf: the corrected interaction z coordinate (using TPF).
 
     - Correction values for 'un-doing' single corrections:
+      - s1_xyz_correction_tpf_fdc_2d
+      - s1_xyz_correction_nn_fdc_3d
       - s2_xy_correction_tot
       - s2_xy_correction_top
       - s2_xy_correction_bottom
@@ -90,11 +96,13 @@ class Corrections(TreeMaker):
     loaded_xy_map_name = None
     loaded_2d_fdc_map_name = None
     loaded_3d_fdc_map_name = None
-    loaded_lce_map_name = None
+    loaded_lce_map_tpf_fdc_2d_name = None
+    loaded_lce_map_nn_fdc_3d_name = None
     xy_map = None
     fdc_2d_map = None
     fdc_3d_map = None
-    lce_map = None
+    lce_map_tpf_fdc_2d = None
+    lce_map_nn_fdc_3d = None
 
     def get_correction(self, correction_name):
         """Return the file to use for a correction"""
@@ -151,10 +159,15 @@ class Corrections(TreeMaker):
                                                                      self.fdc_3d_map,
                                                                      self.loaded_3d_fdc_map_name)
 
-        # Load the LCE map
-        self.lce_map, self.loaded_lce_map_name = self.load_map("s1_lce_map",
-                                                               self.lce_map,
-                                                               self.loaded_lce_map_name)
+        # Load the LCE map for TPF 2D FDC
+        self.lce_map_tpf_fdc_2d, self.loaded_lce_map_tpf_fdc_2d_name = self.load_map("s1_lce_map_tpf_fdc_2d",
+                                                                                     self.lce_map_tpf_fdc_2d,
+                                                                                     self.loaded_lce_map_tpf_fdc_2d_name)
+
+        # Load the LCE map for NN 3D FDC
+        self.lce_map_nn_fdc_3d, self.loaded_lce_map_nn_fdc_3d_name = self.load_map("s1_lce_map_nn_fdc_3d",
+                                                                                   self.lce_map_nn_fdc_3d,
+                                                                                   self.loaded_lce_map_nn_fdc_3d_name)
 
         # Need the observed ('uncorrected') position.
         # pax Interaction positions are corrected so lookup the
@@ -249,8 +262,10 @@ class Corrections(TreeMaker):
             result['z_correction_3d_' + algo] = result['z_3d_' + algo] - z_observed
 
         # Apply LCE (light collection efficiency correction to s1)
-        result['s1_xyz_correction'] = 1 / self.lce_map.get_value(result['x'], result['y'], result['z'])
+        result['s1_xyz_correction_tpf_fdc_2d'] = 1 / self.lce_map_tpf_fdc_2d.get_value(result['x'], result['y'], result['z'])
+        result['cs1_tpf_2dfdc'] = s1.area * result['s1_xyz_correction_tpf_fdc_2d']
 
-        result['cs1'] = s1.area * result['s1_xyz_correction']
+        result['s1_xyz_correction_nn_fdc_3d'] = 1 / self.lce_map_nn_fdc_3d.get_value(result['x_3d_nn'], result['y_3d_nn'], result['z_3d_nn'])
+        result['cs1'] = s1.area * result['s1_xyz_correction_nn_fdc_3d']
 
         return result
