@@ -311,30 +311,37 @@ def get_run_number(run_id):
     """Return run number matching run_id. Returns run_id if run_id is int (presumably already run int)"""
     if isinstance(run_id, (int, float, np.int, np.int32, np.int64)):
         return int(run_id)
-    try:
-        if hax.config['experiment'] == 'XENON100':
-            # Convert from XENON100 dataset name (like xe100_120402_2000) to
-            # number
-            if run_id.startswith('xe100_'):
-                run_id = run_id[6:]
-            run_id = run_id.replace('_', '')
-            run_id = run_id[:10]
-            return int(run_id)
 
+    if hax.config['experiment'] == 'XENON100':
+        # Convert from XENON100 dataset name (like xe100_120402_2000) to
+        # number
+        if run_id.startswith('xe100_'):
+            run_id = run_id[6:]
+        run_id = run_id.replace('_', '')
+        run_id = run_id[:10]
+        return int(run_id)
+
+    try:
         pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
-        if ('MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']):
+        if 'MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']:
             mc_run_number = pax_metadata['MC']['mc_run_number']
             print(
                 "Run is tagged as MC data. Setting run number to MC assigned value of %i" % mc_run_number)
             return int(mc_run_number)
 
-        return datasets.query('name == "%s"' % run_id)['number'].values[0]
+    except FileNotFoundError:
+        # We can't find the file, so can't check if it is MC data. Assume it's ordinary data
+        pass
 
-    except Exception as e:
-        print(
-            "Could not find run number for %s, got exception %s: %s. Setting run number to 0." %
-            (run_id, type(e), str(e)))
-        return 0
+    matching_runs = datasets.query('name == "%s"' % run_id)['number']
+
+    if not len(matching_runs):
+        raise ValueError("Could not find run number: no run named %s in database." % run_id)
+    if len(matching_runs) > 1:
+        raise ValueError("Runs %s all match name %d, don't know which you want.." % (
+            matching_runs.number.values, run_id))
+
+    return matching_runs.values[0]
 
 
 def tags_selection(dsets=None, include=None, exclude=None, pattern_type='fnmatch', ignore_underscore=True):
@@ -424,14 +431,15 @@ def is_blind(run_id):
         return False
 
     try:
-        run_data = get_run_info(run_id, projection_query={'tags': 1, 'number': 1, 'reader.ini.name': 1})
+        run_number = hax.runs.get_run_number(run_id)
+        run_data = hax.runs.datasets.query('number == %d' % run_number).iloc[0]
 
-    except ValueError:
+    except Exception:
         # Couldn't find in runDB, so blind by default
-        log.warning("Blinding by default since cannot find run.")
+        log.warning("Exception while trying to find run %s: blinding by default" % run_id)
         return True
 
-    tag_names = [tag['name'] for tag in run_data.get('tags', [])]
+    tag_names = [tag for tag in run_data.tags.split(',')]
     number = run_data['number']
 
     # Blind runs with explicit blinding tag, unblind runs with explicit unblinding tag.
@@ -443,7 +451,7 @@ def is_blind(run_id):
 
     # Blind runs past a configured run number
     if number > hax.config.get('blind_from_run', float('inf')) and \
-            run_data['reader']['ini']['name'].startswith('background'):
+            run_data.reader__ini__name.startswith('background'):
         return True
 
     # Everything else is not blinded
