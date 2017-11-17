@@ -51,7 +51,7 @@ class ROOTFormat(MinitreeDataFormat):
         return minitree_metadata
 
     def load_data(self):
-        return pd.DataFrame.from_records(root_numpy.root2rec(self.path))
+        return pd.DataFrame.from_records(root_numpy.root2array(self.path).view(np.recarray))
 
     def save_data(self, metadata, data):
         if self.treemaker.uses_arrays:
