@@ -1,3 +1,9 @@
+2.0.0
+-----
+* Better Unblinding and Unblinded Max-radius for wall events (#161, #168, #169)
+* Small bug fix (#166, #162)
+* Double Scatter TreeMaker (#163)
+
 1.9.0
 -----
 * Time Dependent 3D FDC for SR1 (#158)
