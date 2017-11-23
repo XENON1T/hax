@@ -1,3 +1,8 @@
+2.1.0
+-----
+* Latest corrections in double S1 scatters (#170) 
+* PMT flash identification treemaker (#164) 
+
 2.0.0
 -----
 * Better Unblinding and Unblinded Max-radius for wall events (#161, #168, #169)
