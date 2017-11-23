@@ -4,14 +4,17 @@ from pax import configuration
 pax_config = configuration.load_configuration('XENON1T')
 # setup hax for Midway
 import hax
+from hax import runs
 from hax.minitrees import TreeMaker
 from pax.InterpolatingMap import InterpolatingMap
 import pax.utils
 import numpy as np
+from scipy.interpolate import interp1d
 
 class CorrectedDoubleS1Scatter(TreeMaker):
     """Applies high level corrections which are used in DoubleS1Scatter analyses.
     ##############################################################################
+    Be carefull, this treemaker was developed for Kr83m analysis. It will probably need modifications for other analysis.
     The search for double scatter events: made by Ted Berger
         double decays, afterpulses, and anything else that gets in our way
         if you have any questions contact Ted Berger (berget2@rpi.edu)
@@ -71,8 +74,7 @@ class CorrectedDoubleS1Scatter(TreeMaker):
     - ds_s1_dt : delay time between s1_a_center_time and s1_b_center_time
     - ds_second_s2: 1 if selected interactions have distinct s2s
     """
-    
-    __version__ = '0.2'
+    __version__ = '1.0'
     extra_branches = ['peaks.n_contributing_channels',
                       'peaks.center_time',
                       'peaks.s2_saturation_correction',
@@ -91,13 +93,26 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                       'interactions.s1_pattern_fit'
                      ]
     extra_metadata = hax.config['corrections_definitions']
-    
+    # Electron Lifetime: hopefully doc was pulled in hax.init.
+    # Otherwise get it here at significantly higher DB cost
+    try:
+        elife_correction_doc = runs.corrections_docs['hax_electron_lifetime']
+        extra_metadata['electron_lifetime_version'] = elife_correction_doc['version']
+        elife_interpolation = interp1d(elife_correction_doc['times'],
+                                       elife_correction_doc['electron_lifetimes'])
+    except Exception as e:
+        elife_interpolation = None
+        print("No electron lifetime document found. Continuing without.")
+        print(e)
+        
     # Load Correction Map
+    loaded_xy_map_name = None
     loaded_3d_fdc_map_name = None
     loaded_lce_map_nn_fdc_3d_name = None
     fdc_3d_map = None
     lce_map_nn_fdc_3d = None
-
+    xy_map = None
+    
     def get_correction(self, correction_name):
         """Return the file to use for a correction"""
         if ('corrections_definitions' not in hax.config) \
@@ -176,25 +191,29 @@ class CorrectedDoubleS1Scatter(TreeMaker):
             int_b = int_0
             
         # Additional s1s and s2s removed! see v0.1.0
- 
         result['s1_a']=peaks[s1_a].area
         result['s1_a_center_time'] = peaks[s1_a].center_time
+        result['s1_a_area_fraction_top']=peaks[s1_a].area_fraction_top
         
         result['s2_a']=peaks[s2_a].area
         result['s2_a_center_time'] = peaks[s2_a].center_time
-        
-        
+        result['s2_a_bottom']=(1.0-peaks[s2_a].area_fraction_top)*peaks[s2_a].area
+        result['s2_a_area_fraction_top']=peaks[s2_a].area_fraction_top
+
         result['s1_b']=peaks[s1_b].area
         result['s1_b_center_time'] = peaks[s1_b].center_time
+        result['s1_b_area_fraction_top']=peaks[s1_b].area_fraction_top
         
         result['s2_b']=peaks[s2_b].area
         result['s2_b_center_time'] = peaks[s2_b].center_time
+        result['s2_b_bottom']=(1.0-peaks[s2_b].area_fraction_top)*peaks[s2_b].area
+        result['s2_b_area_fraction_top']=peaks[s2_b].area_fraction_top
         
         result['ds_second_s2']=ds_second_s2
         
         # Drift Time 
-        result['int_a_drift_time']=interactions[int_a].drift_time
-        result['int_b_drift_time']=interactions[int_b].drift_time
+        result['int_a_drift_time']=result['s2_a_center_time']- result['s1_a_center_time']
+        result['int_b_drift_time']=result['s2_b_center_time']- result['s1_b_center_time']
 
         # Pax position (TpF)
         result['int_a_x_pax']=interactions[int_a].x
@@ -204,13 +223,10 @@ class CorrectedDoubleS1Scatter(TreeMaker):
         result['int_b_x_pax']=interactions[int_b].x
         result['int_b_y_pax']=interactions[int_b].y
         result['int_b_z_pax']=interactions[int_b].z
-
-######### Compute DoubleScatter Specific Variables #########
-            
+        ######### Compute DoubleScatter Specific Variables #########
         # Select largest hits on each channel in s10 and s11 peaks
         s1_a_hitChannels = []
         s1_a_hitAreas = []
-        
         for hit in peaks[s1_a].hits:
             if hit.is_rejected: continue
             if hit.channel not in s1_a_hitChannels:
@@ -220,7 +236,6 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                 hitChannel_i = s1_a_hitChannels.index(hit.channel)
                 if hit.area > s1_a_hitAreas[hitChannel_i]:
                     s1_a_hitAreas[hitChannel_i] = hit.area
-                    
         s1_b_hitChannels = []
         s1_b_hitAreas = []
         
@@ -239,11 +254,12 @@ class CorrectedDoubleS1Scatter(TreeMaker):
         for i, channel in enumerate(s1_b_hitChannels):
             if channel not in s1_a_hitChannels:
                 ds_s1_b_n_distinct_channels += 1             
-    
         result['ds_s1_b_n_distinct_channels'] = ds_s1_b_n_distinct_channels 
         result['ds_s1_dt'] = peaks[s1_b].center_time - peaks[s1_a].center_time
    
-    #### Correction Map
+        ######### Correction Map ##############
+        # Check that the correct S2 map is loaded and change if not
+        self.xy_map, self.loaded_xy_map_name = self.load_map("s2_xy_map",self.xy_map, self.loaded_xy_map_name)
         # Load the 3D data driven FDC map
         self.fdc_3d_map, self.loaded_3d_fdc_map_name = self.load_map("fdc_3d",
                                                                      self.fdc_3d_map,
@@ -261,21 +277,49 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                 result['int_a_x_nn'] = rp.x
                 result['int_a_y_nn'] = rp.y
                 result['int_a_r_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
-                
+                int_a_x_observed=rp.x
+                int_a_y_observed=rp.y
         for rp in peaks[s2_b].reconstructed_positions:
             if rp.algorithm == 'PosRecNeuralNet':
                 result['int_b_x_nn'] = rp.x
                 result['int_b_y_nn'] = rp.y
                 result['int_b_r_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
 
-
         int_a_z = interactions[int_a].z - interactions[int_a].z_correction
         result['int_a_z_observed'] = int_a_z
-        
         int_b_z = interactions[int_b].z - interactions[int_b].z_correction
         result['int_b_z_observed'] = int_b_z
     
+        # Correct S2_a. No correction for S2_b because, S2_b is mostly backgroud events, or S2_b ==S2_a
+        result['s2_a_xy_correction_tot'] = (1.0 /
+                                          self.xy_map.get_value(int_a_x_observed, int_a_y_observed))
+        result['s2_a_xy_correction_top'] = (1.0 /
+                                          self.xy_map.get_value(int_a_x_observed, int_a_y_observed, map_name='map_top'))
+        result['s2_a_xy_correction_bottom'] = (1.0 /
+                                             self.xy_map.get_value(int_a_x_observed, int_a_y_observed, map_name='map_bottom'))
+      
+        # include electron lifetime correction
+        if self.mc_data:
+            wanted_electron_lifetime = self.get_correction("mc_electron_lifetime_liquid")
+            result['s2_lifetime_correction'] = np.exp((result['int_a_drift_time']/1e3) / wanted_electron_lifetime)
 
+        elif self.elife_interpolation is not None:
+            # Ugh, numpy time types...
+            ts = ((self.run_start - np.datetime64('1970-01-01T00:00:00Z'))/np.timedelta64(1, 's'))
+            result['ts'] = ts
+            self.electron_lifetime = self.elife_interpolation(ts)
+            result['s2_lifetime_correction'] = np.exp((result['int_a_drift_time']/1e3)/self.electron_lifetime)
+        else:
+            result['s2_lifetime_correction'] = 1.
+        # Combine all the s2 corrections for S2_a
+        s2_a_correction = (result['s2_lifetime_correction'] *result['s2_a_xy_correction_tot'])
+        s2_a_top_correction = (result['s2_lifetime_correction'] * result['s2_a_xy_correction_top'])
+        s2_a_bottom_correction = (result['s2_lifetime_correction'] * result['s2_a_xy_correction_bottom'])
+        
+        result['cs2_a'] = peaks[s2_a].area * s2_a_correction
+        result['cs2_a_top'] = peaks[s2_a].area * peaks[s2_a].area_fraction_top * s2_a_top_correction
+        result['cs2_a_bottom'] = peaks[s2_a].area * (1.0 -  peaks[s2_a].area_fraction_top) * s2_a_bottom_correction
+        
         # FDC: Apply the (new) 3D data driven FDC, using NN positions
         # Int_a Position
         algo='nn'
@@ -329,6 +373,7 @@ class CorrectedDoubleS1Scatter(TreeMaker):
         result['s1_int_b_xyz_correction_nn_fdc_3d'] = 1 / self.lce_map_nn_fdc_3d.get_value(result['int_b_x_3d_nn'],
                                                                                      result['int_b_y_3d_nn'],
                                                                                      result['int_b_z_3d_nn'])
+        
         result['cs1_b_int_b'] = peaks[s1_b].area * result['s1_int_b_xyz_correction_nn_fdc_3d']
         
         return result
