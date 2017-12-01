@@ -74,7 +74,7 @@ class CorrectedDoubleS1Scatter(TreeMaker):
     - ds_s1_dt : delay time between s1_a_center_time and s1_b_center_time
     - ds_second_s2: 1 if selected interactions have distinct s2s
     """
-    __version__ = '1.0'
+    __version__ = '1.1'
     extra_branches = ['peaks.n_contributing_channels',
                       'peaks.center_time',
                       'peaks.s2_saturation_correction',
