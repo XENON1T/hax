@@ -1,3 +1,8 @@
+
+2.1.1
+-----
+* Update version for e-lifetime update (#172)
+
 2.1.0
 -----
 * Latest corrections in double S1 scatters (#170) 
