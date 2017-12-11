@@ -113,7 +113,10 @@ def dataframe_to_root(dataframe, root_filename, treename='tree', mode='recreate'
             # needed for saving the array to root (why exactly? Wouldn't a vector work?)
             length_branch_name = branch_name + '_length'
             if length_branch_name not in dataframe.columns:
-                dataframe[length_branch_name] = np.array([len(x) for x in dataframe[branch_name]], dtype=np.int64)
+                try:
+                    dataframe[length_branch_name] = np.array([len(x) for x in dataframe[branch_name]], dtype=np.int64)
+                except TypeError:
+                    raise TypeError('Array branch %s has at least one element that is not a list or array' % branch_name)
                 single_value_keys.append(length_branch_name)
                 branches[length_branch_name] = np.array([0])
                 branch_types[length_branch_name] = 'L'
