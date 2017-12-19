@@ -434,7 +434,8 @@ def load(datasets=None,
          num_workers=1,
          compute_options=None,
          cache_file=None,
-         remake_cache=False):
+         remake_cache=False,
+         event_list=None):
     """Return pandas DataFrame with minitrees of several datasets and treemakers.
 
     :param datasets: names or numbers of datasets (without .root) to load
@@ -456,6 +457,8 @@ def load(datasets=None,
                        Useful if you load in a large volume of data with many preselections.
 
     :param remake_cache: If True, and cache file given, reload (don't remake) minitrees and overwrite the cache file.
+
+    :param event_list: List of events to process (warning: only makes sense for single dataset)
 
     """
     # Import dask only here, it causes problems on some systems (batch queues etc)
@@ -500,7 +503,7 @@ def load(datasets=None,
     partial_histories = []
     for dataset in datasets:
         mashup = dask.delayed(load_single_dataset)(
-            dataset, treemakers, preselection, force_reload=force_reload)
+            dataset, treemakers, preselection, force_reload=force_reload, event_list=event_list)
         partial_results.append(dask.delayed(lambda x: x[0])(mashup))
         partial_histories.append(dask.delayed(lambda x: x[1])(mashup))
 

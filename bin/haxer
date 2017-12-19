@@ -28,6 +28,8 @@ parser.add_argument('--pax_version_policy', default=None,
                     help="Pax version policy to use. See https://github.com/XENON1T/hax/pull/30.")
 parser.add_argument('--preferred_minitree_format', default=None,
                     help="Minitree file format to prefer. If not given, the default format set in hax.ini will be used")
+parser.add_argument('--event', type=int, nargs='+', default=None,
+                    help="List of events to process (space separated)")
 
 args = parser.parse_args()
 
@@ -70,7 +72,8 @@ while True:
         try:
             hax.minitrees.load(run_id,
                                treemakers=args.treemakers,
-                               force_reload=args.force_reload)
+                               force_reload=args.force_reload,
+                               event_list=args.event)
 
         except Exception as e:
             # ROOT segfaults if we try this on a root file that is still being processed...
