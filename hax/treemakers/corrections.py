@@ -1,11 +1,8 @@
 import hax
 from hax.minitrees import TreeMaker
 from hax.treemakers.common import get_largest_indices
-from hax import runs
-from pax.InterpolatingMap import InterpolatingMap
-import pax.utils
 import numpy as np
-from scipy.interpolate import interp1d
+from hax.corrections_handler import CorrectionsHandler
 
 
 class Corrections(TreeMaker):
@@ -80,51 +77,7 @@ class Corrections(TreeMaker):
                       'start_time']
 
     extra_metadata = hax.config['corrections_definitions']
-
-    # Electron Lifetime: hopefully doc was pulled in hax.init.
-    # Otherwise get it here at significantly higher DB cost
-    try:
-        elife_correction_doc = runs.corrections_docs['hax_electron_lifetime']
-        extra_metadata['electron_lifetime_version'] = elife_correction_doc['version']
-        elife_interpolation = interp1d(elife_correction_doc['times'],
-                                       elife_correction_doc['electron_lifetimes'])
-    except Exception as e:
-        elife_interpolation = None
-        print("No electron lifetime document found. Continuing without.")
-        print(e)
-
-    loaded_xy_map_name = None
-    loaded_2d_fdc_map_name = None
-    loaded_3d_fdc_map_name = None
-    loaded_lce_map_tpf_fdc_2d_name = None
-    loaded_lce_map_nn_fdc_3d_name = None
-    xy_map = None
-    fdc_2d_map = None
-    fdc_3d_map = None
-    lce_map_tpf_fdc_2d = None
-    lce_map_nn_fdc_3d = None
-
-    def get_correction(self, correction_name):
-        """Return the file to use for a correction"""
-        if ('corrections_definitions' not in hax.config) \
-                or (correction_name not in hax.config['corrections_definitions']):
-            return None
-
-        for entry in hax.config['corrections_definitions'][correction_name]:
-            if 'run_min' not in entry or self.run_number < entry['run_min']:
-                continue
-            if 'run_max' not in entry or self.run_number <= entry['run_max']:
-                if 'correction' in entry:
-                    return entry['correction']
-        return None
-
-    def load_map(self, name, loaded_map, loaded_name):
-        wanted_map_name = self.get_correction(name)
-        if loaded_name != wanted_map_name:
-            map_path = pax.utils.data_file_name(wanted_map_name)
-            return InterpolatingMap(map_path), wanted_map_name
-        else:
-            return loaded_map, loaded_name
+    corrections_handler = CorrectionsHandler()
 
     def extract_data(self, event):
         result = dict()
@@ -143,31 +96,6 @@ class Corrections(TreeMaker):
                                 for ptype, i in largest_other_indices.items()}
         result['largest_other_s2'] = largest_area_of_type.get('s2', 0)
         result['s2'] = s2.area
-
-        # Check that the correct S2 map is loaded and change if not
-        self.xy_map, self.loaded_xy_map_name = self.load_map("s2_xy_map",
-                                                             self.xy_map,
-                                                             self.loaded_xy_map_name)
-
-        # Load the 2D FDC map
-        self.fdc_2d_map, self.loaded_2d_fdc_map_name = self.load_map("fdc_2d",
-                                                                     self.fdc_2d_map,
-                                                                     self.loaded_2d_fdc_map_name)
-
-        # Load the 3D data driven FDC map
-        self.fdc_3d_map, self.loaded_3d_fdc_map_name = self.load_map("fdc_3d",
-                                                                     self.fdc_3d_map,
-                                                                     self.loaded_3d_fdc_map_name)
-
-        # Load the LCE map for TPF 2D FDC
-        self.lce_map_tpf_fdc_2d, self.loaded_lce_map_tpf_fdc_2d_name = self.load_map("s1_lce_map_tpf_fdc_2d",
-                                                                                     self.lce_map_tpf_fdc_2d,
-                                                                                     self.loaded_lce_map_tpf_fdc_2d_name)
-
-        # Load the LCE map for NN 3D FDC
-        self.lce_map_nn_fdc_3d, self.loaded_lce_map_nn_fdc_3d_name = self.load_map("s1_lce_map_nn_fdc_3d",
-                                                                                   self.lce_map_nn_fdc_3d,
-                                                                                   self.loaded_lce_map_nn_fdc_3d_name)
 
         # Need the observed ('uncorrected') position.
         # pax Interaction positions are corrected so lookup the
@@ -190,31 +118,32 @@ class Corrections(TreeMaker):
         result['z_observed'] = z_observed
 
         # Correct S2
+        cvals = [x_observed, y_observed]
         result['s2_xy_correction_tot'] = (1.0 /
-                                          self.xy_map.get_value(x_observed, y_observed))
+                                          self.corrections_handler.get_correction_from_map(
+                                              "s2_xy_map", self.run_number, cvals))
         result['s2_xy_correction_top'] = (1.0 /
-                                          self.xy_map.get_value(
-                                              x_observed, y_observed, map_name='map_top'))
+                                          self.corrections_handler.get_correction_from_map(
+                                              "s2_xy_map", self.run_number, cvals, map_name='map_top'))
         result['s2_xy_correction_bottom'] = (1.0 /
-                                             self.xy_map.get_value(
-                                                 x_observed, y_observed, map_name='map_bottom'))
+                                             self.corrections_handler.get_correction_from_map(
+                                                 "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
 
         # include electron lifetime correction
         if self.mc_data:
-            wanted_electron_lifetime = self.get_correction("mc_electron_lifetime_liquid")
-            result['s2_lifetime_correction'] = np.exp((interaction.drift_time/1e3) /
+            wanted_electron_lifetime = self.corrections_handler.get_misc_correction(
+                "mc_electron_lifetime_liquid", self.run_number)
+            result['s2_lifetime_correction'] = np.exp((interaction.drift_time / 1e3) /
                                                       wanted_electron_lifetime)
 
-        elif self.elife_interpolation is not None:
-            # Ugh, numpy time types...
-            ts = ((self.run_start - np.datetime64('1970-01-01T00:00:00Z')) /
-                  np.timedelta64(1, 's'))
-            result['ts'] = ts
-            self.electron_lifetime = self.elife_interpolation(ts)
-            result['s2_lifetime_correction'] = np.exp((interaction.drift_time/1e3) /
-                                                      self.electron_lifetime)
         else:
-            result['s2_lifetime_correction'] = 1.
+            try:
+                result['s2_lifetime_correction'] = (
+                    self.corrections_handler.get_electron_lifetime_correction(
+                        self.run_start, interaction.drift_time))
+            except Exception as e:
+                print(e)
+                result['s2_lifetime_correction'] = 1.
 
         # Combine all the s2 corrections
         s2_correction = (result['s2_lifetime_correction'] *
@@ -233,20 +162,22 @@ class Corrections(TreeMaker):
         # Because we have different 2D correction maps for different runs we need
         # to reapply the 2D FDC here (if not we could simply take the Interaction positions
         # which have already the 2D FDC applied).
-        result['r_correction_2d'] = self.fdc_2d_map.get_value(r_observed, z_observed, map_name='to_true_r')
-        result['z_correction_2d'] = self.fdc_2d_map.get_value(r_observed, z_observed, map_name='to_true_z')
+        result['r_correction_2d'] = self.corrections_handler.get_correction_from_map(
+            "fdc_2d", self.run_number, [r_observed, z_observed], map_name='to_true_r')
+        result['z_correction_2d'] = self.corrections_handler.get_correction_from_map(
+            "fdc_2d", self.run_number, [r_observed, z_observed], map_name='to_true_z')
 
         result['r'] = r_observed + result['r_correction_2d']
-        result['x'] = (result['r']/result['r_observed']) * x_observed
-        result['y'] = (result['r']/result['r_observed']) * y_observed
+        result['x'] = (result['r'] / result['r_observed']) * x_observed
+        result['y'] = (result['r'] / result['r_observed']) * y_observed
         result['z'] = z_observed + result['z_correction_2d']
 
         # FDC
-        # Apply the (new) 3D data driven FDC, once using NN positions and once using TPF positions for testing
+        # Apply the (new) 3D data driven FDC, using NN positions and TPF positions
         for algo in ['nn', 'tpf']:
-            result['r_correction_3d_' + algo] = self.fdc_3d_map.get_value(result['x_observed_' + algo],
-                                                                          result['y_observed_' + algo],
-                                                                          z_observed)
+            cvals = [result['x_observed_' + algo], result['y_observed_' + algo], z_observed]
+            result['r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
+                "fdc_3d", self.run_number, cvals)
 
             result['r_3d_' + algo] = result['r_observed_' + algo] + result['r_correction_3d_' + algo]
             result['x_3d_' + algo] =\
@@ -255,17 +186,26 @@ class Corrections(TreeMaker):
                 result['y_observed_' + algo] * (result['r_3d_' + algo] / result['r_observed_' + algo])
 
             if abs(z_observed) > abs(result['r_correction_3d_' + algo]):
-                result['z_3d_' + algo] = -np.sqrt(z_observed ** 2 - result['r_correction_3d_' + algo] ** 2)
+                result['z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
+                                                  result['r_correction_3d_' + algo] ** 2)
             else:
                 result['z_3d_' + algo] = z_observed
 
             result['z_correction_3d_' + algo] = result['z_3d_' + algo] - z_observed
 
         # Apply LCE (light collection efficiency correction to s1)
-        result['s1_xyz_correction_tpf_fdc_2d'] = 1 / self.lce_map_tpf_fdc_2d.get_value(result['x'], result['y'], result['z'])
+        cvals = [result['x'], result['y'], result['z']]
+        result['s1_xyz_correction_tpf_fdc_2d'] = (
+            1 / self.corrections_handler.get_correction_from_map(
+                "s1_lce_map_tpf_fdc_2d", self.run_number, cvals)
+        )
         result['cs1_tpf_2dfdc'] = s1.area * result['s1_xyz_correction_tpf_fdc_2d']
 
-        result['s1_xyz_correction_nn_fdc_3d'] = 1 / self.lce_map_nn_fdc_3d.get_value(result['x_3d_nn'], result['y_3d_nn'], result['z_3d_nn'])
+        cvals = [result['x_3d_nn'], result['y_3d_nn'], result['z_3d_nn']]
+        result['s1_xyz_correction_nn_fdc_3d'] = (
+            1 / self.corrections_handler.get_correction_from_map(
+                "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
+        )
         result['cs1'] = s1.area * result['s1_xyz_correction_nn_fdc_3d']
 
         return result
