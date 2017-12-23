@@ -29,6 +29,8 @@ class Extended(TreeMaker):
 
     Provides:
      - s1_range_80p_area: The width of the s1 (ns), duration of region that contains 80% of the area of the peak
+     - s1_range_90p_area: The width of the s1 (ns), duration of region that contains 90% of the area of the peak
+     - s1_range_100p_area: The width of the s1 (ns), duration of region that contains 100% of the area of the peak
      - s2_range_80p_area: The width of the s2 (ns), duration of region that contains 80% of the area of the peak
      - s1_n_contributing_channels: Number of PMTs contributing to the S1.
      - s2_n_contributing_channels: Number of PMTs contributing to the S2.
@@ -58,7 +60,7 @@ class Extended(TreeMaker):
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.5'
+    __version__ = '0.0.6'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
@@ -79,6 +81,8 @@ class Extended(TreeMaker):
         s2 = event.peaks[interaction.s2]
 
         result['s1_range_80p_area'] = s1.range_area_decile[8]
+        result['s1_range_90p_area'] = s1.range_area_decile[9]
+        result['s1_range_100p_area'] = s1.range_area_decile[10]
         result['s2_range_80p_area'] = s2.range_area_decile[8]
 
         result['s1_n_contributing_channels'] = s1.n_contributing_channels
