@@ -1,4 +1,13 @@
 
+
+2.2.0
+-----
+* New reconstruction and dependent variables: S1 AFT, S1 pattern (#174)
+* More S1 width variables (#190)
+* Corrections files input refactor (#187)
+* Add functionality to specify event_list with haxer (#182)
+* More descriptive arrays error (#171)
+
 2.1.1
 -----
 * Update version for e-lifetime update (#172)
