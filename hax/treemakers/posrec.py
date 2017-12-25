@@ -133,7 +133,7 @@ class PositionReconstruction(TreeMaker):
             "s1_area_fraction_top_probability_hax": None,
             "s1_area_fraction_top_probability_nothresh": None,
             "s1_area_fraction_top_binomial": None,
-            "s1_area_fraction_top_binomial_nothres": None,
+            "s1_area_fraction_top_binomial_nothresh": None,
             "x_observed_nn_tf": None,
             "y_observed_nn_tf": None,
             "r_observed_nn_tf": None,
