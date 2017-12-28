@@ -1,6 +1,7 @@
 import hax
 import numpy as np
 import json
+import tensorflow as tf
 from hax.minitrees import TreeMaker
 from pax.PatternFitter import PatternFitter
 from pax.configuration import load_configuration
@@ -92,6 +93,9 @@ class PositionReconstruction(TreeMaker):
                 "tfnn_model", self.run_number))):
             return
 
+        if self.loaded_nn is not None:
+            tf.keras.backend.clear_session()
+        
         self.tfnn_weights = self.corrections_handler.get_misc_correction(
             "tfnn_weights", self.run_number)
         self.tfnn_model = self.corrections_handler.get_misc_correction(
