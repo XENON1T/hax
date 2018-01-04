@@ -8,7 +8,8 @@ from hax.corrections_handler import CorrectionsHandler
 class CorrectedDoubleS1Scatter(TreeMaker):
     """Applies high level corrections which are used in DoubleS1Scatter analyses.
 
-    Be carefull, this treemaker was developed for Kr83m analysis. It will probably need modifications for other analysis.
+    Be carefull, this treemaker was developed for Kr83m analysis. It will probably need modifications
+     for other analysis.
     The search for double scatter events: made by Ted Berger
         double decays, afterpulses, and anything else that gets in our way
         if you have any questions contact Ted Berger (berget2@rpi.edu)
@@ -58,8 +59,8 @@ class CorrectedDoubleS1Scatter(TreeMaker):
 
     /!\ Two way of doing things for the S1_b signal :
       - either used the int_a position to correct s1_b signal (since S1_a and S1_b are closed in time) : by default
-      - either used the int_b position to correct s1_b signal (but most of the time the s2_b signal (and thus z position) is badly reconstructed )
-
+      - either used the int_b position to correct s1_b signal (but most of the time the s2_b signal
+      (and thus z position) is badly reconstructed )
     - cS1_a and cS1_b : the corrected s1_a signal using int_a_3d_nn corrected position
     - cS1_b_int_b: the corrected s1_b signal using int_b_3d_nn corrected position
 

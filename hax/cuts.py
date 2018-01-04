@@ -236,6 +236,7 @@ def apply_lichen(data, lichen_names, lichen_file='sciencerun1', **kwargs):
 # pandas.DataFrame.eval selections
 ##
 
+
 def eval_selection(d, eval_string, **kwargs):
     """Apply a selection specified by a pandas.DataFrame.eval string that returns the boolean array.
     If no description is provided, the eval string itself is used as the description.

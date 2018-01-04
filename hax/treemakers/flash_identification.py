@@ -2,6 +2,7 @@ import numpy as np
 import hax
 import pytz
 
+
 class FlashIdentification(hax.minitrees.TreeMaker):
     """
     Identification of flashes during a dataset. Therefore it will extract trigger data checking for typical
@@ -16,22 +17,22 @@ class FlashIdentification(hax.minitrees.TreeMaker):
     pax_version_independent = True
 
     def get_data(self, dataset, event_list=None):
-        #Use 'all' pulses
+        # Use 'all' pulses
         trigger_data = hax.trigger_data.get_trigger_data(dataset, select_data_types='count_of_all_pulses')
         self.transposed = trigger_data.T
 
-        #Get BUSY_ON (channel id 255)
+        # Get BUSY_ON (channel id 255)
         self.BUSY_data = self.transposed[255]
 
         time_window = []
         window_biggest = []
 
         # Check in BUSY_ON channel if there where an increase "typical" for flashes and get the time-window in seconds
-        for t in range(0,len(self.BUSY_data)):
+        for t in range(0, len(self.BUSY_data)):
             if self.BUSY_data[t] > 20:
                 time_window.append(t)
             else:
-                if len(time_window) <= 1:   #Ignore spikes
+                if len(time_window) <= 1:   # Ignore spikes
                     time_window = []
                 else:
                     if len(time_window) > len(window_biggest):
@@ -41,10 +42,10 @@ class FlashIdentification(hax.minitrees.TreeMaker):
                         time_window = []
         self.flash_time_BUSY = np.nan
         self.flash_width = np.nan
-        self.flash_time_highest_trig =np.nan
+        self.flash_time_highest_trig = np.nan
         self.flashing_PMT = np.nan
         self.flash_amplitude = np.nan
-        self.flash_time_BUSY_first= np.nan
+        self.flash_time_BUSY_first = np.nan
         # the thresholds are chosen to only select real flashes
         # get the time information from BUSY-channel
         if len(window_biggest) > 3:
@@ -66,7 +67,7 @@ class FlashIdentification(hax.minitrees.TreeMaker):
             else:
                 self.flash_time_BUSY = np.nan
                 self.flash_width = np.nan
-                self.flash_time_highest_trig =np.nan
+                self.flash_time_highest_trig = np.nan
         # We need the run start time to find the time in run later
         self.run_start = hax.runs.get_run_info(dataset, 'start').replace(tzinfo=pytz.utc).timestamp()
 
@@ -85,7 +86,8 @@ class FlashIdentification(hax.minitrees.TreeMaker):
 
             time_in_run_ns = int(event.start_time) - int(self.run_start)
 
-            if time_in_run_ns in range(int((self.flash_time_highest_trig - self.flash_width)*1e9),int(self.flash_time_highest_trig*1e9)):
+            if time_in_run_ns in range(int((self.flash_time_highest_trig - self.flash_width)*1e9),
+                                       int(self.flash_time_highest_trig*1e9)):
                 ret["inside_flash"] = True
 
             if not ret["inside_flash"]:

@@ -4,7 +4,7 @@ import numpy as np
 
 # Lone signal in pre_s1 window
 class LoneSignalsPreS1(TreeMaker):
-    __version__ = '0.0.1'
+    __version__ = '0.1.0'
     extra_branches = ['peaks.*']
 
     def extract_data(self, event):
@@ -62,8 +62,16 @@ class LoneSignalsPreS1(TreeMaker):
             result['s1_1_center_time'] = s1_sorted[1].center_time
             result['s1_1_aft'] = s1_sorted[1].area_fraction_top
             result['s1_1_50p_width'] = s1_sorted[1].range_area_decile[5]
+            result['s1_1_90p_width'] = s1_sorted[1].range_area_decile[9]
             result['s1_1_rise_time'] = -s1_sorted[1].area_decile_from_midpoint[1]
             result['s1_1_largest_hit_area'] = s1_sorted[1].largest_hit_area
+            # Shingo's new variable
+            area_upper_injection = (s1_sorted[1].area_per_channel[131] + s1_sorted[1].area_per_channel[138] +
+                                    s1_sorted[1].area_per_channel[146] + s1_sorted[1].area_per_channel[147])
+            area_lower_injection = (s1_sorted[1].area_per_channel[236] + s1_sorted[1].area_per_channel[237] +
+                                    s1_sorted[1].area_per_channel[243])
+            result['s1_area_upper_injection_fraction'] = area_upper_injection / s1_sorted[1].area
+            result['s1_area_lower_injection_fraction'] = area_lower_injection / s1_sorted[1].area
 
         if len(s2_sorted) > 0:
             result['area_before_largest_s2'] = np.sum(p.area for p in peaks if p.center_time < s2_sorted[0].center_time)
@@ -149,6 +157,7 @@ class LoneSignals(TreeMaker):
             result['s1_0_center_time'] = s1_sorted[0].center_time
             result['s1_0_aft'] = s1_sorted[0].area_fraction_top
             result['s1_0_50p_width'] = s1_sorted[0].range_area_decile[5]
+            result['s1_0_90p_width'] = s1_sorted[0].range_area_decile[9]
             result['s1_0_rise_time'] = -s1_sorted[0].area_decile_from_midpoint[1]
             result['s1_0_largest_hit_area'] = s1_sorted[0].largest_hit_area
 
