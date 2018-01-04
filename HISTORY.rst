@@ -1,4 +1,8 @@
-2.2.1
+2.2.3
+-----
+* More variables for AC (LoneSignals) analysis (#192)
+
+2.2.2
 -----
 * Fix typo in variable init (8d33196)
 * Bugfix conditional when loading maps (#191) 
