@@ -50,6 +50,7 @@ class CorrectionsHandler():
         if correction is None:
             raise ValueError("Didn't find your correction %s for run %i" % (
                 correction_name, run))
+
         # 2D case
         if len(var) == 2:
             return correction['value'].get_value(var[0], var[1], map_name=map_name)
@@ -71,7 +72,6 @@ class CorrectionsHandler():
 
         Will load correction as needed
         """
-
         if correction_name not in self.maps and ismap:
             self.maps[correction_name] = []
         elif correction_name not in self.misc and not ismap:
@@ -84,7 +84,7 @@ class CorrectionsHandler():
         for entry in iterdict[correction_name]:
             if 'run_min' in entry and run < entry['run_min']:
                 continue
-            if 'run_max' in entry and run >= entry['run_max']:
+            if 'run_max' in entry and run > entry['run_max']:
                 continue
             if 'value' in entry:
                 return entry
@@ -101,6 +101,7 @@ class CorrectionsHandler():
                 continue
             if 'correction' not in entry:
                 continue
+
             newcorr = copy.deepcopy(entry)
             if ismap:
                 map_path = pax.utils.data_file_name(newcorr['correction'])
@@ -123,7 +124,6 @@ class CorrectionsHandler():
     def get_electron_lifetime(self, run_start, value='DEFAULT'):
         """Gets the electron lifetime for this run
         """
-
         if self.elifedoc is None:
             self.elifedoc = runs.corrections_docs['hax_electron_lifetime']
 
@@ -137,4 +137,5 @@ class CorrectionsHandler():
 
         ts = ((run_start - np.datetime64('1970-01-01T00:00:00Z')) /
               np.timedelta64(1, 's'))
+
         return self.elife_functions[value](ts)

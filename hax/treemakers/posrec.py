@@ -110,7 +110,6 @@ class PositionReconstruction(TreeMaker):
 
         weights_file = utils.data_file_name(self.tfnn_weights)
         self.loaded_nn.load_weights(weights_file)
-        self.loaded_nn.compile(loss='mean_squared_error', optimizer='adam')
 
     def get_data(self, dataset, event_list=None):
         # If we do switch to new NN later get rid of this stuff and directly use those positions!
