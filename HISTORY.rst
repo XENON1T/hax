@@ -1,7 +1,7 @@
 2.2.1
 -----
 * Fix typo in variable init (8d33196)
-* Bugfix conditional when loading maps (#191)
+* Bugfix conditional when loading maps (#191) 
 
 2.2.0
 -----
