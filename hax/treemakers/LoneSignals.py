@@ -4,7 +4,7 @@ import numpy as np
 
 # Lone signal in pre_s1 window
 class LoneSignalsPreS1(TreeMaker):
-    __version__ = '0.1.0'
+    __version__ = '0.2'
     extra_branches = ['peaks.*']
 
     def extract_data(self, event):
@@ -61,6 +61,8 @@ class LoneSignalsPreS1(TreeMaker):
             result['s1_1_area'] = s1_sorted[1].area
             result['s1_1_center_time'] = s1_sorted[1].center_time
             result['s1_1_aft'] = s1_sorted[1].area_fraction_top
+            result['s1_1_n_hits'] = s1_sorted[1].n_hits
+            result['s1_1_hit_aft'] = s1_sorted[1].hits_fraction_top
             result['s1_1_50p_width'] = s1_sorted[1].range_area_decile[5]
             result['s1_1_90p_width'] = s1_sorted[1].range_area_decile[9]
             result['s1_1_rise_time'] = -s1_sorted[1].area_decile_from_midpoint[1]
@@ -121,7 +123,7 @@ class LoneSignalsPreS1(TreeMaker):
 
 # Extraction of peak information for Lone-S2/S1 studies
 class LoneSignals(TreeMaker):
-    __version__ = '0.0.1'
+    __version__ = '0.1'
     extra_branches = ['peaks.*']
 
     def extract_data(self, event):
