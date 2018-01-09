@@ -6,7 +6,7 @@ from pax.PatternFitter import PatternFitter
 from pax.configuration import load_configuration
 from pax import utils
 from pax import exceptions
-from pax.plugins.interaction_processing.S1AreaFractionTopProbability import binom_test, binom_pmf
+from pax.plugins.interaction_processing.S1AreaFractionTopProbability import s1_area_fraction_top_probability
 from keras.models import model_from_json
 from hax.corrections_handler import CorrectionsHandler
 
@@ -214,34 +214,16 @@ class PositionReconstruction(TreeMaker):
         event_data['s1_area_lower_injection_fraction'] = area_lower_injection / s1.area
 
         # Want S1 AreaFractionTop Probability
-        if s1.area < self.low_pe_threshold:
-            s1_frac = s1.area / self.low_pe_threshold
-            hits_top = s1.n_hits * s1.hits_fraction_top
-            s1_top = s1.area * s1.area_fraction_top
-            size_top = hits_top * (1. - s1_frac) + s1_top * s1_frac
-            size_tot = s1.n_hits * (1. - s1_frac) + s1.area * s1_frac
-        else:
-            size_top = s1.area * s1.area_fraction_top
-            size_tot = s1.area
+        aft_prob = self.corrections_handler.get_correction_from_map(
+            "s1_aft_map", self.run_number, [self.x[event_index], self.y[event_index], self.z[event_index]])
 
-        aft = self.corrections_handler.get_correction_from_map(
-            "s1_aft_map", self.run_number, [self.x[event_index],
-                                            self.y[event_index], self.z[event_index]])
+        aft_args = aft_prob, s1.area, s1.area_fraction_top, s1.n_hits, s1.hits_fraction_top
 
-        event_data['s1_area_fraction_top_binomial'] = binom_pmf(size_top, size_tot, aft)
-        event_data['s1_area_fraction_top_probability_hax'] = binom_test(size_top, size_tot, aft)
+        event_data['s1_area_fraction_top_probability_hax'] = s1_area_fraction_top_probability(*aft_args)
+        event_data['s1_area_fraction_top_binomial'] = s1_area_fraction_top_probability(*(aft_args + (10, 'pmf')))
 
-        # Use area below S1=10 instead of hits
-        if s1.area < self.low_pe_threshold:
-            size_top = s1.area * s1.area_fraction_top
-            size_tot = s1.area
-
-            event_data['s1_area_fraction_top_probability_nothresh'] = binom_test(size_top, size_tot, aft)
-            event_data['s1_area_fraction_top_binomial_nothresh'] = binom_pmf(size_top, size_tot, aft)
-
-        else:
-            event_data['s1_area_fraction_top_probability_nothresh'] = event_data['s1_area_fraction_top_probability_hax']
-            event_data['s1_area_fraction_top_binomial_nothresh'] = event_data['s1_area_fraction_top_binomial']
+        event_data['s1_area_fraction_top_probability_nothresh'] = s1_area_fraction_top_probability(*(aft_args + (0,)))
+        event_data['s1_area_fraction_top_binomial_nothresh'] = s1_area_fraction_top_probability(*(aft_args + (0, 'pmf')))
 
         # Now do s1_pattern_fit
         apc = np.array(list(s1.area_per_channel))
