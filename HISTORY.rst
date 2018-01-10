@@ -1,11 +1,11 @@
 2.3.0
 -----
 * Corrections - v1.8, CorrectedDoubleS1Scatter - v1.1:
-  * Updated e-lifetime - v0.5 (https://xe1t-wiki.lngs.infn.it/doku.php?id=greene:electron_lifetime_update_180110)
-  * New cs1 from field corrected LCE map (#195)
-  * Update time-dependent 3D FDC run bins for SR1 (#197)
+   * Updated e-lifetime v0.5 (`ref <https://xe1t-wiki.lngs.infn.it/doku.php?id=greene:electron_lifetime_update_180110>`_)
+   * New cs1 from field corrected LCE map (#195)
+   * Update time-dependent 3D FDC run bins for SR1 (#197)
 * LoneSignals - v0.1, LoneSignalsPreS1 - v0.2:
-  * More variables for AC (LoneSignals) analysis (#196)
+   * More variables for AC (LoneSignals) analysis (#196)
 * Use pax refactored S1 AFT probability calculation (#193)
 
 2.2.3
