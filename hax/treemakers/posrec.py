@@ -43,10 +43,11 @@ class PositionReconstruction(TreeMaker):
        - s1_area_upper_injection_fraction: s1 area fraction near Rn220 injection points (near PMT 131)
        - s1_area_lower_injection_fraction: s1 area fraction near Rn220 injection points (near PMT 243)
     """
-    __version__ = '0.19'
+    __version__ = '1.0'
     extra_branches = ['peaks.area_per_channel[260]',
                       'peaks.hits_per_channel[260]',
                       'peaks.n_saturated_per_channel[260]',
+                      'peaks.n_hits', 'peaks.hits_fraction_top',
                       'interactions.x', 'interactions.y', 'interactions.z']
 
     def __init__(self):
