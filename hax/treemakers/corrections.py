@@ -10,8 +10,9 @@ class Corrections(TreeMaker):
 
     Provides:
     - Corrected S1 contains xyz-correction:
-      - cs1: The corrected area in pe of the main interaction's S1 using NN 3D FDC
-      - cs1_tpf_2dfdc: Same but for TPF 2D FDC
+      - cs1: The corrected area of the main interaction's S1 using NN 3D FDC after correction of electric field effects
+      - cs1_no_field_corr: The corrected area in pe of the main interaction's S1 using NN 3D FDC (no field effects corrected)
+      - cs1_tpf_2dfdc: Same as cs1_no_field_corr but for TPF 2D FDC
 
     - Corrected S2 contains xy-correction and electron lifetime:
       - cs2: The corrected area in pe of the main interaction's S2
@@ -62,7 +63,7 @@ class Corrections(TreeMaker):
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '1.8'
+    __version__ = '1.9'
     extra_branches = ['peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
@@ -193,7 +194,7 @@ class Corrections(TreeMaker):
 
             result['z_correction_3d_' + algo] = result['z_3d_' + algo] - z_observed
 
-        # Apply LCE (light collection efficiency correction to s1)
+        # Apply LCE (light collection efficiency correction to s1 without field effects considered)
         cvals = [result['x'], result['y'], result['z']]
         result['s1_xyz_correction_tpf_fdc_2d'] = (
             1 / self.corrections_handler.get_correction_from_map(
@@ -206,6 +207,13 @@ class Corrections(TreeMaker):
             1 / self.corrections_handler.get_correction_from_map(
                 "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
         )
-        result['cs1'] = s1.area * result['s1_xyz_correction_nn_fdc_3d']
+        result['cs1_no_field_corr'] = s1.area * result['s1_xyz_correction_nn_fdc_3d']
+
+        # Apply corrected LCE (light collection efficiency correction to s1, including field effects)
+        result['s1_xyz_true_correction_nn_fdc_3d'] = (
+            1 / self.corrections_handler.get_correction_from_map(
+                "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
+        )
+        result['cs1'] = s1.area * result['s1_xyz_true_correction_nn_fdc_3d']
 
         return result

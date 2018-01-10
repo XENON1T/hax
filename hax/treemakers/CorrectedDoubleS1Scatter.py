@@ -69,7 +69,7 @@ class CorrectedDoubleS1Scatter(TreeMaker):
     - ds_s1_dt : delay time between s1_a_center_time and s1_b_center_time
     - ds_second_s2: 1 if selected interactions have distinct s2s
     """
-    __version__ = '1.1'
+    __version__ = '1.2'
 
     extra_branches = ['peaks.n_contributing_channels',
                       'peaks.center_time',
@@ -322,18 +322,37 @@ class CorrectedDoubleS1Scatter(TreeMaker):
 
         # Apply LCE (light collection efficiency correction to s1)
         cvals = [result['int_a_x_3d_nn'], result['int_a_y_3d_nn'], result['int_a_z_3d_nn']]
+
+        # Old LCE (without field correction)
         result['s1_int_a_xyz_correction_nn_fdc_3d'] = (
             1 / self.corrections_handler.get_correction_from_map(
                 "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
         )
-        result['cs1_a'] = peaks[s1_a].area * result['s1_int_a_xyz_correction_nn_fdc_3d']
-        result['cs1_b'] = peaks[s1_b].area * result['s1_int_a_xyz_correction_nn_fdc_3d']
+        result['cs1_a_no_field_corr'] = peaks[s1_a].area * result['s1_int_a_xyz_correction_nn_fdc_3d']
+        result['cs1_b_no_field_corr'] = peaks[s1_b].area * result['s1_int_a_xyz_correction_nn_fdc_3d']
 
+        # Apply new corrected LCE (light collection efficiency correction to s1_a and s1_b, including field effects)
+        result['s1_int_a_xyz_true_correction_nn_fdc_3d'] = (
+            1 / self.corrections_handler.get_correction_from_map(
+                "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
+        )
+        result['cs1_a'] = peaks[s1_a].area * result['s1_int_a_xyz_true_correction_nn_fdc_3d']
+        result['cs1_b'] = peaks[s1_b].area * result['s1_int_a_xyz_true_correction_nn_fdc_3d']
+
+        ### Correction of S1_b using int_b possition
         cvals = [result['int_b_x_3d_nn'], result['int_b_y_3d_nn'], result['int_b_z_3d_nn']]
+        # Old LCE (without field correction)
         result['s1_int_b_xyz_correction_nn_fdc_3d'] = (
             1 / self.corrections_handler.get_correction_from_map(
                 "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
         )
-        result['cs1_b_int_b'] = peaks[s1_b].area * result['s1_int_b_xyz_correction_nn_fdc_3d']
+        result['cs1_b_int_b_no_field_corr'] = peaks[s1_b].area * result['s1_int_b_xyz_correction_nn_fdc_3d']
+        # Apply new corrected LCE (light collection efficiency correction to s1_a and s1_b, including field effects)
+        result['s1_int_b_xyz_true_correction_nn_fdc_3d'] = (
+            1 / self.corrections_handler.get_correction_from_map(
+                "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
+        )
+        result['cs1_b_int_b'] = peaks[s1_b].area * result['s1_int_b_xyz_true_correction_nn_fdc_3d']
+
 
         return result
