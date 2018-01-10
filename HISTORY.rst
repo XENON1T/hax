@@ -1,3 +1,7 @@
+2.3.1
+-----
+* Fix calculation of S1 AFT below 10 pe #198
+
 2.3.0
 -----
 * Corrections - v1.8, CorrectedDoubleS1Scatter - v1.1:
