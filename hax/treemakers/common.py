@@ -35,6 +35,9 @@ class Extended(TreeMaker):
      - s1_n_contributing_channels: Number of PMTs contributing to the S1.
      - s2_n_contributing_channels: Number of PMTs contributing to the S2.
      - s1_largest_hit_area: Area of the largest hit in the S1
+     - s2_largest_hit_area: Area of the largest hit in the S2
+     - s1_largest_hit_channel: PMT channel of the largest hit in the S1
+     - s2_largest_hit_channel: PMT channel of the largest hit in the S2
      - s1_rise_time: The time between the 10% and 50% area points of the S1
      - s2_rise_time: The time between the 10% and 50% area points of the S2
      - s1_tight_coincidence: Number of PMTs with a hit close (window defined in pax) to the peak's sum waveform maximum
@@ -60,9 +63,9 @@ class Extended(TreeMaker):
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.6'
+    __version__ = '0.0.7'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
-                      'peaks.n_contributing_channels',
+                      'peaks.n_contributing_channels', 'peaks.largest_hit_channel',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
                       'interactions.r_correction', 'interactions.z_correction',
                       'interactions.xy_posrec_goodness_of_fit',
@@ -89,6 +92,9 @@ class Extended(TreeMaker):
         result['s2_n_contributing_channels'] = s2.n_contributing_channels
 
         result['s1_largest_hit_area'] = s1.largest_hit_area
+        result['s2_largest_hit_area'] = s2.largest_hit_area
+        result['s1_largest_hit_channel'] = s1.largest_hit_channel
+        result['s2_largest_hit_channel'] = s2.largest_hit_channel
 
         result['s1_rise_time'] = -s1.area_decile_from_midpoint[1]
         result['s2_rise_time'] = -s2.area_decile_from_midpoint[1]
