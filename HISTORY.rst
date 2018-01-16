@@ -1,3 +1,9 @@
+2.3.2
+-----
+* Extended - v0.0.7
+  * Add largest other S1 drift time variable (#201)
+  * Add s1 and s2 maximum hit channel information (#200)
+
 2.3.1
 -----
 * Fix calculation of S1 AFT below 10 pe #198
