@@ -50,6 +50,7 @@ class Extended(TreeMaker):
      - x_tpff: x-position of the main interaction as reconstructed by Top Pattern Function Fit algorithm. no FDC
      - y_tpff: y-position of the main interaction as reconstructed by Top Pattern Function Fit algorithm. no FDC
      - sum_s1s_before_main_s2: Sum of all S1 areas before the main S2
+     - alt_s1_interaction_drift_time: Drift time of interaction formed with largest other S1 + main S2
      - alt_s1_interaction_z: Z position of interaction formed with largest other S1 + main S2
      - alt_s2_interaction_x: X position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_y: Y position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
@@ -127,6 +128,7 @@ class Extended(TreeMaker):
 
         largest_other_indices = get_largest_indices(event.peaks, exclude_indices=(interaction.s1, interaction.s2))
 
+        result['alt_s1_interaction_drift_time'] = float('nan')
         result['alt_s1_interaction_z'] = float('nan')
         for q in 'xyz':
             result['alt_s2_interaction_%s' % q] = float('nan')
@@ -143,6 +145,7 @@ class Extended(TreeMaker):
 
             elif it.s1 == largest_other_indices.get('s1', float('nan')) and it.s2 == interaction.s2:
                 # Alternative S1 interaction
+                result['alt_s1_interaction_drift_time'] = it.drift_time
                 result['alt_s1_interaction_z'] = it.z
 
         result['largest_other_s2_delay_main_s1'] = float('nan')
