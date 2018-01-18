@@ -2,6 +2,7 @@ import hax
 import numpy as np
 import json
 from hax.minitrees import TreeMaker
+from hax.runs import get_run_info
 from pax.PatternFitter import PatternFitter
 from pax.configuration import load_configuration
 from pax import utils
@@ -42,12 +43,14 @@ class PositionReconstruction(TreeMaker):
 
        - s1_area_upper_injection_fraction: s1 area fraction near Rn220 injection points (near PMT 131)
        - s1_area_lower_injection_fraction: s1 area fraction near Rn220 injection points (near PMT 243)
+
+       - s2_pattern_fit_nn: s2 pattern fit using nn position
     """
-    __version__ = '1.0'
+    __version__ = '1.1'
     extra_branches = ['peaks.area_per_channel[260]',
                       'peaks.hits_per_channel[260]',
                       'peaks.n_saturated_per_channel[260]',
-                      'peaks.n_hits', 'peaks.hits_fraction_top',
+                      'peaks.n_hits', 'peaks.hits_fraction_top', 'peaks.reconstructed_positions',
                       'interactions.x', 'interactions.y', 'interactions.z']
 
     def __init__(self):
@@ -60,12 +63,12 @@ class PositionReconstruction(TreeMaker):
         self.pax_config = load_configuration("XENON1T")
         self.tpc_channels = self.pax_config['DEFAULT']['channels_in_detector']['tpc']
         self.confused_s1_channels = []
-        self.statistic = (
+        self.s1_statistic = (
             self.pax_config['BuildInteractions.BasicInteractionProperties']['s1_pattern_statistic']
         )
         qes = np.array(self.pax_config['DEFAULT']['quantum_efficiencies'])
 
-        self.pattern_fitter = PatternFitter(
+        self.s1_pattern_fitter = PatternFitter(
             filename=utils.data_file_name(self.pax_config['WaveformSimulator']['s1_patterns_file']),
             zoom_factor=self.pax_config['WaveformSimulator'].get('s1_patterns_zoom_factor', 1),
             adjust_to_qe=qes[self.tpc_channels],
@@ -73,15 +76,17 @@ class PositionReconstruction(TreeMaker):
                             self.pax_config['DEFAULT']['relative_gain_error'])
         )
 
-        # Threshold for s1_aft probability calculation
-        self.low_pe_threshold = 10
-
-        self.ntop_pmts = len(self.pax_config['DEFAULT']['channels_top'])
+        self.top_channels = self.pax_config['DEFAULT']['channels_top']
+        self.ntop_pmts = len(self.top_channels)
 
         # Declare nn stuff
         self.tfnn_weights = None
         self.tfnn_model = None
         self.loaded_nn = None
+
+        # Run doc
+        self.loaded_run_doc = None
+        self.run_doc = None
 
     def load_nn(self):
         """For loading NN files"""
@@ -123,6 +128,11 @@ class PositionReconstruction(TreeMaker):
 
         return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
 
+    def load_run_doc(self, run):
+        if run != self.loaded_run_doc:
+            self.run_doc = get_run_info(run)
+            self.loaded_run_doc = run
+
     def extract_data(self, event):
 
         event_data = {
@@ -130,6 +140,8 @@ class PositionReconstruction(TreeMaker):
             "s1_pattern_fit_hits_hax": None,
             "s1_pattern_fit_bottom_hax": None,
             "s1_pattern_fit_bottom_hits_hax": None,
+            "s2_pattern_fit_nn": None,
+            "s2_pattern_fit_tpf": None,
             "s1_area_fraction_top_probability_hax": None,
             "s1_area_fraction_top_probability_nothresh": None,
             "s1_area_fraction_top_binomial": None,
@@ -145,6 +157,8 @@ class PositionReconstruction(TreeMaker):
             "z_correction_3d_nn_tf": None,
             "s1_area_upper_injection_fraction": None,
             "s1_area_lower_injection_fraction": None,
+            "s2_pattern_fit_nn": None,
+            "s2_pattern_fit_tpf": None
         }
 
         # We first need the positions. This minitree is only valid when loading
@@ -165,6 +179,12 @@ class PositionReconstruction(TreeMaker):
         interaction = event.interactions[0]
         s1 = event.peaks[interaction.s1]
         s2 = event.peaks[interaction.s2]
+
+        for rp in s2.reconstructed_positions:
+            if rp.algorithm == "PosRecNeuralNet":
+                event_data['s2_pattern_fit_nn'] = rp.goodness_of_fit
+            elif rp.algorithm == "PosRecTopPatternFit":
+                event_data['s2_pattern_fit_tpf'] = rp.goodness_of_fit
 
         # Position reconstruction based on NN from TensorFlow
         s2apc = np.array(list(s2.area_per_channel))
@@ -191,11 +211,14 @@ class PositionReconstruction(TreeMaker):
         event_data['r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
             "fdc_3d_tfnn", self.run_number, cvals)
 
-        event_data['r_3d_' + algo] = event_data['r_observed_' + algo] + event_data['r_correction_3d_' + algo]
-        event_data['x_3d_' + algo] =\
-            event_data['x_observed_' + algo] * (event_data['r_3d_' + algo] / event_data['r_observed_' + algo])
-        event_data['y_3d_' + algo] =\
-            event_data['y_observed_' + algo] * (event_data['r_3d_' + algo] / event_data['r_observed_' + algo])
+        event_data['r_3d_' + algo] = (event_data['r_observed_' + algo] +
+                                      event_data['r_correction_3d_' + algo])
+        event_data['x_3d_' + algo] = (event_data['x_observed_' + algo] *
+                                      (event_data['r_3d_' + algo] /
+                                       event_data['r_observed_' + algo]))
+        event_data['y_3d_' + algo] = (event_data['y_observed_' + algo] *
+                                      (event_data['r_3d_' + algo] /
+                                       event_data['r_observed_' + algo]))
 
         if abs(z_observed) > abs(event_data['r_correction_3d_' + algo]):
             event_data['z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
@@ -232,6 +255,13 @@ class PositionReconstruction(TreeMaker):
 
         # Get saturated channels
         confused_s1_channels = []
+        self.load_run_doc(self.run_number)
+
+        # The original s1 pattern calculation had a bug where dead PMTs were
+        # included. They are not included here.
+        for a, c in enumerate(self.run_doc['processor']['DEFAULT']['gains']):
+            if c == 0:
+                confused_s1_channels.append(a)
         for a, c in enumerate(s1.n_saturated_per_channel):
             if c > 0:
                 confused_s1_channels.append(a)
@@ -242,32 +272,32 @@ class PositionReconstruction(TreeMaker):
             is_pmt_in = np.ones(len(self.tpc_channels), dtype=bool)  # Default True
             is_pmt_in[confused_s1_channels] = False  # Ignore saturated channels
 
-            event_data['s1_pattern_fit_hax'] = self.pattern_fitter.compute_gof(
+            event_data['s1_pattern_fit_hax'] = self.s1_pattern_fitter.compute_gof(
                 (self.x[event_index], self.y[event_index], self.z[event_index]),
                 apc[self.tpc_channels],
                 pmt_selection=is_pmt_in,
-                statistic=self.statistic)
+                statistic=self.s1_statistic)
 
-            event_data['s1_pattern_fit_hits_hax'] = self.pattern_fitter.compute_gof(
+            event_data['s1_pattern_fit_hits_hax'] = self.s1_pattern_fitter.compute_gof(
                 (self.x[event_index], self.y[event_index], self.z[event_index]),
                 hpc[self.tpc_channels],
                 pmt_selection=is_pmt_in,
-                statistic=self.statistic)
+                statistic=self.s1_statistic)
 
             # Switch to bottom PMTs only
-            is_pmt_in[self.pax_config['DEFAULT']['channels_top']] = False
+            is_pmt_in[self.top_channels] = False
 
-            event_data['s1_pattern_fit_bottom_hax'] = self.pattern_fitter.compute_gof(
+            event_data['s1_pattern_fit_bottom_hax'] = self.s1_pattern_fitter.compute_gof(
                 (self.x[event_index], self.y[event_index], self.z[event_index]),
                 apc[self.tpc_channels],
                 pmt_selection=is_pmt_in,
-                statistic=self.statistic)
+                statistic=self.s1_statistic)
 
-            event_data['s1_pattern_fit_bottom_hits_hax'] = self.pattern_fitter.compute_gof(
+            event_data['s1_pattern_fit_bottom_hits_hax'] = self.s1_pattern_fitter.compute_gof(
                 (self.x[event_index], self.y[event_index], self.z[event_index]),
                 hpc[self.tpc_channels],
                 pmt_selection=is_pmt_in,
-                statistic=self.statistic)
+                statistic=self.s1_statistic)
 
         except exceptions.CoordinateOutOfRangeException as _:
             # pax does this too. happens when event out of TPC (usually z)
