@@ -1,3 +1,8 @@
+2.3.3
+-----
+* PositionReconstruction (1.1)
+  * Add s2_pattern_fit for NN and bugfix s1_pattern_fit (#202)
+
 2.3.2
 -----
 * Extended - v0.0.7
