@@ -34,6 +34,9 @@ def init(filename=None, **kwargs):
     if filename is None:
         filename = os.path.join(hax_dir, 'hax.ini')
 
+    if 'blinding_cut' in kwargs:
+        print("You are modifying the blinding cut via hax.init.\nEnsure you are loading MC data or have special permission.")
+
     global config
     configp = ConfigParser(inline_comment_prefixes='#', strict=True)
     configp.read(filename)
@@ -75,4 +78,5 @@ def init(filename=None, **kwargs):
         if config['pax_version_policy'] != 'loose':
             raise ValueError(
                 "Outside an analysis facility you must explicitly set pax_version_policy = 'loose', "
-                "to acknowledge you are not getting any version consistency checks.")
+                "to acknowledge you are not getting any version consistency checks."
+            )
