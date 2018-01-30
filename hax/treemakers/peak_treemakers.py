@@ -108,7 +108,7 @@ class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
     __version__ = '0.1.2'
     extra_branches = ['peaks.left', 'peaks.right', 'peaks.n_hits',
                       'peaks.n_contributing_channels',
-                      'peaks.reconstructed_positions*']
+                      'peaks.reconstructed_positions*', 'peaks.area_decile_from_midpoint*']
 
     nhits_bounds = (0, float('inf'))
     width_bounds = (0, float('inf'))
@@ -123,6 +123,8 @@ class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
             result['time_to_nearest_peak'] = time_to_nearest_peak
             result['range_50p_area'] = peak.range_area_decile[5]
             result['n_contributing_channels'] = peak.n_contributing_channels
+            result['rise_time'] = - peak.area_decile_from_midpoint[1]
+            result['range_90p_area'] = peak.range_area_decile[9]
             for rp in peak.reconstructed_positions:
                 if rp.algorithm == 'PosRecTopPatternFit':
                     result['x'] = rp.x
@@ -153,8 +155,6 @@ class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
         gap_on_right = np.concatenate((lefts[1:] - rights[:-1], [0]))
         smallest_gap = np.clip(gap_on_left, 0, gap_on_right)
 
-        # ses = []
-        # time_to_nearest = []
         for i, peak in enumerate(peaks):
             time_to_nearest_peak = smallest_gap[i]
             if time_to_nearest_peak < 10 * units.us:
@@ -165,12 +165,3 @@ class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
             if not (width_bounds[0] <= width < width_bounds[1]):
                 continue
             yield peak, time_to_nearest_peak
-
-
-class SingleElectrons(IsolatedPeaks):
-    """Specifically select single electrons
-    
-    Create one row per single electron, which has an area requirement.
-    """
-    nhits_bounds = (15, 26.01)    # 26 is in
-    width_bounds = (50, 450)
