@@ -8,7 +8,6 @@ from pax.configuration import load_configuration
 from pax import utils
 from pax import exceptions
 from pax.plugins.interaction_processing.S1AreaFractionTopProbability import s1_area_fraction_top_probability
-from keras.models import model_from_json
 from hax.corrections_handler import CorrectionsHandler
 
 
@@ -90,7 +89,8 @@ class PositionReconstruction(TreeMaker):
 
     def load_nn(self):
         """For loading NN files"""
-
+        from keras.models import model_from_json
+        
         # If we already loaded it up then skip
         if ((self.tfnn_weights == self.corrections_handler.get_misc_correction(
                 "tfnn_weights", self.run_number)) and
@@ -165,10 +165,7 @@ class PositionReconstruction(TreeMaker):
         # Corrections since you need that to get the corrected positions
         if not len(event.interactions):
             return event_data
-
-        # Check that correct NN is loaded and change if not
-        self.load_nn()
-
+        
         event_num = event.event_number
 
         try:
@@ -187,46 +184,51 @@ class PositionReconstruction(TreeMaker):
                 event_data['s2_pattern_fit_tpf'] = rp.goodness_of_fit
 
         # Position reconstruction based on NN from TensorFlow
-        s2apc = np.array(list(s2.area_per_channel))
-        s2apc_clean = []
+        # First Check for MC data, and avoid Tensor Flow if MC.
+        if not self.mc_data:
+            # Check that correct NN is loaded and change if not
+            self.load_nn()
+            
+            s2apc = np.array(list(s2.area_per_channel))
+            s2apc_clean = []
 
-        for ipmt, s2_t in enumerate(s2apc):
-            if ipmt not in self.list_bad_pmts and ipmt < self.ntop_pmts:
-                s2apc_clean.append(s2_t)
+            for ipmt, s2_t in enumerate(s2apc):
+                if ipmt not in self.list_bad_pmts and ipmt < self.ntop_pmts:
+                    s2apc_clean.append(s2_t)
 
-        s2apc_clean = np.asarray(s2apc_clean)
-        s2apc_clean_norm = s2apc_clean / s2apc_clean.sum()
-        s2apc_clean_norm = s2apc_clean_norm.reshape(1, len(s2apc_clean_norm))
+            s2apc_clean = np.asarray(s2apc_clean)
+            s2apc_clean_norm = s2apc_clean / s2apc_clean.sum()
+            s2apc_clean_norm = s2apc_clean_norm.reshape(1, len(s2apc_clean_norm))
 
-        predicted_xy_tensorflow = self.loaded_nn.predict(s2apc_clean_norm)
-        event_data['x_observed_nn_tf'] = predicted_xy_tensorflow[0, 0] / 10.
-        event_data['y_observed_nn_tf'] = predicted_xy_tensorflow[0, 1] / 10.
-        event_data['r_observed_nn_tf'] =\
-            np.sqrt(event_data['x_observed_nn_tf']**2 + event_data['y_observed_nn_tf']**2)
+            predicted_xy_tensorflow = self.loaded_nn.predict(s2apc_clean_norm)
+            event_data['x_observed_nn_tf'] = predicted_xy_tensorflow[0, 0] / 10.
+            event_data['y_observed_nn_tf'] = predicted_xy_tensorflow[0, 1] / 10.
+            event_data['r_observed_nn_tf'] =\
+                np.sqrt(event_data['x_observed_nn_tf']**2 + event_data['y_observed_nn_tf']**2)
 
-        # 3D FDC
-        algo = 'nn_tf'
-        z_observed = interaction.z - interaction.z_correction
-        cvals = [event_data['x_observed_' + algo], event_data['y_observed_' + algo], z_observed]
-        event_data['r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
-            "fdc_3d_tfnn", self.run_number, cvals)
+            # 3D FDC
+            algo = 'nn_tf'
+            z_observed = interaction.z - interaction.z_correction
+            cvals = [event_data['x_observed_' + algo], event_data['y_observed_' + algo], z_observed]
+            event_data['r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
+                "fdc_3d_tfnn", self.run_number, cvals)
 
-        event_data['r_3d_' + algo] = (event_data['r_observed_' + algo] +
-                                      event_data['r_correction_3d_' + algo])
-        event_data['x_3d_' + algo] = (event_data['x_observed_' + algo] *
-                                      (event_data['r_3d_' + algo] /
-                                       event_data['r_observed_' + algo]))
-        event_data['y_3d_' + algo] = (event_data['y_observed_' + algo] *
-                                      (event_data['r_3d_' + algo] /
-                                       event_data['r_observed_' + algo]))
+            event_data['r_3d_' + algo] = (event_data['r_observed_' + algo] +
+                                          event_data['r_correction_3d_' + algo])
+            event_data['x_3d_' + algo] = (event_data['x_observed_' + algo] *
+                                          (event_data['r_3d_' + algo] /
+                                           event_data['r_observed_' + algo]))
+            event_data['y_3d_' + algo] = (event_data['y_observed_' + algo] *
+                                          (event_data['r_3d_' + algo] /
+                                           event_data['r_observed_' + algo]))
 
-        if abs(z_observed) > abs(event_data['r_correction_3d_' + algo]):
-            event_data['z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
-                                                  event_data['r_correction_3d_' + algo] ** 2)
-        else:
-            event_data['z_3d_' + algo] = z_observed
+            if abs(z_observed) > abs(event_data['r_correction_3d_' + algo]):
+                event_data['z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
+                                                      event_data['r_correction_3d_' + algo] ** 2)
+            else:
+                event_data['z_3d_' + algo] = z_observed
 
-        event_data['z_correction_3d_' + algo] = event_data['z_3d_' + algo] - z_observed
+            event_data['z_correction_3d_' + algo] = event_data['z_3d_' + algo] - z_observed
 
         # s1 area fraction near injection points for Rn220 source
         area_upper_injection = (s1.area_per_channel[131] + s1.area_per_channel[138] +
