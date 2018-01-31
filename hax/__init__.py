@@ -5,7 +5,7 @@ from configparser import ConfigParser
 import socket
 import numba  # flake8: noqa: F401
 from . import misc, minitrees, paxroot, pmt_plot, raw_data, runs, utils, treemakers, data_extractor, slow_control, \
-    trigger_data, ipython, recorrect  # flake8: noqa: F401
+    trigger_data, ipython, recorrect, unblinding  # flake8: noqa: F401
 __version__ = '2.3.3'
 
 
@@ -31,11 +31,9 @@ def init(filename=None, **kwargs):
     You can call it again to reload the hax config.
     Any keyword arguments passed will override settings from the configuration.
     """
+
     if filename is None:
         filename = os.path.join(hax_dir, 'hax.ini')
-
-    if 'blinding_cut' in kwargs:
-        print("You are modifying the blinding cut via hax.init.\nEnsure you are loading MC data or have special permission.")
 
     global config
     configp = ConfigParser(inline_comment_prefixes='#', strict=True)
@@ -62,6 +60,7 @@ def init(filename=None, **kwargs):
 
     # Override with kwargs
     config.update(kwargs)
+
 
     # Convert potential 'raw_data_local_path' entry for backwards compatibility
     if "raw_data_local_path" in config and isinstance(config["raw_data_local_path"], str):

@@ -108,9 +108,9 @@ def update_datasets(query=None):
 
                 # Does the run db know where to find the processed data at this host?
                 processed_data_docs = [d for d in data_docs
-                                       if (d['type'] == 'processed'
-                                           and hax.config['cax_key'] in d['host']
-                                           and d['status'] == 'transferred')]
+                                       if (d['type'] == 'processed' and
+                                           hax.config['cax_key'] in d['host'] and
+                                           d['status'] == 'transferred')]
 
                 if version_policy != 'latest':
                     # Filter out versions not consistent with the version policy.
@@ -307,6 +307,14 @@ def get_run_start(run_id):
         # return np.datetime64('2017-06-13T18:17:43.000000000')
 
 
+def is_mc(run_id):
+    pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
+    if 'MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']:
+        return True, pax_metadata
+    else:
+        return False, None
+
+
 def get_run_number(run_id):
     """Return run number matching run_id. Returns run_id if run_id is int (presumably already run int)"""
     if isinstance(run_id, (int, float, np.int, np.int32, np.int64)):
@@ -322,8 +330,8 @@ def get_run_number(run_id):
         return int(run_id)
 
     try:
-        pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
-        if 'MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']:
+        mc_data, pax_metadata = is_mc(run_id)
+        if mc_data:
             mc_run_number = pax_metadata['MC']['mc_run_number']
             print(
                 "Run is tagged as MC data. Setting run number to MC assigned value of %i" % mc_run_number)
@@ -418,44 +426,6 @@ def _tag_match(tag, pattern, pattern_type, ignore_underscore):
     elif pattern_type == 're':
         return bool(re.match(pattern, tag))
     raise NotImplementedError
-
-
-def is_blind(run_id):
-    """Determine if a dataset should be blinded based on the runDB
-
-    :param run_id: name or number of the run to check
-
-    :returns : True if the blinding cut should be applied, False if not
-    """
-    if hax.config['experiment'] != 'XENON1T':
-        return False
-
-    try:
-        run_number = hax.runs.get_run_number(run_id)
-        run_data = hax.runs.datasets.query('number == %d' % run_number).iloc[0]
-
-    except Exception:
-        # Couldn't find in runDB, so blind by default
-        log.warning("Exception while trying to find run %s: blinding by default" % run_id)
-        return True
-
-    tag_names = [tag for tag in run_data.tags.split(',')]
-    number = run_data['number']
-
-    # Blind runs with explicit blinding tag, unblind runs with explicit unblinding tag.
-    # (underscore means that it is a protected tag)
-    if 'blinded' in tag_names or '_blinded' in tag_names:
-        return True
-    if '_unblinded' in tag_names:
-        return False
-
-    # Blind runs past a configured run number
-    if number > hax.config.get('blind_from_run', float('inf')) and \
-            run_data.reader__ini__name.startswith('background'):
-        return True
-
-    # Everything else is not blinded
-    return False
 
 
 def load_corrections():

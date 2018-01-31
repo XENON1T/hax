@@ -89,9 +89,7 @@ class TreeMaker(object):
 
     def get_data(self, dataset, event_list=None):
         """Return data extracted from running over dataset"""
-        pax_metadata = hax.paxroot.get_metadata(dataset)['configuration']
-        if 'MC' in pax_metadata:
-            self.mc_data = pax_metadata['MC']['mc_generated_data']
+        self.mc_data = runs.is_mc(dataset)[0]
         self.run_name = runs.get_run_name(dataset)
         self.run_number = runs.get_run_number(dataset)
         self.run_start = runs.get_run_start(dataset)
@@ -238,8 +236,7 @@ def check(run_id, treemaker, force_reload=False):
 
     # Check for incompatible hax version (e.g. event_number and run_number
     # columns not yet included in each minitree)
-    if (LooseVersion(minitree_metadata.get('hax_version', '0.0'))
-            < hax.config['minimum_minitree_hax_version']):
+    if (LooseVersion(minitree_metadata.get('hax_version', '0.0')) < hax.config['minimum_minitree_hax_version']):
         log.debug("Minitreefile %s is from an incompatible hax version and must be recreated" % minitree_path)
         return sorry_not_available
 
@@ -399,13 +396,13 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     for i in range(1, len(dataframes)):
         result = _merge_minitrees(result, dataframes[i])
 
-    # Apply the blinding cut if required. Normally this is already done by minitrees.load, but perhaps someone calls
+    # Apply the unblinding selection if required. Normally this is already done by minitrees.load, but perhaps someone calls
     # load_single_dataset_directly.
-    if (hax.config['blinding_cut'] not in preselection and
+    if (hax.unblinding.unblinding_selection not in preselection and
         ('Corrections' in treemakers or
          hax.treemakers.corrections.Corrections in treemakers) and
-            hax.runs.is_blind(run_id)):
-        preselection = [hax.config['blinding_cut']] + preselection
+            hax.unblinding.is_blind(run_id)):
+        preselection = [hax.unblinding.unblinding_selection] + preselection
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
@@ -489,15 +486,15 @@ def load(datasets=None,
 
     # If the blinding cut is required for any of the datasets, apply it to all of them.
     # This avoids crashing or paradoxical cut histories.
-    if (hax.config['blinding_cut'] not in preselection and (
+    if (hax.unblinding.unblinding_selection not in preselection and (
             'Corrections' in treemakers or hax.treemakers.corrections.Corrections in treemakers)):
-        is_blind = [hax.runs.is_blind(run_id) for run_id in datasets]
+        is_blind = [hax.unblinding.is_blind(run_id) for run_id in datasets]
         if any(is_blind):
             if not all(is_blind):
                 log.warning(
                     "You're mixing blind and unblind datasets. "
                     "The blinding cut will be applied to all data you're loading.")
-            preselection = [hax.config['blinding_cut']] + preselection
+            preselection = [hax.unblinding.unblinding_selection] + preselection
 
     partial_results = []
     partial_histories = []

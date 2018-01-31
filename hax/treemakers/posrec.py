@@ -90,7 +90,7 @@ class PositionReconstruction(TreeMaker):
     def load_nn(self):
         """For loading NN files"""
         from keras.models import model_from_json
-        
+
         # If we already loaded it up then skip
         if ((self.tfnn_weights == self.corrections_handler.get_misc_correction(
                 "tfnn_weights", self.run_number)) and
@@ -165,7 +165,7 @@ class PositionReconstruction(TreeMaker):
         # Corrections since you need that to get the corrected positions
         if not len(event.interactions):
             return event_data
-        
+
         event_num = event.event_number
 
         try:
@@ -185,10 +185,10 @@ class PositionReconstruction(TreeMaker):
 
         # Position reconstruction based on NN from TensorFlow
         # First Check for MC data, and avoid Tensor Flow if MC.
-        if not self.mc_data:
+        if not self.mc_data:  # Temporary for OSG production
             # Check that correct NN is loaded and change if not
             self.load_nn()
-            
+
             s2apc = np.array(list(s2.area_per_channel))
             s2apc_clean = []
 

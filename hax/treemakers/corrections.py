@@ -131,20 +131,9 @@ class Corrections(TreeMaker):
                                                  "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
 
         # include electron lifetime correction
-        if self.mc_data:
-            wanted_electron_lifetime = self.corrections_handler.get_misc_correction(
-                "mc_electron_lifetime_liquid", self.run_number)
-            result['s2_lifetime_correction'] = np.exp((interaction.drift_time / 1e3) /
-                                                      wanted_electron_lifetime)
-
-        else:
-            try:
-                result['s2_lifetime_correction'] = (
-                    self.corrections_handler.get_electron_lifetime_correction(
-                        self.run_start, interaction.drift_time))
-            except Exception as e:
-                print(e)
-                result['s2_lifetime_correction'] = 1.
+        result['s2_lifetime_correction'] = (
+            self.corrections_handler.get_electron_lifetime_correction(
+                self.run_number, self.run_start, interaction.drift_time, self.mc_data))
 
         # Combine all the s2 corrections
         s2_correction = (result['s2_lifetime_correction'] *

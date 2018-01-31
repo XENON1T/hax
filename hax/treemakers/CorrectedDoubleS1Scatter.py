@@ -252,19 +252,9 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                                                    "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
 
         # include electron lifetime correction
-        if self.mc_data:
-            wanted_electron_lifetime = self.corrections_handler.get_misc_correction(
-                "mc_electron_lifetime_liquid", self.run_number)
-            result['s2_lifetime_correction'] = np.exp((result['int_a_drift_time'] / 1e3) / wanted_electron_lifetime)
-
-        else:
-            try:
-                result['s2_lifetime_correction'] = (
-                    self.corrections_handler.get_electron_lifetime_correction(
-                        self.run_start, result['int_a_drift_time']))
-            except Exception as e:
-                print(e)
-                result['s2_lifetime_correction'] = 1.
+        result['s2_lifetime_correction'] = (
+            self.corrections_handler.get_electron_lifetime_correction(
+                self.run_number, self.run_start, result['int_a_drift_time'], self.mc_data))
 
         # Combine all the s2 corrections for S2_a
         s2_a_correction = (result['s2_lifetime_correction'] * result['s2_a_xy_correction_tot'])
@@ -339,7 +329,7 @@ class CorrectedDoubleS1Scatter(TreeMaker):
         result['cs1_a'] = peaks[s1_a].area * result['s1_int_a_xyz_true_correction_nn_fdc_3d']
         result['cs1_b'] = peaks[s1_b].area * result['s1_int_a_xyz_true_correction_nn_fdc_3d']
 
-        ### Correction of S1_b using int_b possition
+        # Correction of S1_b using int_b possition
         cvals = [result['int_b_x_3d_nn'], result['int_b_y_3d_nn'], result['int_b_z_3d_nn']]
         # Old LCE (without field correction)
         result['s1_int_b_xyz_correction_nn_fdc_3d'] = (
@@ -353,6 +343,5 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                 "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
         )
         result['cs1_b_int_b'] = peaks[s1_b].area * result['s1_int_b_xyz_true_correction_nn_fdc_3d']
-
 
         return result

@@ -116,10 +116,16 @@ class CorrectionsHandler():
         # If we get here something is wrong and we didn't find the correction
         raise ValueError("Didn't find a correction for %s in run %i" % (correction_name, run))
 
-    def get_electron_lifetime_correction(self, run_start, drift_time, value='DEFAULT'):
+    def get_electron_lifetime_correction(self, run_number, run_start, drift_time, mc_data, value='DEFAULT'):
         """Wrapper that does the exponential calculation for you
         """
-        return np.exp((drift_time / 1e3) / self.get_electron_lifetime(run_start, value))
+        if mc_data:
+            elifetime = self.get_misc_correction("mc_electron_lifetime_liquid", run_number)
+
+        else:
+            elifetime = self.get_electron_lifetime(run_start, value)
+
+        return np.exp((drift_time / 1e3) / elifetime)
 
     def get_electron_lifetime(self, run_start, value='DEFAULT'):
         """Gets the electron lifetime for this run
