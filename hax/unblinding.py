@@ -10,7 +10,7 @@ log = logging.getLogger('hax.unblinding')
 #                                            | (HighE above ER const line) | (HighE below NR -4.5sigma)
 #                                            | (sideband outside TPC radius; see #169)
 ##
-unblinding_selection = '(((log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1)&(cs1<252)) | ((250<cs1)&(cs1<375)&(log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139)) | ((cs1>375)&(log(cs2_bottom/cs1)/log(10) > 1.02015)) | (cs1>200)&(log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1) | ((cs1<500)&(r_3d_nn>47.9)) | (cs1>3000) | (s2<150) | (largest_other_s2>200)) & ((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 50.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 80.)) & ((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 2300.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 2600.))'
+unblinding_selection = '(((log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1)&(cs1<252)) | ((250<cs1)&(cs1<375)&(log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139)) | ((cs1>375)&(log(cs2_bottom/cs1)/log(10) > 1.02015)) | (cs1>200)&(log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1) | ((cs1<500)&(r_3d_nn>47.9)) | (cs1>3000) | (s2<200) | (largest_other_s2>200)) & ((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 50.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 80.)) & ((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 2300.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 2600.))'
 blind_from_run = 3936
 
 
