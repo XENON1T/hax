@@ -100,7 +100,7 @@ class PeakExtractor(MultipleRowExtractor):
             return []
 
 
-class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
+class IsolatedPeaks(MultipleRowExtractor):  # pylint: disable=unused-variable
     """Returns one row per peak isolated in time
 
     Specifically returns properties of each individual peak.
@@ -115,9 +115,7 @@ class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
 
     def extract_data(self, event):
         results = []
-        for peak, time_to_nearest_peak in self.yield_peak(event,
-                                                          self.nhits_bounds,
-                                                           self.width_bounds):
+        for peak, time_to_nearest_peak in self.yield_peak(event, self.nhits_bounds, self.width_bounds):
             result = dict({x: getattr(peak, x)
                            for x in ['area', 'area_fraction_top', 'n_hits']})
             result['time_to_nearest_peak'] = time_to_nearest_peak
@@ -138,7 +136,7 @@ class IsolatedPeaks(MultipleRowExtractor):  #pylint: disable=unused-variable
     @staticmethod
     def yield_peak(event, nhits_bounds, width_bounds):
         """Extracts a row per peak
-        
+
         The peak type can be single electron and have some selection.  This is
         a generator, and yields (peak, time_to_nearest).
         """

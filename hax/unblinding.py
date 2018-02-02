@@ -5,8 +5,8 @@ log = logging.getLogger('hax.unblinding')
 
 ##
 # Unblinding selection
-# We're blinding NR band (1st term; see #168), 2 e- capture from 50-80 keV (2nd term; see #161), and 0nbb 2.3-2.6 MeV (3rd term)
-# Details of NR band blinding (open regions): (LowE above ER -2*RMS) | (above Kr83m -3*RMS)
+# We're blinding NR band (1st term; see #168), 2 e- capture from 50-80 keV (2nd term; see #161), and 0nbb 2.3-2.6 MeV
+# (3rd term) Details of NR band blinding (open regions): (LowE above ER -2*RMS) | (above Kr83m -3*RMS)
 #                                            | (HighE above ER const line) | (HighE below NR -4.5sigma)
 #                                            | (sideband outside TPC radius; see #169)
 ##

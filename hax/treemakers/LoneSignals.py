@@ -1,5 +1,7 @@
+import hax
 from hax.minitrees import TreeMaker
 import numpy as np
+from hax.corrections_handler import CorrectionsHandler
 
 
 # Lone signal in pre_s1 window
@@ -123,8 +125,10 @@ class LoneSignalsPreS1(TreeMaker):
 
 # Extraction of peak information for Lone-S2/S1 studies
 class LoneSignals(TreeMaker):
-    __version__ = '0.1'
+    __version__ = '0.2'
     extra_branches = ['peaks.*']
+    extra_metadata = hax.config['corrections_definitions']
+    corrections_handler = CorrectionsHandler()
 
     def extract_data(self, event):
         peaks = event.peaks
@@ -186,6 +190,19 @@ class LoneSignals(TreeMaker):
             result['s2_0_50p_width'] = s2_sorted[0].range_area_decile[5]
             result['s2_0_rise_time'] = -s2_sorted[0].area_decile_from_midpoint[1]
             result['s2_0_largest_hit_area'] = s2_sorted[0].largest_hit_area
+
+            # S2 corrections based on X,Y maps, for new s2 AFT cut
+            cvals = [result['s2_0_x_nn'], result['s2_0_y_nn']]
+            result['s2_0_xy_correction_tot'] = (1.0 / self.corrections_handler.get_correction_from_map(
+                "s2_xy_map", self.run_number, cvals))
+            result['s2_0_xy_correction_top'] = (1.0 / self.corrections_handler.get_correction_from_map(
+                "s2_xy_map", self.run_number, cvals, map_name='map_top'))
+            result['s2_0_xy_correction_bottom'] = (1.0 / self.corrections_handler.get_correction_from_map(
+                "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
+            result['cs2_0_tot'] = result['s2_0_area'] * result['s2_0_xy_correction_tot']
+            result['cs2_0_top'] = result['s2_0_area'] * result['s2_0_xy_correction_top'] * result['s2_0_aft']
+            result['cs2_0_bottom'] = result['s2_0_area'] * result['s2_0_xy_correction_bottom'] * (1 - result['s2_0_aft'])
+            result['cs2_0_aft'] = result['cs2_0_top'] / (result['cs2_0_top'] + result['cs2_0_bottom'])
 
         if len(s2_sorted) > 1:
             s2_1_recpos = s2_sorted[1].reconstructed_positions
