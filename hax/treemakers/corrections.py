@@ -14,10 +14,15 @@ class Corrections(TreeMaker):
       - cs1_no_field_corr: The corrected area in pe of the main interaction's S1 using NN 3D FDC (no field effects corrected)
       - cs1_tpf_2dfdc: Same as cs1_no_field_corr but for TPF 2D FDC
 
-    - Corrected S2 contains xy-correction and electron lifetime:
+    - Corrected S2 contains xy-correction and electron lifetime based on Kr83m trend:
       - cs2: The corrected area in pe of the main interaction's S2
       - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
       - cs2_bottom: The corrected area in pe of the main interaction's S2 from the bottom array.
+
+    - Corrected S2 contains xy-correction and electron lifetime based on alpha trend:
+      - cs2_alpha: The (alpha elifetime) corrected area in pe of the main interaction's S2
+      - cs2_top_alpha: The (alpha elifetime) corrected area in pe of the main interaction's S2 from the top array.
+      - cs2_bottom_alpha: The (alpha elifetime) corrected area in pe of the main interaction's S2 from the bottom array.
 
     - Observed positions, not corrected with FDC maps, for both NN and TPF:
       - r_observed_tpf: the observed interaction r coordinate (using TPF).
@@ -51,6 +56,7 @@ class Corrections(TreeMaker):
       - s2_xy_correction_top
       - s2_xy_correction_bottom
       - s2_lifetime_correction
+      - s2_lifetime_correction_alpha
       - r_correction_3d_nn
       - r_correction_3d_tpf
       - r_correction_2d
@@ -146,6 +152,24 @@ class Corrections(TreeMaker):
         result['cs2'] = s2.area * s2_correction
         result['cs2_top'] = s2.area * s2.area_fraction_top * s2_top_correction
         result['cs2_bottom'] = s2.area * (1.0 - s2.area_fraction_top) * s2_bottom_correction
+
+        # include electron lifetime correction for alphas
+        result['s2_lifetime_correction_alpha'] = (
+            self.corrections_handler.get_electron_lifetime_correction(
+                self.run_number, self.run_start, interaction.drift_time, self.mc_data, 'alpha'))
+
+        # Combine all the s2 corrections
+        s2_correction_alpha = (result['s2_lifetime_correction_alpha'] *
+                               result['s2_xy_correction_tot'])
+        s2_top_correction_alpha = (result['s2_lifetime_correction_alpha'] *
+                                   result['s2_xy_correction_top'])
+        s2_bottom_correction_alpha = (result['s2_lifetime_correction_alpha'] *
+                                      result['s2_xy_correction_bottom'])
+
+        result['cs2_alpha'] = s2.area * s2_correction_alpha
+        result['cs2_top_alpha'] = s2.area * s2.area_fraction_top * s2_top_correction_alpha
+        result['cs2_bottom_alpha'] = s2.area * (1.0 - s2.area_fraction_top) * s2_bottom_correction_alpha
+
 
         # FDC
         # Apply the (old) 2D FDC (field distortion correction to position)

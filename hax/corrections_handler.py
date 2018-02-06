@@ -134,9 +134,14 @@ class CorrectionsHandler():
             self.elifedoc = runs.corrections_docs['hax_electron_lifetime']
 
         if value not in self.elife_functions.keys():
-            if value == 'DEFAULT':
+            if value == 'DEFAULT':  # Kr83m trend
                 self.elife_functions[value] = interp1d(self.elifedoc['times'],
                                                        self.elifedoc['electron_lifetimes'])
+
+            elif value == 'alpha':
+                self.elife_functions[value] = interp1d(self.elifedoc['times_alpha'],
+                                                       self.elifedoc['electron_lifetimes_alpha'])
+
             else:
                 self.elife_functions[value] = interp1d(self.elifedoc['times'],
                                                        self.elifedoc[value])
