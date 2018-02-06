@@ -1,3 +1,16 @@
+2.4.0
+-----
+* Corrections - v2.0, CorrectedDoubleS1Scatter - v2.0:
+  * Updated e-lifetime v0.6 (`ref <https://xe1t-wiki.lngs.infn.it/doku.php?id=greene:electron_lifetime_update_180206>`_)
+  * Update 3D FDC map for 4th period (#210)
+* LoneSignals - v0.2
+  * Lone s2 xy correction and corrected AFT (#209)
+* New SE treemaker (#203, #207)
+* Stricter blinding cut (#206)
+* Unblind between s2 = [150, 200] (#208)
+* TensorFlow bypass (#205)
+  * Temporarily for Midway1 and MC
+
 2.3.3
 -----
 * PositionReconstruction (1.1)
