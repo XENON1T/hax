@@ -61,7 +61,6 @@ def init(filename=None, **kwargs):
     # Override with kwargs
     config.update(kwargs)
 
-
     # Convert potential 'raw_data_local_path' entry for backwards compatibility
     if "raw_data_local_path" in config and isinstance(config["raw_data_local_path"], str):
         config["raw_data_local_path"] = [config["raw_data_local_path"]]
@@ -79,3 +78,6 @@ def init(filename=None, **kwargs):
                 "Outside an analysis facility you must explicitly set pax_version_policy = 'loose', "
                 "to acknowledge you are not getting any version consistency checks."
             )
+
+    # Setup unblinding selection
+    unblinding.make_unblinding_selection()

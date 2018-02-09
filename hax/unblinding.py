@@ -3,15 +3,85 @@ import logging
 
 log = logging.getLogger('hax.unblinding')
 
-##
-# Unblinding selection
-# We're blinding NR band (1st term; see #168), 2 e- capture from 50-80 keV (2nd term; see #161), and 0nbb 2.3-2.6 MeV
-# (3rd term) Details of NR band blinding (open regions): (LowE above ER -2*RMS) | (above Kr83m -3*RMS)
-#                                            | (HighE above ER const line) | (HighE below NR -4.5sigma)
-#                                            | (sideband outside TPC radius; see #169)
-##
-unblinding_selection = '(((log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1)&(cs1<252)) | ((250<cs1)&(cs1<375)&(log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139)) | ((cs1>375)&(log(cs2_bottom/cs1)/log(10) > 1.02015)) | (cs1>200)&(log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1) | ((cs1<500)&(r_3d_nn>47.9)) | (cs1>3000) | (s2<200) | (largest_other_s2>200)) & ((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 50.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 80.)) & ((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 2300.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 2600.))'
 blind_from_run = 3936
+
+# Unblinding Selection
+# String selections below are prepended to any preselection defined by the user.
+# The first field should denote the physics channel of interest.
+# All selections in the same physics channel will be concatenated with an OR "|".
+# Then each group of physics channel selections will be concatenated with an AND "&".
+
+# Full selection to be constructed out of 'unblind' dictionary below
+unblinding_selection = ''
+
+# 2D dictionary first index denoting physics channel, second index set of selections
+unblind = {}
+
+# Unblinded regions for WIMP SI search (see #168)
+unblind['wimp'] = {}
+
+# ER band above -2*RMS at low-E
+unblind['wimp']['above_er_cs1_lt250'] = '((log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1) & (cs1<252))'
+
+# Kr line above -3*RMS
+unblind['wimp']['above_er_cs1_lt375'] = '((250<cs1) & (cs1<375) & (log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139))'
+
+# ER band (constant line at high-E)
+unblind['wimp']['above_er_cs1_gt375'] = '((cs1>=375) & (log(cs2_bottom/cs1)/log(10) > 1.02015))'
+
+# Above cs1 = 3000 pe
+unblind['wimp']['cs1_gt3000'] = '(cs1>3000)'
+
+# Below S2 threshold (for AC modeling)
+unblind['wimp']['s2_threshold'] = '(s2<200)'
+
+# Multiple scatters
+unblind['wimp']['multiple_scatter'] = '(largest_other_s2 > 200)'
+
+# Reconstructed position outside TPC (for wall leakage modeling; see #169)
+unblind['wimp']['outside_tpc'] = '((cs1<500) & (r_3d_nn>47.9))'
+
+# Below NR band (constant line at low-E for wall+AC modeling; see #199)
+unblind['wimp']['below_nr_cs1_lt20'] = '((cs1<20) & (log(cs2_bottom/cs1)/log(10) < 1.08159))'
+
+# Below NR band -4.5sigma (mid-E; see #199)
+unblind['wimp']['below_nr_cs1_lt70'] = '((20<=cs1) & (cs1<70) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
+
+# Below NR band (high-E; see #199)
+unblind['wimp']['below_nr_cs1_lt200'] = '((70<=cs1) & (cs1<200) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
+
+# Below NR band (super high-E)
+unblind['wimp']['below_nr_cs1_gt200'] = '((cs1>=200) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
+
+# 2 e- capture (DEC) blinded from 50-80 keV (see #161)
+unblind['dec'] = {}
+unblind['dec']['e_range'] = '((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 50.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 80.))'
+
+# 0vbb blinded from 2.3-2.6 MeV (see #161)
+unblind['0vbb'] = {}
+unblind['0vbb']['e_range'] = '((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 2300.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 2600.))'
+
+
+def make_unblinding_selection():
+    """Generate full unblinding selection string
+
+    Second field of 'unblind' dictionary above will be joined by OR "|".
+    Then each set of cuts will be joined by AND "&" for each first field.
+    """
+    global unblinding_selection
+    unblinding_selection = ''
+
+    # Loop over all physics channels
+    for channel in unblind:
+
+        # Join all selections of a given set with OR
+        selection_string = ' | '.join(['%s' % (value) for (key, value) in unblind[channel].items()])
+
+        # Create full unblinding selection, joining all sets with AND
+        unblinding_selection += '(' + selection_string + ') & '
+
+    # Remove extraneous AND
+    unblinding_selection = unblinding_selection[:-3]
 
 
 def is_blind(run_id):
