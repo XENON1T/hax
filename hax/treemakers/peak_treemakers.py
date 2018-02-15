@@ -163,3 +163,7 @@ class IsolatedPeaks(MultipleRowExtractor):  # pylint: disable=unused-variable
             if not (width_bounds[0] <= width < width_bounds[1]):
                 continue
             yield peak, time_to_nearest_peak
+
+class SingleElectrons(IsolatedPeaks):
+    nhits_bounds = (15, 26.01)    # 26 is in
+    width_bounds = (50, 450)
