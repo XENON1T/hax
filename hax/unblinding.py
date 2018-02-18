@@ -57,6 +57,9 @@ unblind['wimp']['below_nr_cs1_gt200'] = '((cs1>=200) & (log(cs2_bottom/cs1)/log(
 unblind['dec'] = {}
 unblind['dec']['e_range'] = '((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 50.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 80.))'
 
+# Unblinding of 14 days post-AmBe data for I-125 removal assessment (see #215)
+unblind['dec']['i125_after_ambe'] = '((run_number>=8340) & (run_number<=8728))'
+
 # 0vbb blinded from 2.3-2.6 MeV (see #161)
 unblind['0vbb'] = {}
 unblind['0vbb']['e_range'] = '((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 2300.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 2600.))'
