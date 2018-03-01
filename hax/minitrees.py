@@ -424,7 +424,7 @@ def _merge_minitrees(mt1, mt2):
 
 
 def load(datasets=None,
-         treemakers=tuple(['Fundamentals', 'Basics']),
+         treemakers='all',
          preselection=None,
          force_reload=False,
          delayed=False,
@@ -437,7 +437,8 @@ def load(datasets=None,
 
     :param datasets: names or numbers of datasets (without .root) to load
 
-    :param treemakers: treemaker class (or string with name of class) or list of these to load.
+    :param treemakers: treemaker class (or string with name of class) or list of these to load.  If value
+                        is set to 'all' then the standard science run minitrees are loaded.
 
     :param preselection: string or list of strings parseable by pd.eval. Should return bool array, to be used
                          for pre-selecting events to load for each dataset.
@@ -459,7 +460,7 @@ def load(datasets=None,
 
     """
     # Import dask only here, it causes problems on some systems (batch queues etc)
-    # Also dask is heavily under development...
+    # Also dask is heavily under development... FIXME
     import dask
     import dask.multiprocessing
     import dask.dataframe
@@ -469,13 +470,20 @@ def load(datasets=None,
         return load_cache_file(cache_file)
 
     if datasets is None:
-        raise ValueError(
-            "If you're not loading from a cache file, specify at least some datasets to load")
+        raise ValueError("If you're not loading from a cache file, "
+                         "specify at least some datasets to load")
     if isinstance(preselection, str):
         preselection = [preselection]
     if preselection is None:
         preselection = []
-    if isinstance(treemakers, (type, str)):
+    
+    # Handle possible treemaker options
+    if treemakers == 'all':
+        # Fetched from inputs_from_bbf/reduce_data.py, 28/Feb/2018
+        treemakers = ['Corrections', 'Basics', 'Fundamentals', 'Proximity',
+                      'Extended', 'TotalProperties', 'TailCut', 'PositionReconstruction',
+                      'LargestPeakProperties', 'FlashIdentification']
+    elif isinstance(treemakers, (type, str)):
         treemakers = [treemakers]
 
     if isinstance(datasets, (str, int, np.int64, np.int, np.int32)):
