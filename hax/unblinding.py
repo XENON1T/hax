@@ -20,8 +20,11 @@ unblind = {}
 # Unblinded regions for WIMP SI search (see #168)
 unblind['wimp'] = {}
 
+# Full low-E unblinding for SR0+SR1 (see #216)
+unblind['wimp']['unblind_lowe'] = '(cs1<80)'
+
 # ER band above -2*RMS at low-E
-unblind['wimp']['above_er_cs1_lt250'] = '((log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1) & (cs1<252))'
+unblind['wimp']['above_er_cs1_lt250'] = '((cs1<252) & (log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1))'
 
 # Kr line above -3*RMS
 unblind['wimp']['above_er_cs1_lt375'] = '((250<cs1) & (cs1<375) & (log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139))'
@@ -44,14 +47,8 @@ unblind['wimp']['outside_tpc'] = '((cs1<500) & (r_3d_nn>47.9))'
 # Below NR band (constant line at low-E for wall+AC modeling; see #199)
 unblind['wimp']['below_nr_cs1_lt20'] = '((cs1<20) & (log(cs2_bottom/cs1)/log(10) < 1.08159))'
 
-# Below NR band -4.5sigma (mid-E; see #199)
-unblind['wimp']['below_nr_cs1_lt70'] = '((20<=cs1) & (cs1<70) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
-
-# Below NR band (high-E; see #199)
-unblind['wimp']['below_nr_cs1_lt200'] = '((70<=cs1) & (cs1<200) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
-
-# Below NR band (super high-E)
-unblind['wimp']['below_nr_cs1_gt200'] = '((cs1>=200) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
+# Below NR band -4.5sigma (see #199)
+unblind['wimp']['below_nr_cs1_gt20'] = '((20<=cs1) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
 
 # 2 e- capture (DEC) blinded from 50-80 keV (see #161)
 unblind['dec'] = {}
