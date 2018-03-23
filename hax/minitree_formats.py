@@ -46,7 +46,15 @@ class ROOTFormat(MinitreeDataFormat):
     def load_metadata(self):
         # This is NOT the same as paxroot.get_metadata, that's for pax ROOT files...
         minitree_f = ROOT.TFile(self.path)
-        minitree_metadata = json.loads(minitree_f.Get('metadata').GetTitle())
+
+        metadata_object = minitree_f.Get('metadata')
+
+        # Corrupt file where metadata did not get saved
+        if metadata_object is None:
+            minitree_f.Close()
+            raise RuntimeError("Metadata non-existent/corrupt file: %s" % self.path)
+
+        minitree_metadata = json.loads(metadata_object.GetTitle())
         minitree_f.Close()
         return minitree_metadata
 
