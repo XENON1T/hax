@@ -203,8 +203,9 @@ def range_cuts(*args, **kwargs):
     range_selections(*args, **kwargs)
 
 
-def apply_lichen(data, lichen_names, lichen_file='sciencerun1', **kwargs):
+def apply_lichen(data, lichen_names, lichen_file='sciencerun1', deep=False, **kwargs):
     """Apply cuts defined by the lax lichen(s) lichen_names from the lichen_file to data.
+    :param deep: if True (default False), apply sub-lichens explicitly
     """
     # Support for single lichen
     if isinstance(lichen_names, str):
@@ -217,18 +218,23 @@ def apply_lichen(data, lichen_names, lichen_file='sciencerun1', **kwargs):
         raise
 
     for lichen_name in lichen_names:
-        lichen = getattr(getattr(lax.lichens, lichen_file), lichen_name)
+        lichen = getattr(getattr(lax.lichens, lichen_file), lichen_name)()
 
-        # .copy() to prevent pandas warning and pollution with new columns
-        d = lichen().process(data.copy())
+        for l in (lichen.lichen_list if deep else [lichen]):
+            l_name = l.__class__.__name__
 
-        desc = lichen_name
-        if hasattr(lichen, 'version'):
-            desc += ' v' + str(lichen.version)
-        else:
-            desc += ' (lax v%s)' % lax.__version__
+            # .copy() to prevent pandas warning and pollution with new columns
+            d = l.process(data.copy())
 
-        data = selection(data, getattr(d, 'Cut' + lichen_name), desc=desc, **kwargs)
+            if hasattr(lichen, 'version'):
+                desc = l_name + ' v' + str(l.version)
+            else:
+                desc = l_name + ' (lax v%s)' % lax.__version__
+
+            data = selection(data,
+                             getattr(d, 'Cut' + l_name),
+                             desc=desc,
+                             **kwargs)
 
     return data
 

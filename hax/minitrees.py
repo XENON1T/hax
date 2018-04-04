@@ -396,7 +396,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     for i in range(1, len(dataframes)):
         result = _merge_minitrees(result, dataframes[i])
 
-    # Apply the unblinding selection if required. Normally this is already done by minitrees.load, but perhaps someone calls
+    # Apply the unblinding selection if required.
+    # Normally this is already done by minitrees.load, but perhaps someone calls
     # load_single_dataset_directly.
     if (hax.unblinding.unblinding_selection not in preselection and
         ('Corrections' in treemakers or
@@ -476,7 +477,7 @@ def load(datasets=None,
         preselection = [preselection]
     if preselection is None:
         preselection = []
-    
+
     # Handle possible treemaker options
     if treemakers == 'all':
         # Fetched from inputs_from_bbf/reduce_data.py, 28/Feb/2018

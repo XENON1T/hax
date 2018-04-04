@@ -225,7 +225,7 @@ def get_run_info(run_id, projection_query=None):
         single_field_mode = False
         pq = projection_query
 
-    multi_run_mode = isinstance(run_id, (list, tuple))
+    multi_run_mode = isinstance(run_id, (list, tuple, np.ndarray, pd.Series))
     if multi_run_mode:
         run_names = [get_run_name(x) for x in run_id]
     else:
@@ -426,6 +426,15 @@ def _tag_match(tag, pattern, pattern_type, ignore_underscore):
     elif pattern_type == 're':
         return bool(re.match(pattern, tag))
     raise NotImplementedError
+
+
+def count_tags(ds):
+    """Return how often each tag occurs in the datasets DataFrame ds"""
+    from collections import Counter
+    from itertools import chain
+    all_tags = chain(*[ts.split(',')
+                       for ts in ds['tags'].values])
+    return Counter(all_tags)
 
 
 def load_corrections():
