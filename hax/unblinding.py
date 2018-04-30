@@ -20,8 +20,8 @@ unblind = {}
 # Unblinded regions for WIMP SI search (see #168)
 unblind['wimp'] = {}
 
-# Full low-E unblinding for SR0+SR1 (see #216)
-unblind['wimp']['unblind_lowe'] = '(cs1<80)'
+# Full low-E unblinding for SR0+SR1 (see #216, #221)
+unblind['wimp']['unblind_lowe'] = '((cs1<80) & (run_number<=16639))'
 
 # ER band above -2*RMS at low-E
 unblind['wimp']['above_er_cs1_lt250'] = '((cs1<252) & (log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1))'
