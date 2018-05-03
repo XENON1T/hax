@@ -50,9 +50,9 @@ unblind['wimp']['below_nr_cs1_lt20'] = '((cs1<20) & (log(cs2_bottom/cs1)/log(10)
 # Below NR band -4.5sigma (see #199)
 unblind['wimp']['below_nr_cs1_gt20'] = '((20<=cs1) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
 
-# 2 e- capture (DEC) blinded from 50-80 keV (see #161)
+# 2 e- capture (DEC) blinded from 50-80 keV (see #161), change to smaller range (see #226)
 unblind['dec'] = {}
-unblind['dec']['e_range'] = '((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 50.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 80.))'
+unblind['dec']['e_range'] = '((0.0137*(cs1/.1426 + cs2_bottom/11.55) < 56.5) | (0.0137*(cs1/.1426 + cs2_bottom/11.55) > 72.))'
 
 # Unblinding of 14 days post-AmBe data for I-125 removal assessment (see #215)
 unblind['dec']['i125_after_ambe'] = '((run_number>=8340) & (run_number<=8728))'
