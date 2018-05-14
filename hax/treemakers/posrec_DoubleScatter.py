@@ -197,15 +197,15 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         # Cut events without second s1
         if otherInts[1] != 0:
             s1_1 = peaks[interactions[otherInts[1]].s1]
-            s2_1 = peaks[interactions[otherInts[1]].s2]       
+            s2_1 = peaks[interactions[otherInts[1]].s2]
             s1_1_int = interactions[otherInts[1]].s1
-            s2_1_int = interactions[otherInts[1]].s2
+            #s2_1_int = interactions[otherInts[1]].s2
             int_1 = otherInts[1]
         elif otherInts[0] != 0:
             s1_1 = peaks[interactions[otherInts[0]].s1]
-            s2_1 = peaks[interactions[otherInts[0]].s2]    
+            s2_1 = peaks[interactions[otherInts[0]].s2]
             s1_1_int = interactions[otherInts[0]].s1
-            s2_1_int = interactions[otherInts[0]].s2   
+            #s2_1_int = interactions[otherInts[0]].s2
             int_1 = otherInts[0]
         else:
             return dict()
@@ -231,7 +231,6 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             event_index = self.indices.index(event_num)
         except Exception:
             return event_data
-        
         for rp in s2_a.reconstructed_positions:
             if rp.algorithm == "PosRecNeuralNet":
                 event_data['s2_a_pattern_fit_nn'] = rp.goodness_of_fit
@@ -271,8 +270,7 @@ class PositionReconstructionDoubleScatter(TreeMaker):
                 
             for ipmt, s2_t in enumerate(s2_b_apc):
                 if ipmt not in self.list_bad_pmts and ipmt < self.ntop_pmts:
-                    s2_b_apc_clean.append(s2_t)    
-                
+                    s2_b_apc_clean.append(s2_t)
             s2_b_apc_clean = np.asarray(s2_b_apc_clean)
             s2_b_apc_clean_norm = s2_b_apc_clean / s2_b_apc_clean.sum()
             s2_b_apc_clean_norm = s2_b_apc_clean_norm.reshape(1, len(s2_b_apc_clean_norm))
