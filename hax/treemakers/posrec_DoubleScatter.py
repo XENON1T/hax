@@ -147,8 +147,6 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             "int_a_z_correction_3d_nn_tf": None,
             "s1_a_area_upper_injection_fraction": None,
             "s1_a_area_lower_injection_fraction": None,
-            "s2_a_pattern_fit_nn": None,
-            "s2_a_pattern_fit_tpf": None, 
             "s1_b_pattern_fit_hax": None,
             "s1_b_pattern_fit_hits_hax": None,
             "s1_b_pattern_fit_bottom_hax": None,
@@ -170,8 +168,6 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             "int_b_z_correction_3d_nn_tf": None,
             "s1_b_area_upper_injection_fraction": None,
             "s1_b_area_lower_injection_fraction": None,
-            "s2_b_pattern_fit_nn": None,
-            "s2_b_pattern_fit_tpf": None
         }
 
         # We first need the positions. This minitree is only valid when loading
@@ -187,7 +183,6 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         int_0 = 0
         s1_0 = peaks[interactions[int_0].s1]
         s2_0 = peaks[interactions[int_0].s2]
-        
         s1_0_int = interactions[int_0].s1
         s2_0_int = interactions[int_0].s2
         # find another scatter
@@ -202,22 +197,16 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         # Cut events without second s1
         if otherInts[1] != 0:
             s1_1 = peaks[interactions[otherInts[1]].s1]
-            s2_1 = peaks[interactions[otherInts[1]].s2]
-               
+            s2_1 = peaks[interactions[otherInts[1]].s2]       
             s1_1_int = interactions[otherInts[1]].s1
             s2_1_int = interactions[otherInts[1]].s2
-            
             int_1 = otherInts[1]
-            ds_second_s2 = 1
         elif otherInts[0] != 0:
             s1_1 = peaks[interactions[otherInts[0]].s1]
-            s2_1 = peaks[interactions[otherInts[0]].s2]
-            
+            s2_1 = peaks[interactions[otherInts[0]].s2]    
             s1_1_int = interactions[otherInts[0]].s1
-            s2_1_int = interactions[otherInts[0]].s2
-            
+            s2_1_int = interactions[otherInts[0]].s2   
             int_1 = otherInts[0]
-            ds_second_s2 = 0
         else:
             return dict()
         # order s1s/interactions by time
@@ -270,7 +259,6 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             for ipmt, s2_t in enumerate(s2_a_apc):
                 if ipmt not in self.list_bad_pmts and ipmt < self.ntop_pmts:
                     s2_a_apc_clean.append(s2_t)
-     
             s2_a_apc_clean = np.asarray(s2_a_apc_clean)
             s2_a_apc_clean_norm = s2_a_apc_clean / s2_a_apc_clean.sum()
             s2_a_apc_clean_norm = s2_a_apc_clean_norm.reshape(1, len(s2_a_apc_clean_norm))
