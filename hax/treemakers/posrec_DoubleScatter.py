@@ -242,7 +242,6 @@ class PositionReconstructionDoubleScatter(TreeMaker):
                 event_data['s2_b_pattern_fit_nn'] = rp.goodness_of_fit
             elif rp.algorithm == "PosRecTopPatternFit":
                 event_data['s2_b_pattern_fit_tpf'] = rp.goodness_of_fit
-                
         # Position reconstruction based on NN from TensorFlow
         # First Check for MC data, and avoid Tensor Flow if MC.
         if not self.mc_data:  # Temporary for OSG production
