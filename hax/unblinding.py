@@ -55,10 +55,14 @@ unblind['dec'] = {}
 unblind['dec']['e_range'] = '((0.0137*(cs1/.1426 + cs2_bottom/11.55) < 56.5) | (0.0137*(cs1/.1426 + cs2_bottom/11.55) > 72.))'
 
 # Unblinding of 14 days post-AmBe data for I-125 removal assessment (see #215)
-unblind['dec']['i125_after_ambe'] = '((run_number>=8340) & (run_number<=8728))'
+# unblind['dec']['i125_after_ambe'] = '((run_number>=8340) & (run_number<=8728))'
 
 # Unblinding of post-NG data after SR1 for I-125 removal assessment (see #220; compare to #215)
 unblind['dec']['i125_after_NG'] = '((run_number>17580) & (run_number<=17820))'
+
+# Unblinding of SR0 and SR1 in the DEC (see #228)
+unblind['dec']['SR1'] = '(run_number<=16639)'
+
 
 # 0vbb blinded from 2.3-2.6 MeV (see #161)
 unblind['0vbb'] = {}
