@@ -109,7 +109,8 @@ class PositionReconstructionDoubleScatter(TreeMaker):
 
     def get_data(self, dataset, event_list=None):
         # If we do switch to new NN later get rid of this stuff and directly use those positions!
-        data, _ = hax.minitrees.load_single_dataset(dataset, ['CorrectedDoubleS1Scatter', 'Fundamentals'])
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['CorrectedDoubleS1Scatter', 'Fundamentals'], 
+                                                    bypass_blinding=True)
         self.int_a_x = data.int_a_x_3d_nn.values
         self.int_a_y = data.int_a_y_3d_nn.values
         self.int_a_z = data.int_a_z_3d_nn.values
