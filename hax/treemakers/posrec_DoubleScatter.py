@@ -10,6 +10,7 @@ from pax import exceptions
 from pax.plugins.interaction_processing.S1AreaFractionTopProbability import s1_area_fraction_top_probability
 from hax.corrections_handler import CorrectionsHandler
 
+
 class PositionReconstructionDoubleScatter(TreeMaker):
     """Stores position-reconstruction-related variables.
     Provides:
@@ -109,7 +110,7 @@ class PositionReconstructionDoubleScatter(TreeMaker):
 
     def get_data(self, dataset, event_list=None):
         # If we do switch to new NN later get rid of this stuff and directly use those positions!
-        data, _ = hax.minitrees.load_single_dataset(dataset, ['CorrectedDoubleS1Scatter', 'Fundamentals'], 
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['CorrectedDoubleS1Scatter', 'Fundamentals'],
                                                     bypass_blinding=True)
         self.int_a_x = data.int_a_x_3d_nn.values
         self.int_a_y = data.int_a_y_3d_nn.values
@@ -251,10 +252,10 @@ class PositionReconstructionDoubleScatter(TreeMaker):
 
             s2_a_apc = np.array(list(s2_a.area_per_channel))
             s2_a_apc_clean = []
-            
+
             s2_b_apc = np.array(list(s2_b.area_per_channel))
             s2_b_apc_clean = []
-            
+
             for ipmt, s2_t in enumerate(s2_a_apc):
                 if ipmt not in self.list_bad_pmts and ipmt < self.ntop_pmts:
                     s2_a_apc_clean.append(s2_t)
@@ -267,7 +268,7 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             event_data['int_a_y_observed_nn_tf'] = predicted_xy_tensorflow_a[0, 1] / 10.
             event_data['int_a_r_observed_nn_tf'] =\
                 np.sqrt(event_data['int_a_x_observed_nn_tf']**2 + event_data['int_a_y_observed_nn_tf']**2)
-                
+
             for ipmt, s2_t in enumerate(s2_b_apc):
                 if ipmt not in self.list_bad_pmts and ipmt < self.ntop_pmts:
                     s2_b_apc_clean.append(s2_t)
@@ -280,7 +281,7 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             event_data['int_b_y_observed_nn_tf'] = predicted_xy_tensorflow_b[0, 1] / 10.
             event_data['int_b_r_observed_nn_tf'] =\
                 np.sqrt(event_data['int_b_x_observed_nn_tf']**2 + event_data['int_b_y_observed_nn_tf']**2)
-                         
+
             # 3D FDC
             algo = 'nn_tf'
             z_observed = interactions[int_a].z - interactions[int_a].z_correction
@@ -289,17 +290,17 @@ class PositionReconstructionDoubleScatter(TreeMaker):
                 "fdc_3d_tfnn", self.run_number, cvals)
 
             event_data['int_a_r_3d_' + algo] = (event_data['int_a_r_observed_' + algo] +
-                                          event_data['int_a_r_correction_3d_' + algo])
+                                                event_data['int_a_r_correction_3d_' + algo])
             event_data['int_a_x_3d_' + algo] = (event_data['int_a_x_observed_' + algo] *
-                                          (event_data['int_a_r_3d_' + algo] /
-                                           event_data['int_a_r_observed_' + algo]))
+                                                (event_data['int_a_r_3d_' + algo] /
+                                                 event_data['int_a_r_observed_' + algo]))
             event_data['int_a_y_3d_' + algo] = (event_data['int_a_y_observed_' + algo] *
-                                          (event_data['int_a_r_3d_' + algo] /
-                                           event_data['int_a_r_observed_' + algo]))
+                                                (event_data['int_a_r_3d_' + algo] /
+                                                 event_data['int_a_r_observed_' + algo]))
 
             if abs(z_observed) > abs(event_data['int_a_r_correction_3d_' + algo]):
                 event_data['int_a_z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
-                                                      event_data['int_a_r_correction_3d_' + algo] ** 2)
+                                                            event_data['int_a_r_correction_3d_' + algo] ** 2)
             else:
                 event_data['int_a_z_3d_' + algo] = z_observed
 
@@ -311,22 +312,22 @@ class PositionReconstructionDoubleScatter(TreeMaker):
                 "fdc_3d_tfnn", self.run_number, cvals)
 
             event_data['int_b_r_3d_' + algo] = (event_data['int_b_r_observed_' + algo] +
-                                          event_data['int_b_r_correction_3d_' + algo])
+                                                event_data['int_b_r_correction_3d_' + algo])
             event_data['int_b_x_3d_' + algo] = (event_data['int_b_x_observed_' + algo] *
-                                          (event_data['int_b_r_3d_' + algo] /
-                                           event_data['int_b_r_observed_' + algo]))
+                                                (event_data['int_b_r_3d_' + algo] /
+                                                 event_data['int_b_r_observed_' + algo]))
             event_data['int_b_y_3d_' + algo] = (event_data['int_b_y_observed_' + algo] *
-                                          (event_data['int_b_r_3d_' + algo] /
-                                           event_data['int_b_r_observed_' + algo]))
+                                                (event_data['int_b_r_3d_' + algo] /
+                                                 event_data['int_b_r_observed_' + algo]))
 
             if abs(z_observed) > abs(event_data['int_b_r_correction_3d_' + algo]):
                 event_data['int_b_z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
-                                                      event_data['int_b_r_correction_3d_' + algo] ** 2)
+                                                            event_data['int_b_r_correction_3d_' + algo] ** 2)
             else:
                 event_data['int_b_z_3d_' + algo] = z_observed
 
             event_data['int_b_z_correction_3d_' + algo] = event_data['int_b_z_3d_' + algo] - z_observed
-            
+
         # s1 area fraction near injection points for Rn220 source
         area_upper_injection = (s1_a.area_per_channel[131] + s1_a.area_per_channel[138] +
                                 s1_a.area_per_channel[146] + s1_a.area_per_channel[147])
@@ -346,7 +347,8 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         event_data['s1_a_area_fraction_top_binomial'] = s1_area_fraction_top_probability(*(aft_args + (10, 'pmf')))
 
         event_data['s1_a_area_fraction_top_probability_nothresh'] = s1_area_fraction_top_probability(*(aft_args + (0,)))
-        event_data['s1_a_area_fraction_top_binomial_nothresh'] = s1_area_fraction_top_probability(*(aft_args + (0, 'pmf')))
+        event_data['s1_a_area_fraction_top_binomial_nothresh'] = s1_area_fraction_top_probability(
+            *(aft_args + (0, 'pmf')))
 
         # Now do s1_pattern_fit
         apc = np.array(list(s1_a.area_per_channel))
@@ -398,8 +400,8 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         except exceptions.CoordinateOutOfRangeException as _:
             # pax does this too. happens when event out of TPC (usually z)
             return event_data
-        
-        ## INT_B
+
+        # INT_B
         # s1 area fraction near injection points for Rn220 source
         area_upper_injection = (s1_b.area_per_channel[131] + s1_b.area_per_channel[138] +
                                 s1_b.area_per_channel[146] + s1_b.area_per_channel[147])
@@ -419,7 +421,8 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         event_data['s1_b_area_fraction_top_binomial'] = s1_area_fraction_top_probability(*(aft_args + (10, 'pmf')))
 
         event_data['s1_b_area_fraction_top_probability_nothresh'] = s1_area_fraction_top_probability(*(aft_args + (0,)))
-        event_data['s1_b_area_fraction_top_binomial_nothresh'] = s1_area_fraction_top_probability(*(aft_args + (0, 'pmf')))
+        event_data['s1_b_area_fraction_top_binomial_nothresh'] = s1_area_fraction_top_probability(
+            *(aft_args + (0, 'pmf')))
 
         # Now do s1_pattern_fit
         apc = np.array(list(s1_b.area_per_channel))
@@ -470,5 +473,5 @@ class PositionReconstructionDoubleScatter(TreeMaker):
         except exceptions.CoordinateOutOfRangeException as _:
             # pax does this too. happens when event out of TPC (usually z)
             return event_data
-        
+
         return event_data
