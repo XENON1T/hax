@@ -201,13 +201,13 @@ class PositionReconstructionDoubleScatter(TreeMaker):
             s1_1 = peaks[interactions[otherInts[1]].s1]
             s2_1 = peaks[interactions[otherInts[1]].s2]
             s1_1_int = interactions[otherInts[1]].s1
-            #s2_1_int = interactions[otherInts[1]].s2
+            # s2_1_int = interactions[otherInts[1]].s2
             int_1 = otherInts[1]
         elif otherInts[0] != 0:
             s1_1 = peaks[interactions[otherInts[0]].s1]
             s2_1 = peaks[interactions[otherInts[0]].s2]
             s1_1_int = interactions[otherInts[0]].s1
-            #s2_1_int = interactions[otherInts[0]].s2
+            # s2_1_int = interactions[otherInts[0]].s2
             int_1 = otherInts[0]
         else:
             return dict()
@@ -339,7 +339,8 @@ class PositionReconstructionDoubleScatter(TreeMaker):
 
         # Want S1 AreaFractionTop Probability
         aft_prob = self.corrections_handler.get_correction_from_map(
-            "s1_aft_map", self.run_number, [self.int_a_x[event_index], self.int_a_y[event_index], self.int_a_z[event_index]])
+            "s1_aft_map", self.run_number,
+            [self.int_a_x[event_index], self.int_a_y[event_index], self.int_a_z[event_index]])
 
         aft_args = aft_prob, s1_a.area, s1_a.area_fraction_top, s1_a.n_hits, s1_a.hits_fraction_top
 
@@ -413,7 +414,8 @@ class PositionReconstructionDoubleScatter(TreeMaker):
 
         # Want S1 AreaFractionTop Probability
         aft_prob = self.corrections_handler.get_correction_from_map(
-            "s1_aft_map", self.run_number, [self.int_b_x[event_index], self.int_b_y[event_index], self.int_b_z[event_index]])
+            "s1_aft_map", self.run_number,
+            [self.int_b_x[event_index], self.int_b_y[event_index], self.int_b_z[event_index]])
 
         aft_args = aft_prob, s1_b.area, s1_b.area_fraction_top, s1_b.n_hits, s1_b.hits_fraction_top
 
