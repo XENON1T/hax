@@ -45,7 +45,7 @@ class PositionReconstruction(TreeMaker):
 
        - s2_pattern_fit_nn: s2 pattern fit using nn position
     """
-    __version__ = '1.1'
+    __version__ = '1.2'
     extra_branches = ['peaks.area_per_channel[260]',
                       'peaks.hits_per_channel[260]',
                       'peaks.n_saturated_per_channel[260]',
@@ -119,7 +119,8 @@ class PositionReconstruction(TreeMaker):
 
     def get_data(self, dataset, event_list=None):
         # If we do switch to new NN later get rid of this stuff and directly use those positions!
-        data, _ = hax.minitrees.load_single_dataset(dataset, ['Corrections', 'Fundamentals'])
+        # WARNING: This 'bypass_blinding' flag should only be used for production and never for analysis (see #211)
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['Corrections', 'Fundamentals'], bypass_blinding=True)
         self.x = data.x_3d_nn.values
         self.y = data.y_3d_nn.values
         self.z = data.z_3d_nn.values

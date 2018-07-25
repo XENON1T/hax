@@ -354,7 +354,8 @@ def load_single_minitree(run_id,
     return skimmed_data
 
 
-def load_single_dataset(run_id, treemakers, preselection=None, force_reload=False, event_list=None):
+def load_single_dataset(run_id, treemakers, preselection=None, force_reload=False, event_list=None,
+                        bypass_blinding=False):
     """Run multiple treemakers on a single run
 
     :returns: (pandas DataFrame, list of dicts describing cut histories)
@@ -369,6 +370,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     :param force_reload: always remake the minitrees, never load any from disk.
 
     :param event_list: List of event numbers to visit. Disables load from / save to file.
+
+    :bypass_blinding: Flag to disable blinding cut. WARNING: analysts should not use this, only for production! See #211
 
     """
     if isinstance(treemakers, (type, str)):
@@ -399,7 +402,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
     # Apply the unblinding selection if required.
     # Normally this is already done by minitrees.load, but perhaps someone calls
     # load_single_dataset_directly.
-    if (hax.unblinding.unblinding_selection not in preselection and
+    if (not bypass_blinding and
+        hax.unblinding.unblinding_selection not in preselection and
         ('Corrections' in treemakers or
          hax.treemakers.corrections.Corrections in treemakers) and
             hax.unblinding.is_blind(run_id)):
