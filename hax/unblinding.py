@@ -66,7 +66,9 @@ unblind['dec']['SR1'] = '(run_number<=16639)'
 
 # 0vbb blinded from 2.3-2.6 MeV (see #161)
 unblind['0vbb'] = {}
-unblind['0vbb']['e_range'] = '((0.0137*(cs1/.1429 + cs2_bottom/11.36) < 2300.) | (0.0137*(cs1/.1429 + cs2_bottom/11.36) > 2600.))'
+unblind['0vbb']['e_range'] = \
+    '((0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) < 2457.83*(1 - 4*0.01))' \
+    ' | (0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) > 2457.83*(1 + 4*0.01)))'
 
 
 def make_unblinding_selection():
