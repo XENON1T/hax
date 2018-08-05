@@ -1,6 +1,7 @@
 """Helper functions for doing cuts/selections on dataframes,
 while printing out the passthrough info.
 """
+from functools import partial
 import pandas as pd
 import numpy as np
 import dask
@@ -26,7 +27,11 @@ def history(d):
     hist = pd.DataFrame(d.cut_history, columns=['selection_desc', 'n_before', 'n_after'])
     hist['n_removed'] = hist.n_before - hist.n_after
     hist['fraction_passed'] = hist.n_after / hist.n_before
-    hist['cumulative_fraction_left'] = hist.n_after / hist.iloc[0].n_before
+    if len(hist):
+        n_orig = hist.iloc[0].n_before
+    else:
+        n_orig = len(d)
+    hist['cumulative_fraction_left'] = hist.n_after / n_orig
     return hist
 
 
@@ -203,9 +208,12 @@ def range_cuts(*args, **kwargs):
     range_selections(*args, **kwargs)
 
 
-def apply_lichen(data, lichen_names, lichen_file='sciencerun1', deep=False, **kwargs):
+def apply_lichen(data, lichen_names, lichen_file='postsr1', deep=False, **kwargs):
     """Apply cuts defined by the lax lichen(s) lichen_names from the lichen_file to data.
+    :param lichen_file: lichen file to use. Defaults to postsr1
     :param deep: if True (default False), apply sub-lichens explicitly
+
+    Additional kwargs are passed to hax.cuts.selection
     """
     # Support for single lichen
     if isinstance(lichen_names, str):
@@ -216,6 +224,21 @@ def apply_lichen(data, lichen_names, lichen_file='sciencerun1', deep=False, **kw
     except ImportError:
         print("You don't seem to have lax. A wise man once said software works better after you install it.")
         raise
+
+    # Support for dask dataframe  (delayed evaluation)
+    if isinstance(data, dask.dataframe.DataFrame):
+        ds = data.to_delayed()
+        # Quiet default, otherwise we print once per partition
+        kwargs.setdefault('quiet', True)
+        ds = [
+            dask.delayed(partial(
+                hax.cuts.apply_lichen,
+                lichen_names=lichen_names,
+                lichen_file=lichen_file,
+                deep=deep,
+                **kwargs))(d)
+            for d in ds]
+        return dask.dataframe.from_delayed(ds, meta=data.head())
 
     for lichen_name in lichen_names:
         lichen = getattr(getattr(lax.lichens, lichen_file), lichen_name)()

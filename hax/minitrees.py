@@ -366,6 +366,8 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
 
     :param preselection: String or list of strings passed to pandas.eval. Should return bool array, to be used
                          for pre-selecting events to load for each dataset.
+                         If string does not contain spaces, should be lax lichen name.
+                         If string contains a colon and no spaces, should be lichen_file:lichen_name
 
     :param force_reload: always remake the minitrees, never load any from disk.
 
@@ -411,7 +413,17 @@ def load_single_dataset(run_id, treemakers, preselection=None, force_reload=Fals
 
     # Apply pre-selection cuts before moving on to the next dataset
     for ps in preselection:
-        result = cuts.eval_selection(result, ps, quiet=True)
+        if ' ' not in ps and ps[0].isupper():
+            # Lichen name / list of lichens
+            if ':' in ps:
+                # List of lichens separated by colon
+                lichen_file, lichen_name = ps.split(':')
+                result = cuts.apply_lichen(result, lichen_name, lichen_file=lichen_file, quiet=True)
+            else:
+                # Single lichen name
+                result = cuts.apply_lichen(result, ps, quiet=True)
+        else:
+            result = cuts.eval_selection(result, ps, quiet=True)
 
     return result, cuts._get_history(result)
 
