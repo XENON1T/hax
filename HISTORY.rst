@@ -1,3 +1,23 @@
+2.5.0
+-----
+* Bug FIX: Dataframe mismatches while loading minitree (#236)
+* Blinding changes: 
+  * SR0+SR1 unblinding (#216), side-band unblinding for AC/Wall (#199) 
+  * DEC unblinding (#215, #220, #226, #228)
+  * 0vbb blinding region changes (#235)
+  * Posrec treemaker (#211)
+  * blinding postSR1 data (#221)
+* Enhancement: 
+  * Lichens as preselection cuts (#229)
+  * Issue and PR templates (#231)
+  * new tutorials (#224)
+  * check for metadata existence in ROOT file (#219)
+  * loading all Treemakers in an easy way (#217)
+  * update Peak treemaker (#214)
+* Maps update: 
+  * TFNN for postSR1 (#233)
+  * New map names fixes (#186, #222)
+
 2.4.0
 -----
 * Corrections - v2.0, CorrectedDoubleS1Scatter - v2.0:
