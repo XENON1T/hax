@@ -16,6 +16,8 @@ from .paxroot import loop_over_dataset, function_results_datasets
 from .utils import find_file_in_folders, get_user_id
 from .minitree_formats import get_format
 
+from pax.datastructure import INT_NAN
+
 log = logging.getLogger('hax.minitrees')
 
 # update_treemakers() will update this to contain all treemakers included
@@ -521,16 +523,24 @@ def load(datasets=None,
                     "The blinding cut will be applied to all data you're loading.")
             preselection = [hax.unblinding.unblinding_selection] + preselection
 
+    # Compute an example dataframe, so we can tell dask which columns to expect
+    if isinstance(datasets, pd.Series):
+        first_dset = datasets.iloc[0]
+    else:
+        first_dset = datasets[0]
+    df_example, _ = load_single_dataset(
+        first_dset,
+        treemakers, preselection, force_reload=force_reload, event_list=event_list)
+
     partial_results = []
     partial_histories = []
     for dataset in datasets:
         mashup = dask.delayed(load_single_dataset)(
             dataset, treemakers, preselection, force_reload=force_reload, event_list=event_list)
-        partial_results.append(dask.delayed(lambda x: x[0])(mashup))
+        partial_results.append(dask.delayed(lambda x: force_df_types(x[0], df_example))(mashup))
         partial_histories.append(dask.delayed(lambda x: x[1])(mashup))
 
-    result = dask.dataframe.from_delayed(
-        partial_results, meta=partial_results[0].compute())
+    result = dask.dataframe.from_delayed(partial_results, meta=df_example)
 
     if not delayed:
         # Dask doesn't seem to want to descend into the lists beyond the first.
@@ -640,3 +650,36 @@ def get_treemaker_name_and_class(tm):
 
 class NoMinitreeAvailable(Exception):
     pass
+
+
+def force_df_types(df_content, df_types):
+    """Return dataframe with same columns and dtypes as df_types,
+    with content from df_content.
+     - Extra columns are dropped.
+     - Missing columns are set to NaN (for floats) or INT_NAN (for integers).
+       Columns that are neither int or float are set to zero (e.g. '' for strings).
+     - Columns with different types are converted using numpy's astype.
+       When converting floats to ints, all nonfinite values are replaced with INT_NAN
+    """
+    new_df = dict()
+    for col, dtype in df_types.dtypes.items():
+        if col in df_content:
+            x = df_content[col].values.copy()
+            if np.issubdtype(dtype, np.integer):
+                # If the content has NaN or infinite values, these will cause an error with astype
+                weird = ~np.isfinite(x)
+                x[weird] = INT_NAN
+            new_df[col] = x.astype(dtype)
+
+        else:
+            # Create column with NaNs
+            n = len(df_content)
+            if np.issubdtype(dtype, np.integer):
+                new_df[col] = np.ones(n) * INT_NAN
+            elif np.issubdtype(dtype, np.float):
+                new_df[col] = np.ones(n) * float('nan')
+            else:
+                # Fallback: fill with zeros
+                new_df[col] = np.zeros(len(df_content), dtype=dtype)
+
+    return pd.DataFrame(new_df)
