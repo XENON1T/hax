@@ -661,6 +661,10 @@ def force_df_types(df_content, df_types):
      - Columns with different types are converted using numpy's astype.
        When converting floats to ints, all nonfinite values are replaced with INT_NAN
     """
+    if len(df_content) == 0:
+        # Easy case: return empty dataframe of same type as df_types
+        return df_types.iloc[:0]
+
     new_df = dict()
     for col, dtype in df_types.dtypes.items():
         if col in df_content:

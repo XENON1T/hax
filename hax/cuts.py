@@ -246,18 +246,22 @@ def apply_lichen(data, lichen_names, lichen_file='postsr1', deep=False, **kwargs
         for l in (lichen.lichen_list if deep else [lichen]):
             l_name = l.__class__.__name__
 
-            # .copy() to prevent pandas warning and pollution with new columns
-            d = l.process(data.copy())
-
             if hasattr(lichen, 'version'):
                 desc = l_name + ' v' + str(l.version)
             else:
                 desc = l_name + ' (lax v%s)' % lax.__version__
 
-            data = selection(data,
-                             getattr(d, 'Cut' + l_name),
-                             desc=desc,
-                             **kwargs)
+            if len(data):
+                # .copy() to prevent pandas warning and pollution with new columns
+                d = l.process(data.copy())
+                bools = getattr(d, 'Cut' + l_name)
+            else:
+                # Some (all?) lichens crash on empty dataframes, which can happen
+                # if make_minitrees=False.
+                # Fortunately, empty frames just stay empty after cuts:
+                bools = np.zeros(0, dtype=np.bool_)
+
+            data = selection(data, bools, desc=desc, **kwargs)
 
     return data
 
