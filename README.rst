@@ -3,7 +3,9 @@ hax - Handy Analysis tools for XENON
 
 .. image:: https://readthedocs.org/projects/hax/badge/?version=latest
          :target: http://hax.readthedocs.org/en/latest/?badge=latest
-         :alt: Documentation Status
+         :alt: Documentation Status    
+.. image:: https://zenodo.org/badge/50927571.svg
+   :target: https://zenodo.org/badge/latestdoi/50927571
 
 Source code: `https://github.com/XENON1T/hax`
 
