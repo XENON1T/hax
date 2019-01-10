@@ -100,7 +100,8 @@ def is_array_field(test_dataframe, test_field):
     :return: True or False
     """
     if test_dataframe.empty:
-        raise ValueError("No data saved from dataset - DataFrame is empty")
+        print("No data saved from dataset - DataFrame is empty? Assuming no array fields...")
+        return False
     test_value = test_dataframe[test_field][0]
     return (hasattr(test_value, "__len__") and not isinstance(test_value, (str, bytes)))
 
