@@ -70,6 +70,9 @@ unblind['0vbb']['e_range'] = \
     '((0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) < 2457.83*(1 - 4*0.01))' \
     ' | (0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) > 2457.83*(1 + 4*0.01)))'
 
+# HE multiple scatter
+unblind['0vbb']['multiple_scatter'] = '(largest_other_s2 > 10000) & (largest_other_s2 > 0.2 * s2)'
+
 
 def make_unblinding_selection():
     """Generate full unblinding selection string
