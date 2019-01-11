@@ -64,7 +64,7 @@ class Extended(TreeMaker):
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.7'
+    __version__ = '0.0.9'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels', 'peaks.largest_hit_channel',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
@@ -161,6 +161,15 @@ class Extended(TreeMaker):
                 if rp.algorithm == 'PosRecTopPatternFit':
                     result['largest_other_s2_pattern_fit'] = getattr(rp, 'goodness_of_fit')
                     break
+
+        # get information for MisIdS1SingleScatter cut
+        result['largest_s2_before_main_s2_area'] = float('nan')
+
+        # grab the largest s2 that occurs in time before the main S2
+        for s2_i in event.s2s:
+            if event.peaks[s2_i].hit_time_mean < s2.hit_time_mean:
+                result['largest_s2_before_main_s2_area'] = event.peaks[s2_i].area
+                break
 
         return result
 
