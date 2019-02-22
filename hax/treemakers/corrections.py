@@ -1,5 +1,8 @@
 import hax
+import json
 from hax.minitrees import TreeMaker
+from pax import utils
+from pax.configuration import load_configuration
 from hax.treemakers.common import get_largest_indices
 import numpy as np
 from hax.corrections_handler import CorrectionsHandler
@@ -10,19 +13,42 @@ class Corrections(TreeMaker):
 
     Provides:
     - Corrected S1 contains xyz-correction:
-      - cs1: The corrected area of the main interaction's S1 using NN 3D FDC after correction of electric field effects
-      - cs1_no_field_corr: The corrected area in pe of the main interaction's S1 using NN 3D FDC (no field effects corrected)
-      - cs1_tpf_2dfdc: Same as cs1_no_field_corr but for TPF 2D FDC
+      - cs1: The corrected area of the main interaction's S1 using w/  correction of electric field effects
+      - cs1_no_field_corr_nn_tf: The corrected S1 using w/o correction of electric field effects,
+            using position from nn_tf
+      - cs1_no_field_corr_nn: The corrected S1 using w/o correction of electric field effects,
+            using position from nn
+      - cs1_no_field_corr_tpf: The corrected S1 using w/o correction of electric field effects,
+            using position from tpf
+      - cs1_nn_tf: The corrected S1 using w/ correction of electric field effects,
+            using position from nn_tf
+      - cs1_nn: The corrected S1 using w/ correction of electric field effects,
+            using position from nn
+      - cs1_tpf: The corrected S1 using w/ correction of electric field effects,
+            using position from tpf
 
     - Corrected S2 contains xy-correction and electron lifetime based on Kr83m trend:
       - cs2: The corrected area in pe of the main interaction's S2
       - cs2_top: The corrected area in pe of the main interaction's S2 from the top array.
       - cs2_bottom: The corrected area in pe of the main interaction's S2 from the bottom array.
-
-    - Corrected S2 contains xy-correction and electron lifetime based on alpha trend:
-      - cs2_alpha: The (alpha elifetime) corrected area in pe of the main interaction's S2
-      - cs2_top_alpha: The (alpha elifetime) corrected area in pe of the main interaction's S2 from the top array.
-      - cs2_bottom_alpha: The (alpha elifetime) corrected area in pe of the main interaction's S2 from the bottom array.
+      - cs2_nn_tf: The corrected area in pe of the main interaction's S2,
+        using position from nn_tf
+      - cs2_top_nn_tf: The corrected area in pe of the main interaction's S2 from the top array,
+        using position from nn_tf
+      - cs2_bottom_nn_tf: The corrected area in pe of the main interaction's S2 from the bottom array,
+        using position from nn_tf
+      - cs2_nn: The corrected area in pe of the main interaction's S2,
+        using position from nn
+      - cs2_top_nn: The corrected area in pe of the main interaction's S2 from the top array,
+        using position from nn
+      - cs2_bottom_nn: The corrected area in pe of the main interaction's S2 from the bottom array,
+        using position from nn
+      - cs2_tpf: The corrected area in pe of the main interaction's S2,
+        using position from nn_tpf
+      - cs2_top_tpf: The corrected area in pe of the main interaction's S2 from the top array,
+        using position from nn_tpf
+      - cs2_bottom_tpf: The corrected area in pe of the main interaction's S2 from the bottom array,
+        using position from nn_tpf
 
     - Observed positions, not corrected with FDC maps, for both NN and TPF:
       - r_observed_tpf: the observed interaction r coordinate (using TPF).
@@ -31,13 +57,10 @@ class Corrections(TreeMaker):
       - r_observed_nn: the observed interaction r coordinate (using NN).
       - x_observed_nn: the observed interaction x coordinate (using NN).
       - y_observed_nn: the observed interaction y coordinate (using NN).
+      - r_observed_nn_tf: the observed interaction r coordinate (using NN_TF).
+      - x_observed_nn_tf: the observed interaction x coordinate (using NN_TF).
+      - y_observed_nn_tf: the observed interaction y coordinate (using NN_TF).
       - z_observed: the observed interaction z coordinate (before the r, z correction).
-
-    - Position correction (based on TPF, (old) 2D FDC map):
-      - r: the corrected interaction r coordinate
-      - x: the corrected interaction x coordinate
-      - y: the corrected interaction y coordinate
-      - z: the corrected interaction z coordinate
 
     - Data-driven 3D position correction (applied to both NN and TPF observed positions):
       - r_3d_nn: the corrected interaction r coordinate (using NN).
@@ -48,29 +71,39 @@ class Corrections(TreeMaker):
       - x_3d_tpf: the corrected interaction x coordinate (using TPF).
       - y_3d_tpf: the corrected interaction y coordinate (using TPF).
       - z_3d_tpf: the corrected interaction z coordinate (using TPF).
+      - r_3d_nn_tf: the corrected interaction r coordinate (using NN_TF).
+      - x_3d_nn_tf: the corrected interaction x coordinate (using NN_TF).
+      - y_3d_nn_tf: the corrected interaction y coordinate (using NN_TF).
+      - z_3d_nn_tf: the corrected interaction z coordinate (using NN_TF).
 
     - Correction values for 'un-doing' single corrections:
-      - s1_xyz_correction_tpf_fdc_2d
-      - s1_xyz_correction_nn_fdc_3d
-      - s2_xy_correction_tot
-      - s2_xy_correction_top
-      - s2_xy_correction_bottom
       - s2_lifetime_correction
-      - s2_lifetime_correction_alpha
+      - s2_xy_correction_tot_nn_tf
+      - s2_xy_correction_top_nn_tf
+      - s2_xy_correction_bottom_nn_tf
+      - s2_xy_correction_tot_nn
+      - s2_xy_correction_top_nn
+      - s2_xy_correction_bottom_nn
+      - s2_xy_correction_tot_tpf
+      - s2_xy_correction_top_tpf
+      - s2_xy_correction_bottom_tpf
+      - r_correction_3d_nn_tf
       - r_correction_3d_nn
       - r_correction_3d_tpf
-      - r_correction_2d
+      - z_correction_3d_nn_tf
       - z_correction_3d_nn
       - z_correction_3d_tpf
-      - z_correction_2d
+
 
     Notes:
     - The cs2, cs2_top and cs2_bottom variables are corrected
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '2.0'
-    extra_branches = ['peaks.s2_saturation_correction',
+    __version__ = '2.1'
+    extra_branches = ['peaks.area_per_channel[260]',
+                      'peaks.n_saturated_per_channel[260]',
+                      'peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
                       'peaks.area',
@@ -83,8 +116,11 @@ class Corrections(TreeMaker):
                       'interactions.drift_time',
                       'start_time']
 
-    extra_metadata = hax.config['corrections_definitions']
-    corrections_handler = CorrectionsHandler()
+    def __init__(self):
+        hax.minitrees.TreeMaker.__init__(self)
+        self.extra_metadata = hax.config['corrections_definitions']
+        self.corrections_handler = CorrectionsHandler()
+        self.tfnn_posrec = tfnn_position_reconstruction()
 
     def extract_data(self, event):
         result = dict()
@@ -116,78 +152,43 @@ class Corrections(TreeMaker):
                 result['x_observed_tpf'] = rp.x
                 result['y_observed_tpf'] = rp.y
                 result['r_observed_tpf'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
-                r_observed = np.sqrt(rp.x ** 2 + rp.y ** 2)
-                result['r_observed'] = r_observed
-                x_observed = rp.x
-                y_observed = rp.y
 
         z_observed = interaction.z - interaction.z_correction
         result['z_observed'] = z_observed
 
-        # Correct S2
-        cvals = [x_observed, y_observed]
-        result['s2_xy_correction_tot'] = (1.0 /
-                                          self.corrections_handler.get_correction_from_map(
-                                              "s2_xy_map", self.run_number, cvals))
-        result['s2_xy_correction_top'] = (1.0 /
-                                          self.corrections_handler.get_correction_from_map(
-                                              "s2_xy_map", self.run_number, cvals, map_name='map_top'))
-        result['s2_xy_correction_bottom'] = (1.0 /
-                                             self.corrections_handler.get_correction_from_map(
-                                                 "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
+        # Position reconstruction based on NN from TensorFlow
+        # First Check for MC data, and avoid Tensor Flow if MC.
+        if not self.mc_data:  # Temporary for OSG production
+            # Calculate TF_NN reconstructed position
+            predicted_xy_tensorflow = self.tfnn_posrec(list(s2.area_per_channel), self.run_number)
 
-        # include electron lifetime correction
-        result['s2_lifetime_correction'] = (
-            self.corrections_handler.get_electron_lifetime_correction(
-                self.run_number, self.run_start, interaction.drift_time, self.mc_data))
+            result['x_observed_nn_tf'] = predicted_xy_tensorflow[0, 0] / 10.
+            result['y_observed_nn_tf'] = predicted_xy_tensorflow[0, 1] / 10.
+            result['r_observed_nn_tf'] =\
+                np.sqrt(result['x_observed_nn_tf']**2 + result['y_observed_nn_tf']**2)
 
-        # Combine all the s2 corrections
-        s2_correction = (result['s2_lifetime_correction'] *
-                         result['s2_xy_correction_tot'])
-        s2_top_correction = (result['s2_lifetime_correction'] *
-                             result['s2_xy_correction_top'])
-        s2_bottom_correction = (result['s2_lifetime_correction'] *
-                                result['s2_xy_correction_bottom'])
+            # 3D FDC NN_TF
+            algo = 'nn_tf'
+            cvals = [result['x_observed_' + algo], result['y_observed_' + algo], z_observed]
+            result['r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
+                "fdc_3d_tfnn", self.run_number, cvals)
 
-        result['cs2'] = s2.area * s2_correction
-        result['cs2_top'] = s2.area * s2.area_fraction_top * s2_top_correction
-        result['cs2_bottom'] = s2.area * (1.0 - s2.area_fraction_top) * s2_bottom_correction
+            result['r_3d_' + algo] = (result['r_observed_' + algo] +
+                                      result['r_correction_3d_' + algo])
+            result['x_3d_' + algo] = (result['x_observed_' + algo] *
+                                      (result['r_3d_' + algo] / result['r_observed_' + algo]))
+            result['y_3d_' + algo] = (result['y_observed_' + algo] *
+                                      (result['r_3d_' + algo] / result['r_observed_' + algo]))
 
-        # include electron lifetime correction for alphas
-        result['s2_lifetime_correction_alpha'] = (
-            self.corrections_handler.get_electron_lifetime_correction(
-                self.run_number, self.run_start, interaction.drift_time, self.mc_data, 'alpha'))
+            if abs(z_observed) > abs(result['r_correction_3d_' + algo]):
+                result['z_3d_' + algo] = -np.sqrt(z_observed ** 2 -
+                                                  result['r_correction_3d_' + algo] ** 2)
+            else:
+                result['z_3d_' + algo] = z_observed
 
-        # Combine all the s2 corrections
-        s2_correction_alpha = (result['s2_lifetime_correction_alpha'] *
-                               result['s2_xy_correction_tot'])
-        s2_top_correction_alpha = (result['s2_lifetime_correction_alpha'] *
-                                   result['s2_xy_correction_top'])
-        s2_bottom_correction_alpha = (result['s2_lifetime_correction_alpha'] *
-                                      result['s2_xy_correction_bottom'])
+            result['z_correction_3d_' + algo] = result['z_3d_' + algo] - z_observed
 
-        result['cs2_alpha'] = s2.area * s2_correction_alpha
-        result['cs2_top_alpha'] = s2.area * s2.area_fraction_top * s2_top_correction_alpha
-        result['cs2_bottom_alpha'] = s2.area * (1.0 - s2.area_fraction_top) * s2_bottom_correction_alpha
-
-
-        # FDC
-        # Apply the (old) 2D FDC (field distortion correction to position)
-        # Because we have different 2D correction maps for different runs we need
-        # to reapply the 2D FDC here (if not we could simply take the Interaction positions
-        # which have already the 2D FDC applied).
-        result['r_correction_2d'] = self.corrections_handler.get_correction_from_map(
-            "fdc_2d", self.run_number, [r_observed, z_observed], map_name='to_true_r')
-        result['z_correction_2d'] = self.corrections_handler.get_correction_from_map(
-            "fdc_2d", self.run_number, [r_observed, z_observed], map_name='to_true_z')
-
-        result['r'] = r_observed + result['r_correction_2d']
-        result['x'] = (result['r'] / result['r_observed']) * x_observed
-        result['y'] = (result['r'] / result['r_observed']) * y_observed
-        result['z'] = z_observed + result['z_correction_2d']
-
-        # FDC
-        # Apply the (new) 3D data driven FDC, using NN positions and TPF positions
+        # Apply the 3D data driven NN_FDC, for NN positions and TPF positions
         for algo in ['nn', 'tpf']:
             cvals = [result['x_observed_' + algo], result['y_observed_' + algo], z_observed]
             result['r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
@@ -207,26 +208,113 @@ class Corrections(TreeMaker):
 
             result['z_correction_3d_' + algo] = result['z_3d_' + algo] - z_observed
 
-        # Apply LCE (light collection efficiency correction to s1 without field effects considered)
-        cvals = [result['x'], result['y'], result['z']]
-        result['s1_xyz_correction_tpf_fdc_2d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_lce_map_tpf_fdc_2d", self.run_number, cvals)
-        )
-        result['cs1_tpf_2dfdc'] = s1.area * result['s1_xyz_correction_tpf_fdc_2d']
+        # electron lifetime correction
+        result['s2_lifetime_correction'] = (
+            self.corrections_handler.get_electron_lifetime_correction(
+                self.run_number, self.run_start, interaction.drift_time, self.mc_data))
 
-        cvals = [result['x_3d_nn'], result['y_3d_nn'], result['z_3d_nn']]
-        result['s1_xyz_correction_nn_fdc_3d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
-        )
-        result['cs1_no_field_corr'] = s1.area * result['s1_xyz_correction_nn_fdc_3d']
+        for algo in ['nn_tf', 'nn', 'tpf']:
+            # Correct S2
+            result['r_observed_' + algo] = \
+                np.sqrt(result['x_observed_' + algo] ** 2 + result['y_observed_' + algo] ** 2)
 
-        # Apply corrected LCE (light collection efficiency correction to s1, including field effects)
-        result['s1_xyz_true_correction_nn_fdc_3d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
-        )
-        result['cs1'] = s1.area * result['s1_xyz_true_correction_nn_fdc_3d']
+            cvals = [result['x_observed_' + algo], result['y_observed_' + algo]]
+            result['s2_xy_correction_tot_' + algo] = \
+                (1.0 / self.corrections_handler.get_correction_from_map("s2_xy_map", self.run_number, cvals))
+            result['s2_xy_correction_top_' + algo] = (1.0 /
+                                                      self.corrections_handler.get_correction_from_map(
+                                                          "s2_xy_map", self.run_number, cvals, map_name='map_top'))
+            result['s2_xy_correction_bottom_' + algo] = (1.0 /
+                                                         self.corrections_handler.get_correction_from_map(
+                                                             "s2_xy_map", self.run_number,
+                                                             cvals, map_name='map_bottom'))
+
+            # Combine all the s2 corrections
+            result['cs2_' + algo] = \
+                s2.area * result['s2_lifetime_correction'] * result['s2_xy_correction_tot_' + algo]
+            result['cs2_top_' + algo] = \
+                s2.area * s2.area_fraction_top * \
+                result['s2_lifetime_correction'] * result['s2_xy_correction_top_' + algo]
+            result['cs2_bottom_' + algo] = \
+                s2.area * (1.0 - s2.area_fraction_top) * \
+                result['s2_lifetime_correction'] * result['s2_xy_correction_bottom_' + algo]
+
+            # Correct S1
+            cvals = [result['x_3d_' + algo], result['y_3d_' + algo], result['z_3d_' + algo]]
+            result['s1_xyz_correction_fdc_3d_' + algo] = \
+                (1 / self.corrections_handler.get_correction_from_map(
+                    "s1_lce_map_nn_fdc_3d", self.run_number, cvals))
+            result['cs1_no_field_corr_' + algo] = s1.area * result['s1_xyz_correction_fdc_3d_' + algo]
+
+            # Apply corrected LCE (light collection efficiency correction to s1, including field effects)
+            result['s1_xyz_true_correction_fdc_3d' + algo] = \
+                (1 / self.corrections_handler.get_correction_from_map(
+                    "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals))
+            result['cs1_' + algo] = s1.area * result['s1_xyz_true_correction_fdc_3d' + algo]
+
+        # default cS1 and cS2 values
+        default_algo = 'nn_tf'
+        result['cs1'] = result['cs1_' + default_algo]
+        result['cs2'] = result['cs2_' + default_algo]
+        result['cs2_top'] = result['cs2_top_' + default_algo]
+        result['cs2_bottom'] = result['cs2_bottom_' + default_algo]
 
         return result
+
+
+class tfnn_position_reconstruction(object):
+    """
+    Class for loading and calculate tfnn position given area per channel
+    """
+    def __init__(self):
+        self.corrections_handler = CorrectionsHandler()
+        # We need to pull some stuff from the pax config
+        self.pax_config = load_configuration("XENON1T")
+        self.tpc_channels = self.pax_config['DEFAULT']['channels_in_detector']['tpc']
+        self.top_channels = self.pax_config['DEFAULT']['channels_top']
+
+        self.run_number = -1
+
+    def __call__(self, per_channel_area, run_number):
+        # per_channel_area as a list of channel area
+        # OR as an array of shape (#peaks, #channels w/o bad pmt removal)
+        # If we haven't loaded weights or it's another run reload nn
+        if (('tfnn_weights' not in self.__dict__.keys()) or
+                ('tfnn_model' not in self.__dict__.keys()) or
+                (run_number != self.run_number)):
+            self.load_nn(run_number)
+
+        if isinstance(per_channel_area, list):
+            per_channel_area = np.array([per_channel_area])
+
+        # Take channel clean (top but not bad)
+        per_channel_area = np.take(per_channel_area, self.clean_channels, axis=-1)
+        # Divide by the sum area of each peak, preform transform due to np division law
+        # Final transform due to nn predict input requires (none, #channels)
+        per_channel_area = (per_channel_area.T / np.sum(per_channel_area, axis=-1)).T
+
+        return self.loaded_nn.predict(per_channel_area)
+
+    def load_nn(self, run_number):
+        from keras.models import model_from_json
+
+        self.tfnn_weights = self.corrections_handler.get_misc_correction(
+            "tfnn_weights", run_number)
+        self.tfnn_model = self.corrections_handler.get_misc_correction(
+            "tfnn_model", run_number)
+        self.run_number = run_number
+
+        # Get tfnn bat pmt list from JSON file
+        with open(utils.data_file_name(self.tfnn_model), 'r') as json_file_nn:
+            loaded_model_json_dict = json.load(json_file_nn)
+            self.list_bad_pmts = loaded_model_json_dict['badPMTList']
+
+        self.clean_channels = list(set(self.top_channels).difference(self.list_bad_pmts))
+
+        # Get tfnn model from JSON file
+        with open(utils.data_file_name(self.tfnn_model), 'r') as json_file_nn:
+            loaded_model_json = json_file_nn.read()
+            self.loaded_nn = model_from_json(loaded_model_json)
+
+        weights_file = utils.data_file_name(self.tfnn_weights)
+        self.loaded_nn.load_weights(weights_file)

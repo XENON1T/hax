@@ -201,7 +201,8 @@ class LoneSignals(TreeMaker):
                 "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
             result['cs2_0_tot'] = result['s2_0_area'] * result['s2_0_xy_correction_tot']
             result['cs2_0_top'] = result['s2_0_area'] * result['s2_0_xy_correction_top'] * result['s2_0_aft']
-            result['cs2_0_bottom'] = result['s2_0_area'] * result['s2_0_xy_correction_bottom'] * (1 - result['s2_0_aft'])
+            result['cs2_0_bottom'] = \
+                result['s2_0_area'] * result['s2_0_xy_correction_bottom'] * (1 - result['s2_0_aft'])
             result['cs2_0_aft'] = result['cs2_0_top'] / (result['cs2_0_top'] + result['cs2_0_bottom'])
 
         if len(s2_sorted) > 1:

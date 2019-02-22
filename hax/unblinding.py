@@ -24,10 +24,12 @@ unblind['wimp'] = {}
 unblind['wimp']['unblind_lowe'] = '((cs1<80) & (run_number<=16639))'
 
 # ER band above -2*RMS at low-E
-unblind['wimp']['above_er_cs1_lt250'] = '((cs1<252) & (log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1))'
+unblind['wimp']['above_er_cs1_lt250'] = \
+    '((cs1<252) & (log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1))'
 
 # Kr line above -3*RMS
-unblind['wimp']['above_er_cs1_lt375'] = '((250<cs1) & (cs1<375) & (log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139))'
+unblind['wimp']['above_er_cs1_lt375'] = \
+    '((250<cs1) & (cs1<375) & (log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139))'
 
 # ER band (constant line at high-E)
 unblind['wimp']['above_er_cs1_gt375'] = '((cs1>=375) & (log(cs2_bottom/cs1)/log(10) > 1.02015))'
@@ -48,11 +50,13 @@ unblind['wimp']['outside_tpc'] = '((cs1<500) & (r_3d_nn>47.9))'
 unblind['wimp']['below_nr_cs1_lt20'] = '((cs1<20) & (log(cs2_bottom/cs1)/log(10) < 1.08159))'
 
 # Below NR band -4.5sigma (see #199)
-unblind['wimp']['below_nr_cs1_gt20'] = '((20<=cs1) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
+unblind['wimp']['below_nr_cs1_gt20'] = \
+    '((20<=cs1) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
 
 # 2 e- capture (DEC) blinded from 50-80 keV (see #161), change to smaller range (see #226)
 unblind['dec'] = {}
-unblind['dec']['e_range'] = '((0.0137*(cs1/.1426 + cs2_bottom/11.55) < 56.5) | (0.0137*(cs1/.1426 + cs2_bottom/11.55) > 72.))'
+unblind['dec']['e_range'] = \
+    '((0.0137*(cs1/.1426 + cs2_bottom/11.55) < 56.5) | (0.0137*(cs1/.1426 + cs2_bottom/11.55) > 72.))'
 
 # Unblinding of 14 days post-AmBe data for I-125 removal assessment (see #215)
 # unblind['dec']['i125_after_ambe'] = '((run_number>=8340) & (run_number<=8728))'
