@@ -81,7 +81,7 @@ unblind['0vbb']['multiple_scatter'] = '(largest_other_s2 > 10000) & (largest_oth
 # blind the low-energy ER part
 unblind['low_energy_er'] = {}
 unblind['low_energy_er']['e_range'] = \
-    '((0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) > 10.0)'
+    '(0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) > 10.0)'
 unblind['low_energy_er']['SR1'] = '(run_number<=16639)'
 
 
