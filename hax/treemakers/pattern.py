@@ -159,9 +159,10 @@ class PatternReconstruction(TreeMaker):
 
         # The original s1 pattern calculation had a bug where dead PMTs were
         # included. They are not included here.
-        for a, c in enumerate(self.run_doc['processor']['DEFAULT']['gains']):
-            if c == 0:
-                confused_s1_channels.append(a)
+        for ch in self.tpc_channels:
+            gain = self.run_doc['processor']['DEFAULT']['gains'][ch]
+            if gain == 0:
+                confused_s1_channels.append(ch)
         for a, c in enumerate(s1.n_saturated_per_channel):
             if c > 0:
                 confused_s1_channels.append(a)
