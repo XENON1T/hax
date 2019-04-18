@@ -100,7 +100,7 @@ class Corrections(TreeMaker):
     for electron lifetime and x, y dependence.
 
     """
-    __version__ = '2.1'
+    __version__ = '2.2'
     extra_branches = ['peaks.area_per_channel[260]',
                       'peaks.n_saturated_per_channel[260]',
                       'peaks.s2_saturation_correction',
