@@ -308,10 +308,13 @@ def get_run_start(run_id):
 
 
 def is_mc(run_id):
-    pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
-    if 'MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']:
-        return True, pax_metadata
-    else:
+    try:
+        pax_metadata = hax.paxroot.get_metadata(run_id)['configuration']
+        if 'MC' in pax_metadata and pax_metadata['MC']['mc_generated_data']:
+            return True, pax_metadata
+        else:
+            return False, None
+    except Exception:
         return False, None
 
 
