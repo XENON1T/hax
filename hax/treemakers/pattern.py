@@ -32,7 +32,7 @@ class PatternReconstruction(TreeMaker):
 
        - s2_pattern_fit_nn: s2 pattern fit using nn position
     """
-    __version__ = '1.2'
+    __version__ = '1.3'
     extra_branches = ['peaks.area_per_channel[260]',
                       'peaks.hits_per_channel[260]',
                       'peaks.n_saturated_per_channel[260]',
