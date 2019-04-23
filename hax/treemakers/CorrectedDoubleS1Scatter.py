@@ -3,76 +3,41 @@ import hax
 from hax.minitrees import TreeMaker
 import numpy as np
 from hax.corrections_handler import CorrectionsHandler
-
+from hax.treemakers.corrections import tfnn_position_reconstruction
 
 class CorrectedDoubleS1Scatter(TreeMaker):
     """Applies high level corrections which are used in DoubleS1Scatter analyses.
-
     Be carefull, this treemaker was developed for Kr83m analysis. It will probably need modifications
      for other analysis.
     The search for double scatter events: made by Ted Berger
         double decays, afterpulses, and anything else that gets in our way
         if you have any questions contact Ted Berger (berget2@rpi.edu)
-
     The search proceeds as follows:
       * interaction[0] (int_0) provides s1_0 and s2_0
       * find additional interaction (int_1) to provide s1_1 and s2_1
-
       - loop through interactions (interactions store s1/s2 pairs in
       descending size order, s2s on fast loop)
       Choice A) select first interaction with s1 != s1_0 AND s2 != s2_0
       Choice B) if Choice A doesn't exist, select first interaction with s1 != s1_0 AND s2 == s2_0
       Choice C) if Choice A and B don't exist ignore, this isn't a double scatter event
-
       * int_0 and int_1 ordered by s1.center_time to int_a and int_b (int_a has s1 that happened first)
-
       The output provides the following variables attributed to specific peaks
       (s1_a, s2_a, s1_b, s2_b), as well as specific interactions (int_a, int_b).
-
     ### Peak Output (for PEAK in [s1_a, s2_a, s1_b, s2_b]):
      - PEAK: The uncorrected area in pe of the peak
      - PEAK_center_time: The center_time in ns of the peak
-
-    ### Interaction Output (for INT in [int_a, int_b]):
-    - INT_x_pax: The x-position of this interaction (primary algorithm chosen by pax, currently TopPatternFit)
-    - INT_y_pax: The y-position of this interaction
-    - INT_z_pax: the z-position of this interaction
-
-    - INT_z_observed: The z-position of this interaction without correction
-    - INT_drift_time : The drift time of the interaction
-
-    - INT_x_nn : The x-position of this interaction with NeutralNetwork Analysis
-    - INT_y_nn : The y-position of this interaction with NeutralNetwork Analysis
-    - INT_r_nn : The r-position of this interaction with NeutralNetwork Analysis
-
-    ### Corrected Signal Output (for INT in [int_a, int_b]):
-    # Data-driven 3D position correction
-    - INT_r_correction_3d_nn : correction value for r position using NN
-    - INT_r_3d_nn : The corrected interaction r coordinate using NN
-    - INT_x_3d_nn : The corrected interaction x coordinate using NN
-    - INT_y_3d_nn : The corrected interaction y coordinate using NN
-    - INT_z_correction_3d_nn : correction value for z position using NN
-    - INT_z_3d_nn : The corrected interaction z coordinate using NN
-
-    # LCE correction on S1 using NN FDC xyz-corrected position
-    - s1_INT_xyz_correction_nn_fdc_3d : correction value for s1 signals using the INT_nn position :
-
-    /!\ Two way of doing things for the S1_b signal :
-      - either used the int_a position to correct s1_b signal (since S1_a and S1_b are closed in time) : by default
-      - either used the int_b position to correct s1_b signal (but most of the time the s2_b signal
-      (and thus z position) is badly reconstructed )
-    - cS1_a and cS1_b : the corrected s1_a signal using int_a_3d_nn corrected position
-    - cS1_b_int_b: the corrected s1_b signal using int_b_3d_nn corrected position
-
     ### DoubleScatter Specific Output:
     - ds_s1_b_n_distinct_channels: number of PMTs contributing to s1_b distinct from the PMTs that contributed to s1_a
     - ds_s1_dt : delay time between s1_a_center_time and s1_b_center_time
     - ds_second_s2: 1 if selected interactions have distinct s2s
+    ### Position Corrections : Same as corrections minitree but for int_a and int_b position
+    ### Signal corrections: Same as corrections minitree using int_a positions for position dependant corrections
     """
-    __version__ = '2.0'
+    __version__ = '2.1'
 
     extra_branches = ['peaks.n_contributing_channels',
                       'peaks.center_time',
+                      'peaks.area_per_channel[260]',
                       'peaks.s2_saturation_correction',
                       'interactions.s2_lifetime_correction',
                       'peaks.area_fraction_top',
@@ -89,8 +54,11 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                       'interactions.s1_pattern_fit'
                       ]
 
-    extra_metadata = hax.config['corrections_definitions']
-    corrections_handler = CorrectionsHandler()
+    def __init__(self):
+        hax.minitrees.TreeMaker.__init__(self)
+        self.extra_metadata = hax.config['corrections_definitions']
+        self.corrections_handler = CorrectionsHandler()
+        self.tfnn_posrec = tfnn_position_reconstruction()
 
     def extract_data(self, event):
         result = dict()
@@ -152,35 +120,26 @@ class CorrectedDoubleS1Scatter(TreeMaker):
         result['s1_a'] = peaks[s1_a].area
         result['s1_a_center_time'] = peaks[s1_a].center_time
         result['s1_a_area_fraction_top'] = peaks[s1_a].area_fraction_top
-
+        result['s1_a_range_50p_area'] = peaks[s1_a].range_area_decile[5]
         result['s2_a'] = peaks[s2_a].area
         result['s2_a_center_time'] = peaks[s2_a].center_time
         result['s2_a_bottom'] = (1.0 - peaks[s2_a].area_fraction_top) * peaks[s2_a].area
         result['s2_a_area_fraction_top'] = peaks[s2_a].area_fraction_top
-
+        result['s2_a_range_50p_area'] = peaks[s2_a].range_area_decile[5]
         result['s1_b'] = peaks[s1_b].area
         result['s1_b_center_time'] = peaks[s1_b].center_time
         result['s1_b_area_fraction_top'] = peaks[s1_b].area_fraction_top
-
+        result['s1_b_range_50p_area'] = peaks[s1_b].range_area_decile[5]
         result['s2_b'] = peaks[s2_b].area
         result['s2_b_center_time'] = peaks[s2_b].center_time
         result['s2_b_bottom'] = (1.0 - peaks[s2_b].area_fraction_top) * peaks[s2_b].area
         result['s2_b_area_fraction_top'] = peaks[s2_b].area_fraction_top
-
+        result['s2_b_range_50p_area'] = peaks[s2_b].range_area_decile[5]
         result['ds_second_s2'] = ds_second_s2
 
         # Drift Time
         result['int_a_drift_time'] = result['s2_a_center_time'] - result['s1_a_center_time']
         result['int_b_drift_time'] = result['s2_b_center_time'] - result['s1_b_center_time']
-
-        # Pax position (TpF)
-        result['int_a_x_pax'] = interactions[int_a].x
-        result['int_a_y_pax'] = interactions[int_a].y
-        result['int_a_z_pax'] = interactions[int_a].z
-
-        result['int_b_x_pax'] = interactions[int_b].x
-        result['int_b_y_pax'] = interactions[int_b].y
-        result['int_b_z_pax'] = interactions[int_b].z
 
         # Compute DoubleScatter Specific Variables
         # Select largest hits on each channel in s10 and s11 peaks
@@ -217,131 +176,153 @@ class CorrectedDoubleS1Scatter(TreeMaker):
                 ds_s1_b_n_distinct_channels += 1
         result['ds_s1_b_n_distinct_channels'] = ds_s1_b_n_distinct_channels
         result['ds_s1_dt'] = peaks[s1_b].center_time - peaks[s1_a].center_time
-
         # Need the observed ('uncorrected') position.
         # pax Interaction positions are corrected so lookup the
         # uncorrected positions in the ReconstructedPosition objects
         for rp in peaks[s2_a].reconstructed_positions:
             if rp.algorithm == 'PosRecNeuralNet':
-                result['int_a_x_nn'] = rp.x
-                result['int_a_y_nn'] = rp.y
-                result['int_a_r_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
-                int_a_x_observed = rp.x
-                int_a_y_observed = rp.y
+                result['int_a_x_observed_nn'] = rp.x
+                result['int_a_y_observed_nn'] = rp.y
+                result['int_a_r_observed_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
+            elif rp.algorithm == 'PosRecTopPatternFit':
+                result['int_a_x_observed_tpf'] = rp.x
+                result['int_a_y_observed_tpf'] = rp.y
+                result['int_a_r_observed_tpf'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
         for rp in peaks[s2_b].reconstructed_positions:
             if rp.algorithm == 'PosRecNeuralNet':
-                result['int_b_x_nn'] = rp.x
-                result['int_b_y_nn'] = rp.y
-                result['int_b_r_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
-
+                result['int_b_x_observed_nn'] = rp.x
+                result['int_b_y_observed_nn'] = rp.y
+                result['int_b_r_observed_nn'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
+            elif rp.algorithm == 'PosRecTopPatternFit':
+                result['int_b_x_observed_tpf'] = rp.x
+                result['int_b_y_observed_tpf'] = rp.y
+                result['int_b_r_observed_tpf'] = np.sqrt(rp.x ** 2 + rp.y ** 2)
         int_a_z = interactions[int_a].z - interactions[int_a].z_correction
         result['int_a_z_observed'] = int_a_z
         int_b_z = interactions[int_b].z - interactions[int_b].z_correction
         result['int_b_z_observed'] = int_b_z
 
-        # Correct S2_a. No correction for S2_b because, S2_b is mostly backgroud events, or S2_b ==S2_a
-        cvals = [int_a_x_observed, int_a_y_observed]
-        result['s2_a_xy_correction_tot'] = (1.0 /
-                                            self.corrections_handler.get_correction_from_map(
-                                                "s2_xy_map", self.run_number, cvals))
-        result['s2_a_xy_correction_top'] = (1.0 /
-                                            self.corrections_handler.get_correction_from_map(
-                                                "s2_xy_map", self.run_number, cvals, map_name='map_top'))
-        result['s2_a_xy_correction_bottom'] = (1.0 /
-                                               self.corrections_handler.get_correction_from_map(
-                                                   "s2_xy_map", self.run_number, cvals, map_name='map_bottom'))
+        int_signal = ['int_a_', 'int_b_']
+        for int_s in int_signal:
+            # Position reconstruction based on NN from TensorFlow
+            # First Check for MC data, and avoid Tensor Flow if MC.
+            if not self.mc_data:  # Temporary for OSG production
+                # Calculate TF_NN reconstructed position
+                predicted_xy_tensorflow = self.tfnn_posrec(list(peaks[s2_a].area_per_channel), self.run_number)
 
+                result[int_s+'x_observed_nn_tf'] = predicted_xy_tensorflow[0, 0] / 10.
+                result[int_s+'y_observed_nn_tf'] = predicted_xy_tensorflow[0, 1] / 10.
+                result[int_s+'r_observed_nn_tf'] =\
+                    np.sqrt(result[int_s+'x_observed_nn_tf']**2 + result[int_s+'y_observed_nn_tf']**2)
+
+                # 3D FDC NN_TF
+                algo = 'nn_tf'
+                cvals = [result[int_s+'x_observed_' + algo],
+                         result[int_s+'y_observed_' + algo], result[int_s+'z_observed']]
+                result[int_s+'r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
+                    "fdc_3d_tfnn", self.run_number, cvals)
+
+                result[int_s+'r_3d_' + algo] = (result[int_s+'r_observed_' + algo] +
+                                                result[int_s+'r_correction_3d_' + algo])
+                result[int_s+'x_3d_' + algo] = (result[int_s+'x_observed_' + algo] *
+                                                (result[int_s+'r_3d_' + algo] / result[int_s+'r_observed_' + algo]))
+                result[int_s+'y_3d_' + algo] = (result[int_s+'y_observed_' + algo] *
+                                                (result[int_s+'r_3d_' + algo] / result[int_s+'r_observed_' + algo]))
+
+                if abs(result[int_s+'z_observed']) > abs(result[int_s+'r_correction_3d_' + algo]):
+                    result[int_s + 'z_3d_' + algo] = -np.sqrt(result[int_s+'z_observed'] ** 2 -
+                                                              result[int_s+'r_correction_3d_' + algo] ** 2)
+                else:
+                    result[int_s + 'z_3d_' + algo] = result[int_s+'z_observed']
+
+                result[int_s + 'z_correction_3d_' + algo] = result[int_s+'z_3d_' + algo] - result[int_s+'z_observed']
+
+            # Apply the 3D data driven NN_FDC, for NN positions and TPF positions
+            for algo in ['nn', 'tpf']:
+                cvals = [result[int_s+'x_observed_' + algo], result[int_s+'y_observed_' + algo],
+                         result[int_s+'z_observed']]
+                result[int_s+'r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
+                    "fdc_3d", self.run_number, cvals)
+
+                result[int_s+'r_3d_' + algo] =\
+                    result[int_s+'r_observed_' + algo] + result[int_s+'r_correction_3d_' + algo]
+                result[int_s+'x_3d_' + algo] = result[int_s+'x_observed_' + algo] \
+                    * (result[int_s+'r_3d_' + algo] / result[int_s+'r_observed_' + algo])
+                result[int_s+'y_3d_' + algo] = result[int_s+'y_observed_' + algo] \
+                    * (result[int_s+'r_3d_' + algo] / result[int_s+'r_observed_' + algo])
+
+                if abs(result[int_s+'z_observed']) > abs(result[int_s+'r_correction_3d_' + algo]):
+                    result[int_s+'z_3d_' + algo] = -np.sqrt(result[int_s+'z_observed'] ** 2 -
+                                                            result[int_s+'r_correction_3d_' + algo] ** 2)
+                else:
+                    result[int_s+'z_3d_' + algo] = result[int_s+'z_observed']
+
+                result[int_s+'z_correction_3d_' + algo] = result[int_s+'z_3d_' + algo] - result[int_s+'z_observed']
         # include electron lifetime correction
         result['s2_lifetime_correction'] = (
             self.corrections_handler.get_electron_lifetime_correction(
                 self.run_number, self.run_start, result['int_a_drift_time'], self.mc_data))
+        # Correction only with int_a
+        int_s_default = 'int_a_'
+        for algo in ['nn_tf', 'nn', 'tpf']:
+            # Correct S2
+            result[int_s_default+'r_observed_' + algo] = np.sqrt(result[int_s_default+'x_observed_' + algo] ** 2
+                                                                 + result[int_s_default+'y_observed_' + algo] ** 2)
 
-        # Combine all the s2 corrections for S2_a
-        s2_a_correction = (result['s2_lifetime_correction'] * result['s2_a_xy_correction_tot'])
-        s2_a_top_correction = (result['s2_lifetime_correction'] * result['s2_a_xy_correction_top'])
-        s2_a_bottom_correction = (result['s2_lifetime_correction'] * result['s2_a_xy_correction_bottom'])
+            cvals = [result[int_s_default+'x_observed_' + algo], result[int_s_default+'y_observed_' + algo]]
+            result[int_s_default+'s2_xy_correction_tot_' + algo] = \
+                (1.0 / self.corrections_handler.get_correction_from_map("s2_xy_map", self.run_number, cvals))
+            result[int_s_default+'s2_xy_correction_top_' + algo] = (1.0 /
+                                                                    self.corrections_handler.get_correction_from_map(
+                                                                        "s2_xy_map", self.run_number, cvals,
+                                                                        map_name='map_top'))
+            result[int_s_default+'s2_xy_correction_bottom_' + algo] = (1.0 /
+                                                                       self.corrections_handler.get_correction_from_map(
+                                                                           "s2_xy_map", self.run_number,
+                                                                           cvals, map_name='map_bottom'))
 
-        result['cs2_a'] = peaks[s2_a].area * s2_a_correction
-        result['cs2_a_top'] = peaks[s2_a].area * peaks[s2_a].area_fraction_top * s2_a_top_correction
-        result['cs2_a_bottom'] = peaks[s2_a].area * (1.0 - peaks[s2_a].area_fraction_top) * s2_a_bottom_correction
+            # Combine all the s2 corrections
+            result['cs2_a_' + algo] = peaks[s2_a].area * result['s2_lifetime_correction'] \
+                * result[int_s_default+'s2_xy_correction_tot_' + algo]
+            result['cs2_a_top_' + algo] = \
+                peaks[s2_a].area * peaks[s2_a].area_fraction_top * \
+                result['s2_lifetime_correction'] * result[int_s_default+'s2_xy_correction_top_' + algo]
+            result['cs2_a_bottom_' + algo] = \
+                peaks[s2_a].area * (1.0 - peaks[s2_a].area_fraction_top) * \
+                result['s2_lifetime_correction'] * result[int_s_default+'s2_xy_correction_bottom_' + algo]
 
-        # FDC: Apply the (new) 3D data driven FDC, using NN positions
-        algo = 'nn'
+            # Correct S1_a
+            cvals = [result[int_s_default+'x_3d_' + algo], result[int_s_default+'y_3d_' + algo],
+                     result[int_s_default+'z_3d_' + algo]]
+            result[int_s_default+'s1_xyz_correction_fdc_3d_' + algo] = \
+                (1 / self.corrections_handler.get_correction_from_map(
+                    "s1_lce_map_nn_fdc_3d", self.run_number, cvals))
+            result['cs1_a_no_field_corr_' + algo] = peaks[s1_a].area * \
+                result[int_s_default+'s1_xyz_correction_fdc_3d_' + algo]
+            # Apply corrected LCE (light collection efficiency correction to s1, including field effects)
+            result[int_s_default+'s1_xyz_true_correction_fdc_3d' + algo] = \
+                (1 / self.corrections_handler.get_correction_from_map(
+                    "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals))
+            result['cs1_a_' + algo] = peaks[s1_a].area * result[int_s_default+'s1_xyz_true_correction_fdc_3d' + algo]
+            # Correct S1_b
+            result[int_s_default+'s1_xyz_correction_fdc_3d_' + algo] = \
+                (1 / self.corrections_handler.get_correction_from_map(
+                    "s1_lce_map_nn_fdc_3d", self.run_number, cvals))
+            result['cs1_b_no_field_corr_' + algo] = peaks[s1_b].area * \
+                result[int_s_default+'s1_xyz_correction_fdc_3d_' + algo]
 
-        # Int_a Position
-        cvals = [result['int_a_x_' + algo], result['int_a_y_' + algo], int_a_z]
+            # Apply corrected LCE (light collection efficiency correction to s1, including field effects)
+            result[int_s_default+'s1_xyz_true_correction_fdc_3d' + algo] = \
+                (1 / self.corrections_handler.get_correction_from_map(
+                    "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals))
+            result['cs1_b_' + algo] = peaks[s1_b].area * result[int_s_default+'s1_xyz_true_correction_fdc_3d' + algo]
 
-        result['int_a_r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
-            "fdc_3d", self.run_number, cvals)
-
-        result['int_a_r_3d_' + algo] = result['int_a_r_' + algo] + result['int_a_r_correction_3d_' + algo]
-
-        result['int_a_x_3d_' + algo] =\
-            result['int_a_x_' + algo] * (result['int_a_r_3d_' + algo] / result['int_a_r_' + algo])
-
-        result['int_a_y_3d_' + algo] =\
-            result['int_a_y_' + algo] * (result['int_a_r_3d_' + algo] / result['int_a_r_' + algo])
-
-        if abs(int_a_z) > abs(result['int_a_r_correction_3d_' + algo]):
-            result['int_a_z_3d_' + algo] = -np.sqrt(int_a_z ** 2 - result['int_a_r_correction_3d_' + algo] ** 2)
-        else:
-            result['int_a_z_3d_' + algo] = int_a_z
-
-        result['int_a_z_correction_3d_' + algo] = result['int_a_z_3d_' + algo] - int_a_z
-
-        # Int_b Position
-        cvals = [result['int_b_x_' + algo], result['int_b_y_' + algo], int_b_z]
-
-        result['int_b_r_correction_3d_' + algo] = self.corrections_handler.get_correction_from_map(
-            "fdc_3d", self.run_number, cvals)
-
-        result['int_b_r_3d_' + algo] = result['int_b_r_' + algo] + result['int_b_r_correction_3d_' + algo]
-
-        result['int_b_x_3d_' + algo] =\
-            result['int_b_x_' + algo] * (result['int_b_r_3d_' + algo] / result['int_b_r_' + algo])
-
-        result['int_b_y_3d_' + algo] =\
-            result['int_b_y_' + algo] * (result['int_b_r_3d_' + algo] / result['int_b_r_' + algo])
-
-        if abs(int_b_z) > abs(result['int_b_r_correction_3d_' + algo]):
-            result['int_b_z_3d_' + algo] = -np.sqrt(int_b_z ** 2 - result['int_b_r_correction_3d_' + algo] ** 2)
-        else:
-            result['int_b_z_3d_' + algo] = int_b_z
-
-        result['int_b_z_correction_3d_' + algo] = result['int_b_z_3d_' + algo] - int_b_z
-
-        # Apply LCE (light collection efficiency correction to s1)
-        cvals = [result['int_a_x_3d_nn'], result['int_a_y_3d_nn'], result['int_a_z_3d_nn']]
-
-        # Old LCE (without field correction)
-        result['s1_int_a_xyz_correction_nn_fdc_3d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
-        )
-        result['cs1_a_no_field_corr'] = peaks[s1_a].area * result['s1_int_a_xyz_correction_nn_fdc_3d']
-        result['cs1_b_no_field_corr'] = peaks[s1_b].area * result['s1_int_a_xyz_correction_nn_fdc_3d']
-
-        # Apply new corrected LCE (light collection efficiency correction to s1_a and s1_b, including field effects)
-        result['s1_int_a_xyz_true_correction_nn_fdc_3d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
-        )
-        result['cs1_a'] = peaks[s1_a].area * result['s1_int_a_xyz_true_correction_nn_fdc_3d']
-        result['cs1_b'] = peaks[s1_b].area * result['s1_int_a_xyz_true_correction_nn_fdc_3d']
-
-        # Correction of S1_b using int_b possition
-        cvals = [result['int_b_x_3d_nn'], result['int_b_y_3d_nn'], result['int_b_z_3d_nn']]
-        # Old LCE (without field correction)
-        result['s1_int_b_xyz_correction_nn_fdc_3d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_lce_map_nn_fdc_3d", self.run_number, cvals)
-        )
-        result['cs1_b_int_b_no_field_corr'] = peaks[s1_b].area * result['s1_int_b_xyz_correction_nn_fdc_3d']
-        # Apply new corrected LCE (light collection efficiency correction to s1_a and s1_b, including field effects)
-        result['s1_int_b_xyz_true_correction_nn_fdc_3d'] = (
-            1 / self.corrections_handler.get_correction_from_map(
-                "s1_corrected_lce_map_nn_fdc_3d", self.run_number, cvals)
-        )
-        result['cs1_b_int_b'] = peaks[s1_b].area * result['s1_int_b_xyz_true_correction_nn_fdc_3d']
+        # default cS1 and cS2 values
+        default_algo = 'nn_tf'
+        result['cs1_a'] = result['cs1_a_' + default_algo]
+        result['cs1_b'] = result['cs1_b_' + default_algo]
+        result['cs2_a'] = result['cs2_a_' + default_algo]
+        result['cs2_a_top'] = result['cs2_a_top_' + default_algo]
+        result['cs2_a_bottom'] = result['cs2_a_bottom_' + default_algo]
 
         return result
