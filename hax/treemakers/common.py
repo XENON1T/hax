@@ -52,6 +52,7 @@ class Extended(TreeMaker):
      - sum_s1s_before_main_s2: Sum of all S1 areas before the main S2
      - alt_s1_interaction_drift_time: Drift time of interaction formed with largest other S1 + main S2
      - alt_s1_interaction_z: Z position of interaction formed with largest other S1 + main S2
+     - alt_s1_tight_coincidence: S1 tight coincidence of interaction formed with largest other S1 + main S2
      - alt_s2_interaction_x: X position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_y: Y position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_z: Z position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
@@ -147,6 +148,8 @@ class Extended(TreeMaker):
                 # Alternative S1 interaction
                 result['alt_s1_interaction_drift_time'] = it.drift_time
                 result['alt_s1_interaction_z'] = it.z
+                alt_s1 = event.peaks[it.s1]
+                result['alt_s1_tight_coincidence'] = alt_s1.tight_coincidence
 
         result['largest_other_s2_delay_main_s1'] = float('nan')
         result['largest_other_s2_delay_main_s2'] = float('nan')
