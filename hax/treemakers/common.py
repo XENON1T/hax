@@ -2,7 +2,7 @@
 """
 from hax.minitrees import TreeMaker
 from collections import defaultdict
-
+import numpy as np
 
 class Fundamentals(TreeMaker):
     """Simple minitree containing basic information about every event, regardless of its contents.
