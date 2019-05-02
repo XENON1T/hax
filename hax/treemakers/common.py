@@ -22,6 +22,47 @@ class Fundamentals(TreeMaker):
         return dict(event_time=event.start_time,
                     event_duration=event.stop_time - event.start_time)
 
+class NoiseRejection(TreeMaker):
+    """Extra information, mainly motivated by cuts used for the first science run.
+    If there are no interactions in the event, all these values will be NaN.
+
+    Provides:
+     - n_channels_rejected: number of channels that has rejected hits
+     - n_hits_rejected: total number of rejected hits
+     - n_lone_hits: total number of lone hits, after reject noise plugin
+     - n_lone_hits_channels: total number of channels that has lone hit, after reject noise plugin
+     - n_lone_hits_before: total number of lone hits, before reject noise plugin
+     - n_lone_hits_channels_before: total number of channels that has lone hit, before reject noise plugin
+    """
+    __version__ = '0.1'
+    branch_selection = ['n_hits_rejected*', 'lone_hits_per_channel_before*', 'lone_hits_per_channel*']
+
+    def __init__(self):
+        hax.minitrees.TreeMaker.__init__(self)
+
+    def extract_data(self, event):
+        result = dict()
+
+        # Rejected hits
+        n_hits_rejected = event.n_hits_rejected
+        n_hits_rejected_flag = [it > 0 for it in n_hits_rejected]
+        result['n_channels_rejected'] = np.sum(n_hits_rejected_flag)
+        result['n_hits_rejected'] = np.sum(n_hits_rejected)
+
+        # lone hit after rejection
+        lone_hits_per_channel = event.lone_hits_per_channel
+        result['n_lone_hits'] = np.sum(lone_hits_per_channel)
+        lone_hits_per_channel_flag = [it > 0 for it in lone_hits_per_channel]
+        result['n_lone_hits_channels'] = np.sum(lone_hits_per_channel_flag)
+
+        # lone hit before rejection
+        lone_hits_per_channel_before = event.lone_hits_per_channel_before
+        result['n_lone_hits_before'] = np.sum(lone_hits_per_channel_before)
+        lone_hits_per_channel_flag_before = [it > 0 for it in lone_hits_per_channel_before]
+        result['n_lone_hits_channels_before'] = np.sum(lone_hits_per_channel_flag_before)
+
+        return result
+
 
 class Extended(TreeMaker):
     """Extra information, mainly motivated by cuts used for the first science run.
@@ -66,7 +107,6 @@ class Extended(TreeMaker):
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
     __version__ = '0.1'
-    branch_selection = ['n_hits_rejected*', 'lone_hits_per_channel_before*', 'lone_hits_per_channel*']
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels', 'peaks.largest_hit_channel',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
@@ -78,24 +118,6 @@ class Extended(TreeMaker):
 
     def extract_data(self, event):
         result = dict()
-
-        # Rejected hits
-        n_hits_rejected = event.n_hits_rejected
-        n_hits_rejected_flag = [it > 0 for it in n_hits_rejected]
-        result['n_channels_rejected'] = np.sum(n_hits_rejected_flag)
-        result['ave_hits_rejected'] = np.sum(n_hits_rejected)
-
-        # lone hit after rejection
-        lone_hits_per_channel = event.lone_hits_per_channel
-        result['n_lone_hits'] = np.sum(lone_hits_per_channel)
-        lone_hits_per_channel_flag = [it > 0 for it in lone_hits_per_channel]
-        result['n_lone_hits_channels'] = np.sum(lone_hits_per_channel_flag)
-
-        # lone hit before rejection
-        lone_hits_per_channel_before = event.lone_hits_per_channel_before
-        result['n_lone_hits_before'] = np.sum(lone_hits_per_channel_before)
-        lone_hits_per_channel_flag_before = [it > 0 for it in lone_hits_per_channel_before]
-        result['n_lone_hits_channels_before'] = np.sum(lone_hits_per_channel_flag_before)
 
         if not len(event.interactions):
             return result
