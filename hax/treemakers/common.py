@@ -65,7 +65,8 @@ class Extended(TreeMaker):
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.10'
+    __version__ = '0.1'
+    branch_selection = ['n_hits_rejected*', 'lone_hits_per_channel_before*', 'lone_hits_per_channel*']
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels', 'peaks.largest_hit_channel',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
@@ -77,6 +78,24 @@ class Extended(TreeMaker):
 
     def extract_data(self, event):
         result = dict()
+
+        # Rejected hits
+        n_hits_rejected = event.n_hits_rejected
+        n_hits_rejected_flag = [it > 0 for it in n_hits_rejected]
+        result['n_channels_rejected'] = np.sum(n_hits_rejected_flag)
+        result['ave_hits_rejected'] = np.sum(n_hits_rejected)
+
+        # lone hit after rejection
+        lone_hits_per_channel = event.lone_hits_per_channel
+        result['n_lone_hits'] = np.sum(lone_hits_per_channel)
+        lone_hits_per_channel_flag = [it > 0 for it in lone_hits_per_channel]
+        result['n_lone_hits_channels'] = np.sum(lone_hits_per_channel_flag)
+
+        # lone hit before rejection
+        lone_hits_per_channel_before = event.lone_hits_per_channel_before
+        result['n_lone_hits_before'] = np.sum(lone_hits_per_channel_before)
+        lone_hits_per_channel_flag_before = [it > 0 for it in lone_hits_per_channel_before]
+        result['n_lone_hits_channels_before'] = np.sum(lone_hits_per_channel_flag_before)
 
         if not len(event.interactions):
             return result
