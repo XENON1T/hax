@@ -83,6 +83,12 @@ unblind['low_energy_er'] = {}
 unblind['low_energy_er']['e_range'] = \
     '(0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) > 10.0)'
 unblind['low_energy_er']['SR1'] = '(run_number<=16639)'
+# unblind the region outside ER 3sigma
+# reference: https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenon1t:mcfate:for_er_band_3sigma
+unblind['low_energy_er']['lower_3sigma'] = \
+    '(log(cs2_bottom)/log(10) < 2.91587106 + 0.00373425412*cs1 - 0.705558565*exp(-cs1/11.3520824))'
+unblind['low_energy_er']['upper_3sigma'] = \
+    '(log(cs2_bottom)/log(10) > 3.46448943 + 0.00312699434*cs1 - 0.261867413*exp(-cs1/17.6341675))'
 
 
 def make_unblinding_selection():
