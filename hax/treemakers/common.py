@@ -22,7 +22,8 @@ class Fundamentals(TreeMaker):
         return dict(event_time=event.start_time,
                     event_duration=event.stop_time - event.start_time)
 
-class NoiseRejection(TreeMaker):
+
+class HitRejection(TreeMaker):
     """Extra information, mainly motivated by cuts used for the first science run.
     If there are no interactions in the event, all these values will be NaN.
 
@@ -36,9 +37,6 @@ class NoiseRejection(TreeMaker):
     """
     __version__ = '0.1'
     branch_selection = ['n_hits_rejected*', 'lone_hits_per_channel_before*', 'lone_hits_per_channel*']
-
-    def __init__(self):
-        hax.minitrees.TreeMaker.__init__(self)
 
     def extract_data(self, event):
         result = dict()
