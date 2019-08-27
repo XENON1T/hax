@@ -215,7 +215,7 @@ class S2PatternReducedAP(TreeMaker):
     '''
     Determination of the S2PatternLikelihood value when excluding PMTs that show large After-Pulse during SR1. TO DO : Check for SR2.
     Allow to reduce the time dependance of the S2PatternLikelihood value used for cuts (see:https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenon1t:chloetherreau:0vbb_s2_likelihood_cut_he_update#update_s2_pattern_likelihood_cut_at_high_energy_with_position_dependance)
-    
+    Need Correction and Fundamentals minitrees.
     '''
     __version__ = '1.0'
     extra_branches = ['peaks.area_per_channel*']
