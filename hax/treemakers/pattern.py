@@ -278,7 +278,7 @@ class S2PatternReducedAP(TreeMaker):
                 areas_observed=area_per_channel,
                 pmt_selection=self.is_pmt_in,
                 statistic='likelihood_poisson')
-        except exceptions.CoordinateOutOfRangeException as _:
+        except exceptions.CoordinateOutOfRangeException :
             # pax does this too. happens when event out of TPC (usually z)
             return result
 
@@ -291,7 +291,7 @@ class S2PatternReducedAP(TreeMaker):
                 areas_observed=area_per_channel,
                 pmt_selection=self.is_pmt_in,
                 statistic='likelihood_poisson')
-        except exceptions.CoordinateOutOfRangeException as _:
+        except exceptions.CoordinateOutOfRangeException :
             # pax does this too. happens when event out of TPC (usually z)
             return result
         return result
