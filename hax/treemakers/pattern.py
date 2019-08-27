@@ -9,7 +9,7 @@ from pax import exceptions
 from pax.plugins.interaction_processing.S1AreaFractionTopProbability import s1_area_fraction_top_probability
 from hax.corrections_handler import CorrectionsHandler
 
-from pax import configuration, datastructure
+from pax import configuration
 pax_config = configuration.load_configuration('XENON1T')
 
 class PatternReconstruction(TreeMaker):
@@ -211,15 +211,15 @@ class PatternReconstruction(TreeMaker):
 
 class S2PatternReducedAP(TreeMaker):
     '''
-    Determination of the S2PatternLikelihood value when excluding PMTs that show large After-Pulse during SR1. 
+    Determination of the S2PatternLikelihood value when excluding PMTs that show large After-Pulse during SR1.
     TO DO : Check for SR2.
-    Allow to reduce the time dependance of the S2PatternLikelihood value used for cuts 
+    Allow to reduce the time dependance of the S2PatternLikelihood value used for cuts
     (see:https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenon1t:chloetherreau:0vbb_s2_likelihood_cut_he_update)
     Need Correction and Fundamentals minitrees.
     '''
     __version__ = '1.0'
     extra_branches = ['peaks.area_per_channel*']
-    
+
     def __init__(self):
         hax.minitrees.TreeMaker.__init__(self)
         # We need to pull some stuff from the pax config
@@ -241,7 +241,7 @@ class S2PatternReducedAP(TreeMaker):
                     filename=utils.data_file_name(self.pax_config['WaveformSimulator']['s2_fitted_patterns_file']),
                     zoom_factor=self.pax_config['WaveformSimulator'].get('s2_fitted_patterns_zoom_factor', 1),
                     adjust_to_qe=qes[self.channels_top],
-                    default_errors=(self.pax_config['DEFAULT']['relative_qe_error'] + 
+                    default_errors=(self.pax_config['DEFAULT']['relative_qe_error'] +
                                     self.pax_config['DEFAULT']['relative_gain_error']))
 
     def get_data(self, dataset, event_list=None):
@@ -253,7 +253,7 @@ class S2PatternReducedAP(TreeMaker):
         self.z = data.z_observed.values
         self.indices = list(data.event_number.values)
         return hax.minitrees.TreeMaker.get_data(self, dataset, event_list)
-    
+
     def extract_data(self, event):
         result = dict()
         # If there are no interactions cannot do anything
