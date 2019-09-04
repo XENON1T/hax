@@ -53,6 +53,7 @@ class Extended(TreeMaker):
      - alt_s1_interaction_drift_time: Drift time of interaction formed with largest other S1 + main S2
      - alt_s1_interaction_z: Z position of interaction formed with largest other S1 + main S2
      - alt_s1_tight_coincidence: S1 tight coincidence of interaction formed with largest other S1 + main S2
+     - alt_s1_largest_hit_area: Area of the largest hit in the largest other S1
      - alt_s2_interaction_x: X position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_y: Y position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
      - alt_s2_interaction_z: Z position of interaction with main S1 + largest other S2 (field-distortion rz corrected)
@@ -62,10 +63,12 @@ class Extended(TreeMaker):
      - largest_other_s2_delay_main_s1: The hit time mean minus main S1 hit time mean
      - largest_other_s2_delay_main_s2: The hit time mean minus main S2 hit time mean
      - largest_other_s2_pattern_fit: Goodness-of-fit of hit pattern to position provided by PosRecTopPatternFit
+     - largest_s2_before_main_s2_area: The area of the largrest s2 before main s2
+     - largest_s2_before_main_s2_time: The hit time mean of largest s2 before main s2
      (for pax < v6.6.0, field is not stored)
      See also the DoubleScatter minitree for more properties of alternative interactions.
     """
-    __version__ = '0.0.10'
+    __version__ = '0.0.11'
     extra_branches = ['peaks.area_decile_from_midpoint[11]', 'peaks.tight_coincidence',
                       'peaks.n_contributing_channels', 'peaks.largest_hit_channel',
                       'interactions.s1_pattern_fit', 'peaks.reconstructed_positions*',
@@ -150,6 +153,7 @@ class Extended(TreeMaker):
                 result['alt_s1_interaction_z'] = it.z
                 alt_s1 = event.peaks[it.s1]
                 result['alt_s1_tight_coincidence'] = alt_s1.tight_coincidence
+                result['alt_s1_largest_hit_area'] = alt_s1.largest_hit_area
 
         result['largest_other_s2_delay_main_s1'] = float('nan')
         result['largest_other_s2_delay_main_s2'] = float('nan')
@@ -172,6 +176,7 @@ class Extended(TreeMaker):
         for s2_i in event.s2s:
             if event.peaks[s2_i].hit_time_mean < s2.hit_time_mean:
                 result['largest_s2_before_main_s2_area'] = event.peaks[s2_i].area
+                result['largest_s2_before_main_s2_time'] = event.peaks[s2_i].center_time
                 break
 
         return result
