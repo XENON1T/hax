@@ -118,18 +118,19 @@ class LoneS2Info(hax.minitrees.TreeMaker):
     """Treemaker for S2-only analysis: returns info about the largest and second largest S2 in the event.
     High-energy (S2 > 5000 PE) events are automatically skipped to speed up treemaking.
 
-    This treemaker implements the s2-only blinding protocol.
+    This treemaker implemented the s2-only blinding protocol.
+     - Version 1.0.0 (March 2019): blinding removed.
      - Version 0.2.0 (November 2018): unblind events ending in 0, 3, 7; as well as
        events whose z indicates a cathode interaction.
      - Version 0.1.0 (Early August 2018): unblind events whose number ends in 0.
     """
     extra_branches = ['peaks.reconstructed_positions*',
                       'peaks.area_decile_from_midpoint[11]',
-                      'peaks.left', 'peaks.center_time']
+                      'peaks.left', 'peaks.center_time', 'peaks.right', 'peaks.n_hits']
 
-    __version__ = '0.2.1'
+    __version__ = '1.0.0'
 
-    peak_properties_to_get = 'area area_fraction_top left n_hits center_time'.split()
+    peak_properties_to_get = 'area area_fraction_top left right n_hits center_time'.split()
 
     def get_properties(self, peak, prefix=''):
         """Return dictionary with peak properties, keys prefixed with prefix
@@ -150,34 +151,7 @@ class LoneS2Info(hax.minitrees.TreeMaker):
                 result['pattern_fit_nn'] = rp.goodness_of_fit
         return {prefix + k: v for k, v in result.items()}
 
-    def get_data(self, dataset, event_list=None):
-        try:
-            run_number = hax.runs.get_run_number(dataset)
-            run_data = hax.runs.datasets.query('number == %d' % run_number).iloc[0]
-        except Exception as e:
-            self.log.warning("Exception while trying to find run %s: %s.\n"
-                             "I assume this is an MC dataset: NOT blinding!" % (dataset, str(e)))
-            self.blind = False
-        else:
-            self.blind = run_data.reader__ini__name.startswith('background')
-
-        return super().get_data(dataset, event_list)
-
     def extract_data(self, event):
-        if self.blind:
-            # Consider blinding for this dataset (it's background)
-            if event.event_number % 10 not in (0, 3, 7):
-                # NOT in the training set. Probably have to blind this.
-                if not len(event.interactions):
-                    # No valid S1-S2 interactions: certainly blind this
-                    return dict()
-                else:
-                    # There is an interaction. Is it a cathode event?
-                    z = event.interactions[0].z
-                    if not (cathode_z_range[0] < z < cathode_z_range[1]):
-                        # NO, so blind this
-                        return dict()
-
         # Throw out big events quickly. Not sure if it helps much...
         if len(event.interactions):
             main_s2 = event.peaks[event.interactions[0].s2]
