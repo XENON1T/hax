@@ -22,59 +22,6 @@ unblind['cevns'] = {}
 unblind['cevns']['below_threshold_s2'] = '(s2 < 120)'
 unblind['cevns']['three_fold'] = '(s1_tight_coincidence > 2)'
 
-# Unblinded regions for WIMP SI search (see #168)
-unblind['wimp'] = {}
-
-# Full low-E unblinding for SR0+SR1 (see #216, #221)
-unblind['wimp']['unblind_lowe'] = '((cs1<80) & (run_number<=16639))'
-
-# ER band above -2*RMS at low-E
-unblind['wimp']['above_er_cs1_lt250'] = \
-    '((cs1<252) & (log(cs2_bottom/cs1)/log(10) > 0.466119*exp(-cs1/47.9903) + 1.31033 -0.000314047*cs1 + 1.33977/cs1))'
-
-# Kr line above -3*RMS
-unblind['wimp']['above_er_cs1_lt375'] = \
-    '((250<cs1) & (cs1<375) & (log(cs2_bottom/cs1)/log(10) > 0.822161*exp(-(cs1-207.702)/343.275) + 0.515139))'
-
-# ER band (constant line at high-E)
-unblind['wimp']['above_er_cs1_gt375'] = '((cs1>=375) & (log(cs2_bottom/cs1)/log(10) > 1.02015))'
-
-# Above cs1 = 3000 pe
-unblind['wimp']['cs1_gt3000'] = '(cs1>3000)'
-
-# Below S2 threshold (for AC modeling)
-unblind['wimp']['s2_threshold'] = '(s2<200)'
-
-# Multiple scatters
-unblind['wimp']['multiple_scatter'] = '(largest_other_s2 > 200)'
-
-# Reconstructed position outside TPC (for wall leakage modeling; see #169)
-unblind['wimp']['outside_tpc'] = '((cs1<500) & (r_3d_nn>47.9))'
-
-# Below NR band (constant line at low-E for wall+AC modeling; see #199)
-unblind['wimp']['below_nr_cs1_lt20'] = '((cs1<20) & (log(cs2_bottom/cs1)/log(10) < 1.08159))'
-
-# Below NR band -4.5sigma (see #199)
-unblind['wimp']['below_nr_cs1_gt20'] = \
-    '((20<=cs1) & (log(cs2_bottom/cs1)/log(10) < 1.21239 + -0.0016025*cs1 + -1.97495/cs1))'
-
-# 2 e- capture (DEC) blinded from 50-80 keV (see #161), change to smaller range (see #226)
-unblind['dec'] = {}
-unblind['dec']['e_range'] = \
-    '((0.0137*(cs1/.1426 + cs2_bottom/11.55) < 56.5) | (0.0137*(cs1/.1426 + cs2_bottom/11.55) > 72.))'
-
-# Unblinding of 14 days post-AmBe data for I-125 removal assessment (see #215)
-# unblind['dec']['i125_after_ambe'] = '((run_number>=8340) & (run_number<=8728))'
-
-# Unblinding of post-NG data after SR1 for I-125 removal assessment (see #220; compare to #215)
-unblind['dec']['i125_after_NG'] = '((run_number>17580) & (run_number<=17820))'
-
-# Unblinding of SR0 and SR1 in the DEC (see #228)
-unblind['dec']['SR1'] = '(run_number<=16639)'
-# Unblinding of SR2
-unblind['dec']['SR2'] = '(run_number>16639)'
-
-
 # 0vbb blinded from 2.3-2.6 MeV (see #161)
 unblind['0vbb'] = {}
 unblind['0vbb']['e_range'] = \
