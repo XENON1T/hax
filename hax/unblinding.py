@@ -17,6 +17,11 @@ unblinding_selection = ''
 # 2D dictionary first index denoting physics channel, second index set of selections
 unblind = {}
 
+# Unblinded regions for CEVNS search
+unblind['cevns'] = {}
+unblind['cevns']['below_threshold_s2'] = '(s2 < 120)'
+unblind['cevns']['three_fold'] = '(s1_tight_coincidence > 2)'
+
 # Unblinded regions for WIMP SI search (see #168)
 unblind['wimp'] = {}
 
