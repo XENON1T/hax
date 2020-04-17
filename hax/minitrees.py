@@ -336,10 +336,17 @@ def load_single_minitree(run_id,
         "Retrieved %s minitree data for dataset %s" %
         (treemaker.__name__, run_id))
 
+    try:
+        pax_root_version = hax.paxroot.get_metadata(run_id)['file_builder_version']
+    except ValueError:
+        # The ROOT file is missing
+        # Unless this is a never_store minitree, the creation will fail anyway
+        pax_root_version = 'unknown'
+
     metadata_dict = dict(
         version=treemaker.__version__,
         extra=treemaker.extra_metadata,
-        pax_version=hax.paxroot.get_metadata(run_id)['file_builder_version'],
+        pax_version=pax_root_version,
         hax_version=hax.__version__,
         created_by=get_user_id(),
         event_list=event_list,

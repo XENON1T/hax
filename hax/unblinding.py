@@ -63,17 +63,17 @@ def is_blind(run_id):
     if hax.config['experiment'] != 'XENON1T':
         return False
 
-    # Do not blind MC
-    if hax.runs.is_mc(run_id)[0]:
-        return False
-
     try:
+        # Do not blind MC
+        if hax.runs.is_mc(run_id)[0]:
+            return False
+
         run_number = hax.runs.get_run_number(run_id)
         run_data = hax.runs.datasets.query('number == %d' % run_number).iloc[0]
 
     except Exception:
         # Couldn't find in runDB, so blind by default
-        log.warning("Exception while trying to find run %s: blinding by default" % run_id)
+        log.warning("Exception while trying to find or identify run %s: blinding by default" % run_id)
         return True
 
     tag_names = [tag for tag in run_data.tags.split(',')]
