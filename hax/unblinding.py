@@ -21,6 +21,7 @@ unblind = {}
 unblind['cevns'] = {}
 unblind['cevns']['below_threshold_s2'] = '(s2 < 120)'
 unblind['cevns']['three_fold'] = '(s1_tight_coincidence > 2)'
+unblind['cevns']['wall'] = '(r_3d_nn_tf > 40)'
 
 # 0vbb blinded from 2.3-2.6 MeV (see #161)
 unblind['0vbb'] = {}
