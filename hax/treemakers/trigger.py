@@ -189,7 +189,7 @@ class TailCut(hax.minitrees.TreeMaker):
         look_back = 50
         # Load Fundamentals and LargestPeakProperties
         # Using load_single_dataset instead of load will ensure no blindding cut is applies
-        data, _ = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', LoneSignals])#'LargestPeakProperties'])
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'LoneSignals'])#'LargestPeakProperties'])
         if data.empty:
             return pd.DataFrame({})
         # Get largest S2 in the event (or 0, if no S2 was found)
