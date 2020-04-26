@@ -130,7 +130,6 @@ class LoneSignalsPreS1(hax.minitrees.TreeMaker):
         return result
 
 # Extraction of peak information for Lone-S2/S1 studies
-from hax.minitrees import TreeMaker
 from hax.corrections_handler import CorrectionsHandler
 from hax.treemakers.corrections import tfnn_position_reconstruction
 
