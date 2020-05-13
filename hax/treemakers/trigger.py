@@ -181,45 +181,76 @@ class Proximity(hax.minitrees.TreeMaker):
         return result
 
 
+# new minitrees
 class TailCut(hax.minitrees.TreeMaker):
-    __version__ = '0.0.3'
+    __version__ = '0.3'
     never_store = True
-
     def get_data(self, dataset, event_list=None):
-        look_back = 100
+        look_back = 50
         # Load Fundamentals and LargestPeakProperties
         # Using load_single_dataset instead of load will ensure no blindding cut is applies
-        data, _ = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'LargestPeakProperties'])
-
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['Fundamentals', 'LoneSignals'])#'LargestPeakProperties'])
         if data.empty:
             return pd.DataFrame({})
-
         # Get largest S2 in the event (or 0, if no S2 was found)
-        s2 = data['s2_area'].values
+        s2 = data['s2_0_area'].values
+        #s2 = data['total_peak_area'].values
+        s2_x = data['s2_0_x_nn_tf'].values
+        s2_y = data['s2_0_y_nn_tf'].values
+
+        s2_other = data['s2_1_area'].values
+        s2_x_other = data['s2_1_x_nn_tf'].values
+        s2_y_other = data['s2_1_y_nn_tf'].values
+        
         s2[np.isnan(s2)] = 0
-
+        s2_other[np.isnan(s2_other)] = 0
         # Get the center time of the event
-        t = data['event_time'].values + data['event_duration'].values/2
-
+        t = data['event_time'].values # + data['event_duration'].values/2  #why doesn't it work????
+        tdiff_min = np.zeros(len(t))
+        tdiff_min[0] = 1e18
+        for i in range(1, len(t)):
+            tdiff_min[i] = t[i] - t[i-1]
         # Compute S2/tdif for each value of lookback (from 1 to look_back, inclusive)
         # Allocates n_events * look_back floats; should not be a problem unless look_back is insane number.
         s2_over_tdiff_lookback = np.zeros((len(t), look_back + 1))
         s2_area_lookback = np.zeros((len(t), look_back + 1))
+        se_probabal_coor = np.zeros((len(t), 2, look_back + 1))
+        
+        s2_other_over_tdiff_lookback = np.zeros((len(t), look_back + 1))
+        s2_other_area_lookback = np.zeros((len(t), look_back + 1))
+        se_probabal_coor_other = np.zeros((len(t), 2, look_back + 1))
+        
         for i in range(1, look_back + 1):
             s2_over_tdiff_lookback[i:, i] = s2[:-i]/(t[i:] - t[:-i])
             s2_area_lookback[i:, i] = s2[:-i]
+            se_probabal_coor[i:, 0, i] = s2_x[i:] - s2_x[:-i]
+            se_probabal_coor[i:, 1, i] = s2_y[i:] - s2_y[:-i]
+            s2_other_over_tdiff_lookback[i:, i] = s2_other[:-i]/(t[i:] - t[:-i])
+            s2_other_area_lookback[i:, i] = s2_other[:-i]
+            se_probabal_coor_other[i:, 0, i] = s2_x_other[i:] - s2_x[:-i]
+            se_probabal_coor_other[i:, 1, i] = s2_y_other[i:] - s2_y[:-i]
 
+            
         # Which event
         tailcut_set_by = np.argmax(s2_over_tdiff_lookback, axis=1)
         result = s2_over_tdiff_lookback.max(axis=1)
+        # Which event for se
+        distance_cut = np.sqrt(np.sum(se_probabal_coor**2, axis=1))
+        distance_cut = list(map(lambda d, take: d[take], distance_cut, tailcut_set_by))
+        # s2_over_tdiff_lookback[distance_cut>10] = 0
+        tailcut_other_set_by = np.argmax(s2_other_over_tdiff_lookback, axis=1)
+        result_other = s2_other_over_tdiff_lookback.max(axis=1)
 
-        # Area of the peak corresponding to the 'tailcut_set_by' event
-        s2_area_tailcut_set_by = np.zeros(len(s2_area_lookback))
-        for i, s2back in enumerate(s2_area_lookback):
-            s2_area_tailcut_set_by[i] = np.take(s2back, tailcut_set_by[i])
+        distance_cut_other = np.sqrt(np.sum(se_probabal_coor_other**2, axis=1))
+        distance_cut_other = list(map(lambda d, take: d[take], distance_cut_other, tailcut_other_set_by))
 
         return pd.DataFrame(dict(event_number=data['event_number'],
-                                 run_number=data['run_number'],
-                                 s2_over_tdiff=result,
-                                 tailcut_set_by=tailcut_set_by,
-                                 s2_area_tailcut_set_by=s2_area_tailcut_set_by))
+            run_number=data['run_number'],
+            s2_over_tdiff=result,
+            tdiff_min=tdiff_min,
+            tailcut_set_by=tailcut_set_by,
+            distance_cut = distance_cut,
+            s2_other_over_tdiff=result_other,
+            tailcut_other_set_by=tailcut_other_set_by,
+            distance_cut_other = distance_cut_other,
+                                            ))
