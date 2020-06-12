@@ -272,7 +272,7 @@ class PeaksBeforeTrigger(hax.minitrees.TreeMaker):
     Provides:
     """
     # never_store = True
-    __version__ = '0.3'
+    __version__ = '0.4'
     branch_selection = [
         'peaks.*',
         'interactions.*',
@@ -313,6 +313,9 @@ class PeaksBeforeTrigger(hax.minitrees.TreeMaker):
         result['s1_n_hits'] = 0
         result['s1_hit_aft'] = 0      
         result['noisy_hits_in_s1'] = 0
+        result['s2_n_hits'] = 0
+        result['s2_hit_aft'] = 0      
+
 
         if len(cache['s2']):
             result['largest_s2_before_trigger'] = np.max(cache['s2'])
@@ -339,6 +342,10 @@ class PeaksBeforeTrigger(hax.minitrees.TreeMaker):
             result['s1_hit_aft'] = s1.hits_fraction_top        
             result['noisy_hits_in_s1'] = self.n_noise_hit(s1.hits_per_channel, self.noisy_channel)
 
+            s2 = event.peaks[event.interactions[0].s2]
+            result['s2_n_hits'] = s2.n_hits
+            result['s2_hit_aft'] = s2.hits_fraction_top        
+      
         return result
 
 
