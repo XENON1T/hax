@@ -90,11 +90,14 @@ def update_datasets(query=None):
                                   'reader.self_trigger', 'reader.ini.name',
                                   'trigger.events_built', 'trigger.status',
                                   'tags.name',
+                                  'comments.text',
                                   'data'])
         for doc in cursor:
             # Process and flatten the doc
-            # Convert tags to single string
+            # Convert tags and comments to single string
             doc['tags'] = ','.join([t['name'] for t in doc.get('tags', [])])
+            doc['comments'] = ' --- '.join([t['text'].replace('\n', '   ')
+                                            for t in doc.get('comments', [])])
             doc = flatten_dict(doc, separator='__')
             del doc['_id']  # Remove the Mongo document ID
             if 'data' in doc:
