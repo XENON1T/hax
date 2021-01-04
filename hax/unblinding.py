@@ -23,15 +23,6 @@ unblind['cevns']['below_threshold_s2'] = '(s2 < 120)'
 unblind['cevns']['three_fold'] = '(s1_tight_coincidence > 2)'
 unblind['cevns']['wall'] = '(r_3d_nn_tf > 40)'
 
-# 0vbb blinded from 2.3-2.6 MeV (see #161)
-unblind['0vbb'] = {}
-unblind['0vbb']['e_range'] = \
-    '((0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) < 2457.83*(1 - 4*0.01))' \
-    ' | (0.0137*(cs1/(z_3d_nn*0.000092 + 0.14628) + cs2_bottom/(-0.017*z_3d_nn + 10.628)) > 2457.83*(1 + 4*0.01)))'
-
-# HE multiple scatter
-unblind['0vbb']['multiple_scatter'] = '(largest_other_s2 > 10000) & (largest_other_s2 > 0.2 * s2)'
-
 def make_unblinding_selection():
     """Generate full unblinding selection string
 
