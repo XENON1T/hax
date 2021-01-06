@@ -217,7 +217,7 @@ class S2PatternReducedAP(TreeMaker):
     (see:https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenon1t:chloetherreau:0vbb_s2_likelihood_cut_he_update)
     Need Correction and Fundamentals minitrees.
     '''
-    __version__ = '1.0'
+    __version__ = '1.1'
     extra_branches = ['peaks.area_per_channel*']
 
     def __init__(self):
@@ -247,7 +247,7 @@ class S2PatternReducedAP(TreeMaker):
     def get_data(self, dataset, event_list=None):
         # If we do switch to new NN later get rid of this stuff and directly use those positions!
         # WARNING: This 'bypass_blinding' flag should only be used for production and never for analysis (see #211)
-        data, _ = hax.minitrees.load_single_dataset(dataset, ['Corrections', 'Fundamentals'])
+        data, _ = hax.minitrees.load_single_dataset(dataset, ['Corrections', 'Fundamentals'], bypass_blinding=True)
         self.x = data.x_observed_nn_tf.values
         self.y = data.y_observed_nn_tf.values
         self.z = data.z_observed.values
